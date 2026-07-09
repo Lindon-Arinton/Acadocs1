@@ -1,0 +1,36 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Serve existing files and directories directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule .* - [L]
+
+  # Root and login routes
+  RewriteRule ^$ auth/login.php [L,QSA]
+  RewriteRule ^login$ auth/login.php [L,QSA]
+  RewriteRule ^logout$ auth/logout.php [L,QSA]
+
+  # Page routes
+  RewriteRule ^dashboard$ pages/dashboard.php [L,QSA]
+  RewriteRule ^teacher-dashboard$ pages/teacher_dashboard.php [L,QSA]
+  RewriteRule ^submit-documents$ pages/submit_documents.php [L,QSA]
+  RewriteRule ^documents$ pages/documents.php [L,QSA]
+  RewriteRule ^performance$ pages/performance.php [L,QSA]
+  RewriteRule ^enrollment-kpis$ pages/enrollment_kpis.php [L,QSA]
+  RewriteRule ^announcements$ pages/announcements.php [L,QSA]
+  RewriteRule ^parent-meetings$ pages/parent_meetings.php [L,QSA]
+  RewriteRule ^financial-reports$ pages/financial.php [L,QSA]
+  RewriteRule ^time-records$ pages/time_records.php [L,QSA]
+  RewriteRule ^deped-documents$ pages/deped_documents.php [L,QSA]
+  RewriteRule ^document-links$ pages/document_links.php [L,QSA]
+  RewriteRule ^property-management$ pages/properties.php [L,QSA]
+  RewriteRule ^users$ pages/users.php [L,QSA]
+
+  # API routes
+  RewriteRule ^api/auth(?:/.*)?$ api/auth.php [L,QSA]
+  RewriteRule ^api/([^/]+)$ api/$1.php [L,QSA]
+
+  # Allow direct asset access
+  RewriteRule ^assets/(.*)$ assets/$1 [L,QSA]
+</IfModule>
