@@ -34,13 +34,13 @@ CREATE TABLE users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO users (name, email, password, role) VALUES
-('Principal',      'principal@school.edu',        '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
-('Maria Santos',   'maria.santos@school.edu',     '$2y$10$TKh8H1.PyfcAqo1/9fZ5AePfeVqJJVf./RWw8vfHHrLo0D0yYe1Iu', 'teacher'),
-('Juan dela Cruz', 'juan.delacruz@school.edu',    '$2y$10$TKh8H1.PyfcAqo1/9fZ5AePfeVqJJVf./RWw8vfHHrLo0D0yYe1Iu', 'teacher'),
-('Carmen Lopez',   'secretary@school.edu',        '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'secretary'),
-('Roberto Santos', 'canteen@school.edu',          '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'canteen'),
-('Linda Aquino',   'disbursing@school.edu',       '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'disbursing'),
-('Jose Ramirez',   'adas@school.edu',             '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'adas');
+('Principal',      'principal@school.edu',        '$2y$10$mZiXiBtaycSs2DmiVudkq.NT6PlyGsTBSLisKR0G6tH6HQzsVL2Au', 'admin'),
+('Maria Santos',   'maria.santos@school.edu',     '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher'),
+('Juan dela Cruz', 'juan.delacruz@school.edu',    '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher'),
+('Carmen Lopez',   'secretary@school.edu',        '$2y$10$iVemOAuYsrWtDhAe3BmrJe2qYKXSUFiTNFDH851mKd31CMTTxmDYi', 'secretary'),
+('Roberto Santos', 'canteen@school.edu',          '$2y$10$.PHXEGPC7nwrTiWmOaIRHetxLP7qLKBJ0Hhd.1CrwXf8T1SCgKyXy', 'canteen'),
+('Linda Aquino',   'disbursing@school.edu',       '$2y$10$hziMkTHuEGpUYmsCvwjb8emAgc4IPNXX5AV3V5QR5zGFOQXFD.M9e', 'disbursing'),
+('Jose Ramirez',   'adas@school.edu',             '$2y$10$EoWuuEchqWy.jPRi50J/8e1ucyvKvJFL6xcq3YJAshBThctyEzOz.', 'adas');
 
 -- Plain-text passwords for reference (never store these):
 -- principal@school.edu  → admin123
