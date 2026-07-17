@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
   `subject` varchar(100) NOT NULL,
   `grade_level` varchar(50) NOT NULL,
   `date_submitted` datetime NOT NULL,
+  `file_path` varchar(500) DEFAULT NULL,
   `status` enum('Submitted','Reviewed','Returned','Pending') DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),

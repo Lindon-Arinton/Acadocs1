@@ -24,6 +24,7 @@
         <div class="alert alert-warning small">Your account is not linked to a teacher profile.</div>
         <?php else: ?>
         <form method="POST" action="<?= base_url('submit-documents') ?>" class="ajax-form"
+              enctype="multipart/form-data"
               data-confirm-action="add" data-confirm-title="Submit this document?"
               data-confirm-text="It will be sent for review and cannot be edited afterward.">
           <div class="mb-3">
@@ -44,6 +45,11 @@
             <label class="form-label small fw-semibold">Grade Level</label>
             <input type="text" name="grade_level" class="form-control form-control-sm"
                    value="<?= e($teacher['grade_level']) ?>" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Add Document</label>
+            <input type="file" name="document_file" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png" required>
+            <div class="form-text small">Upload the file you want to submit for review.</div>
           </div>
           <button type="submit" class="btn btn-maroon w-100 btn-sm">
             <i class="bi bi-send me-2"></i>Submit Document

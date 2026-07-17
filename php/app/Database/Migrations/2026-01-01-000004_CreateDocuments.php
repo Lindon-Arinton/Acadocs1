@@ -16,6 +16,7 @@ class CreateDocuments extends Migration
             'subject' => ['type' => 'VARCHAR', 'constraint' => 100],
             'grade_level' => ['type' => 'VARCHAR', 'constraint' => 50],
             'date_submitted' => ['type' => 'DATETIME'],
+            'file_path' => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
             'status' => ['type' => 'ENUM', 'constraint' => ['Submitted', 'Reviewed', 'Returned', 'Pending'], 'default' => 'Pending'],
             'created_at' => ['type' => 'TIMESTAMP', 'null' => true, 'default' => new RawSql('CURRENT_TIMESTAMP')],
         ]);

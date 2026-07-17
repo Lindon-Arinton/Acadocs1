@@ -12,8 +12,9 @@ class TeacherDashboard extends BaseController
 {
     public function index()
     {
-        $user    = currentUser();
-        $teacher = (new TeacherModel())->findByEmail($user['email']);
+        $user = currentUser();
+        $teacherModel = new TeacherModel();
+        $teacher = $teacherModel->resolveForUser($user);
 
         $documentModel = new DocumentModel();
         $myDocs = [];

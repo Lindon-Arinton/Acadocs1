@@ -14,14 +14,33 @@ class SubmitDocuments extends BaseController
             return redirect()->to('/dashboard');
         }
 
-        $user    = currentUser();
-        $teacher = (new TeacherModel())->findByEmail($user['email']);
+        $user = currentUser();
+        $teacherModel = new TeacherModel();
+        $teacher = $teacherModel->resolveForUser($user);
 
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
             if (! $teacher) {
                 return $isAjax ? $this->ajaxError('Your account is not linked to a teacher profile.') : redirect()->to('/submit-documents');
+            }
+
+            $filePath = null;
+            $file = $this->request->getFile('document_file');
+
+            if ($file && $file->isValid() && ! $file->hasMoved()) {
+                $uploadPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'documents';
+                if (! is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                }
+
+                $safeName = preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientName());
+                $safeName = $safeName ?: 'document_' . time() . '.' . $file->getExtension();
+                $fileName = date('Ymd_His') . '_' . $safeName;
+
+                if ($file->move($uploadPath, $fileName)) {
+                    $filePath = 'writable/uploads/documents/' . $fileName;
+                }
             }
 
             try {
@@ -31,6 +50,7 @@ class SubmitDocuments extends BaseController
                     'subject'        => $this->request->getPost('subject'),
                     'grade_level'    => $this->request->getPost('grade_level'),
                     'date_submitted' => date('Y-m-d H:i:s'),
+                    'file_path'      => $filePath,
                     'status'         => 'Submitted',
                 ]);
             } catch (\Throwable $e) {
