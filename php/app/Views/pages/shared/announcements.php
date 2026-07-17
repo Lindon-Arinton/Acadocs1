@@ -38,8 +38,11 @@
         'Forms'          => ['#f0fdf4','#065f46','bi-file-earmark-text-fill'],
       ][$a['type']] ?? ['#f9fafb','#374151','bi-bell'];
       [$bg,$tc,$icon] = $cfg;
+      $preview = mb_strlen($a['content']) > 140 ? mb_substr($a['content'], 0, 140) . '…' : $a['content'];
+      $modalData = $a + ['date_formatted' => date('F d, Y', strtotime($a['date']))];
     ?>
-    <div class="announcement-card" style="border-left:4px solid <?= $tc ?>;">
+    <div class="announcement-card" style="border-left:4px solid <?= $tc ?>;cursor:pointer;"
+         onclick="viewAnnouncement(<?= htmlspecialchars(json_encode($modalData), ENT_QUOTES) ?>, '<?= $bg ?>', '<?= $tc ?>', '<?= $icon ?>')">
       <div class="d-flex gap-3 align-items-start">
         <div class="ac-icon flex-shrink-0" style="background:<?= $bg ?>;">
           <i class="bi <?= $icon ?>" style="color:<?= $tc ?>;font-size:1rem;"></i>
@@ -57,7 +60,7 @@
                 <i class="bi bi-calendar3 me-1"></i><?= date('M d, Y', strtotime($a['date'])) ?>
               </span>
               <?php if (hasRole('admin','secretary')): ?>
-              <form method="POST" action="<?= base_url('announcements') ?>" class="d-inline ajax-form"
+              <form method="POST" action="<?= base_url('announcements') ?>" class="d-inline ajax-form" onclick="event.stopPropagation()"
                     data-confirm-title="Delete this announcement?">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= $a['id'] ?>">
@@ -66,7 +69,7 @@
               <?php endif; ?>
             </div>
           </div>
-          <p class="text-muted mb-0" style="font-size:.8rem;line-height:1.5;"><?= e($a['content']) ?></p>
+          <p class="text-muted mb-0" style="font-size:.8rem;line-height:1.5;"><?= e($preview) ?></p>
         </div>
       </div>
     </div>
@@ -114,4 +117,39 @@
   <?php endif; ?>
 </div>
 
-<?php include APPPATH . 'Views/layout/footer.php'; ?>
+<!-- View Announcement Modal -->
+<div class="modal fade" id="viewAnnouncementModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" id="viewAnnouncementHeader" style="color:#fff;">
+        <h6 class="modal-title fw-bold"><i class="bi bi-megaphone-fill me-2" id="viewAnnouncementIcon"></i><span id="viewAnnouncementTitle"></span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="badge" id="viewAnnouncementType"></span>
+          <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i><span id="viewAnnouncementDate"></span></span>
+        </div>
+        <p class="mb-0" style="white-space:pre-wrap;" id="viewAnnouncementContent"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php
+$extraScript = "<script>
+function viewAnnouncement(a, bg, tc, icon) {
+    document.getElementById('viewAnnouncementHeader').style.background = tc;
+    document.getElementById('viewAnnouncementIcon').className = 'bi ' + icon + ' me-2';
+    document.getElementById('viewAnnouncementTitle').textContent = a.title;
+    document.getElementById('viewAnnouncementType').textContent = a.type;
+    document.getElementById('viewAnnouncementType').style.background = bg;
+    document.getElementById('viewAnnouncementType').style.color = tc;
+    document.getElementById('viewAnnouncementType').style.border = '1px solid ' + tc + '33';
+    document.getElementById('viewAnnouncementDate').textContent = a.date_formatted;
+    document.getElementById('viewAnnouncementContent').textContent = a.content;
+    new bootstrap.Modal(document.getElementById('viewAnnouncementModal')).show();
+}
+</script>";
+include APPPATH . 'Views/layout/footer.php';
+?>
