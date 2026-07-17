@@ -22,6 +22,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('adas-dashboard', 'Adas\AdasDashboard::index');
     $routes->match(['get', 'post'], 'submit-documents', 'Teacher\SubmitDocuments::index');
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
+    $routes->get('documents/(:num)/file', 'Shared\DocumentFile::show/$1');
     $routes->get('performance', 'Admin\Performance::index');
     $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');

@@ -48,8 +48,21 @@
           </div>
           <div class="mb-3">
             <label class="form-label small fw-semibold">Add Document</label>
-            <input type="file" name="document_file" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png" required>
+            <input type="file" name="document_file" id="documentFileInput" class="form-control form-control-sm"
+                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png" required
+                   onchange="previewSelectedFile(this)">
             <div class="form-text small">Upload the file you want to submit for review.</div>
+            <div id="filePreviewBox" class="mt-2 p-2 rounded-3 d-none align-items-center gap-2" style="background:#f8f9fa;border:1px solid var(--border);">
+              <img id="filePreviewImg" class="d-none rounded" style="width:44px;height:44px;object-fit:cover;flex-shrink:0;">
+              <i id="filePreviewIcon" class="bi bi-file-earmark-text fs-3 text-muted d-none" style="flex-shrink:0;"></i>
+              <div class="flex-grow-1 overflow-hidden">
+                <div id="filePreviewName" class="small fw-semibold text-truncate"></div>
+                <div id="filePreviewSize" class="text-muted" style="font-size:.7rem;"></div>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm text-danger py-0 px-1" onclick="clearSelectedFile()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
           </div>
           <button type="submit" class="btn btn-maroon w-100 btn-sm">
             <i class="bi bi-send me-2"></i>Submit Document
@@ -75,6 +88,12 @@
           </div>
           <span class="status-pill <?= $badgeMap[$doc['status']] ?? 'badge-pending' ?>"><?= e($doc['status']) ?></span>
         </div>
+        <?php if (! empty($doc['file_path'])): ?>
+        <a href="<?= base_url('documents/' . $doc['id'] . '/file') ?>" target="_blank" rel="noopener"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-eye me-1"></i>View File
+        </a>
+        <?php endif; ?>
         <?php if ($doc['feedback_comments']): ?>
         <div class="mt-3 p-3 rounded-3" style="background:#f8f9fa;border-left:3px solid var(--maroon);">
           <p class="small fw-semibold mb-1 text-muted"><i class="bi bi-chat-dots me-1"></i>Principal Feedback:</p>
@@ -94,4 +113,42 @@
   </div>
 </div>
 
-<?php include APPPATH . 'Views/layout/footer.php'; ?>
+<?php
+$extraScript = "<script>
+const IMAGE_EXT = ['jpg','jpeg','png','gif','webp'];
+
+function previewSelectedFile(input) {
+    const box  = document.getElementById('filePreviewBox');
+    const img  = document.getElementById('filePreviewImg');
+    const icon = document.getElementById('filePreviewIcon');
+    const name = document.getElementById('filePreviewName');
+    const size = document.getElementById('filePreviewSize');
+
+    const file = input.files && input.files[0];
+    if (! file) { box.classList.add('d-none'); return; }
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    name.textContent = file.name;
+    size.textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+    if (IMAGE_EXT.includes(ext)) {
+        img.src = URL.createObjectURL(file);
+        img.classList.remove('d-none');
+        icon.classList.add('d-none');
+    } else {
+        img.classList.add('d-none');
+        icon.classList.remove('d-none');
+    }
+
+    box.classList.remove('d-none');
+    box.classList.add('d-flex');
+}
+
+function clearSelectedFile() {
+    const input = document.getElementById('documentFileInput');
+    input.value = '';
+    document.getElementById('filePreviewBox').classList.add('d-none');
+}
+</script>";
+include APPPATH . 'Views/layout/footer.php';
+?>
