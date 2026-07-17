@@ -4,6 +4,7 @@ $user      = currentUser();
 $initials  = implode('', array_map(fn ($w) => strtoupper($w[0]), array_slice(explode(' ', $user['name'] ?? 'U'), 0, 2)));
 $role      = $user['role'] ?? '';
 $uri       = $_SERVER['REQUEST_URI'] ?? '/';
+$photoUrl  = ! empty($user['photo']) ? base_url('uploads/avatars/' . $user['photo']) : null;
 
 try {
     $recentAnnouncements = (new \App\Models\AnnouncementModel())
@@ -256,16 +257,20 @@ try {
   </div><!-- /.sidebar-scroll -->
 
   <!-- User strip -->
-  <div class="sidebar-user">
+  <a href="<?= base_url('profile') ?>" class="sidebar-user text-decoration-none" title="My Profile">
+    <?php if ($photoUrl): ?>
+    <img src="<?= e($photoUrl) ?>" alt="" class="sidebar-user-avatar" style="object-fit:cover;">
+    <?php else: ?>
     <div class="sidebar-user-avatar"><?= $initials ?></div>
+    <?php endif; ?>
     <div class="sidebar-user-info">
       <div class="sidebar-user-name"><?= e($user['name'] ?? '') ?></div>
       <div class="sidebar-user-role"><?= e(ucfirst($role)) ?></div>
     </div>
-    <button id="sidebar-collapse-btn" class="sidebar-collapse-btn d-none d-lg-flex" type="button" onclick="toggleCollapse()" title="Collapse sidebar" aria-expanded="true">
+    <button id="sidebar-collapse-btn" class="sidebar-collapse-btn d-none d-lg-flex" type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleCollapse()" title="Collapse sidebar" aria-expanded="true">
       <i class="bi bi-chevron-double-left" id="collapse-icon"></i>
     </button>
-  </div>
+  </a>
 </nav>
 
 <!-- ══════════════ TOP BAR ══════════════ -->
@@ -326,15 +331,19 @@ try {
     </div>
 
     <!-- User chip -->
-    <div class="d-flex align-items-center gap-2 ps-2 border-start">
+    <a href="<?= base_url('profile') ?>" class="d-flex align-items-center gap-2 ps-2 border-start text-decoration-none" title="My Profile">
+      <?php if ($photoUrl): ?>
+      <img src="<?= e($photoUrl) ?>" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+      <?php else: ?>
       <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;">
         <?= $initials ?>
       </div>
+      <?php endif; ?>
       <div class="d-none d-sm-block">
         <div style="font-size:.78rem;font-weight:600;color:#111;"><?= e($user['name'] ?? '') ?></div>
         <div style="font-size:.68rem;color:var(--muted);"><?= e(ucfirst($role)) ?></div>
       </div>
-    </div>
+    </a>
 
     <!-- Logout -->
     <a href="<?= base_url('logout') ?>" class="btn btn-ghost btn-sm" title="Logout" onclick="return confirmLogout(event, this)">
