@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/xampp1/mysql/bin/**)",
+      "Read(//c/xampp1/mysql/**)",
+      "Bash(/c/xampp1/mysql_stop.bat)",
+      "Bash(/c/xampp1/mysql_start.bat)",
+      "Bash(powershell -NoProfile -Command \"Get-Process -Name mysqld -ErrorAction SilentlyContinue\")",
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 21404 -Force -ErrorAction SilentlyContinue\")",
+      "Bash(/c/xampp1/mysql/bin/mysql.exe -u root -h 127.0.0.1 acadocs -e \"CREATE TABLE test_tbl \\(id INT\\); DROP TABLE test_tbl; SELECT 'write ok';\")",
+      "Bash(/c/xampp1/mysql/bin/mysql.exe -u root -h 127.0.0.1 acadocs -e \"SHOW TABLES; DESCRIBE canteen_records;\")"
+    ],
+    "additionalDirectories": [
+      "C:\\xampp1\\mysql\\bin"
+    ]
+  }
+}
