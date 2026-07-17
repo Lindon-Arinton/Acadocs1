@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use App\Models\UserModel;
 
 class Users extends BaseController
@@ -62,7 +63,7 @@ class Users extends BaseController
             ->orderBy('role')->orderBy('name')
             ->findAll();
 
-        return view('pages/users', [
+        return view('pages/admin/users', [
             'pageTitle' => 'User Management',
             'users'     => $users,
             'search'    => $search,

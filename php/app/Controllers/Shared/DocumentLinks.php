@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Shared;
 
+use App\Controllers\BaseController;
 use App\Models\DocumentLinkModel;
 
 class DocumentLinks extends BaseController
@@ -55,7 +56,7 @@ class DocumentLinks extends BaseController
             $builder->where('category', $cat);
         }
 
-        return view('pages/document_links', [
+        return view('pages/shared/document_links', [
             'pageTitle' => 'Document Links',
             'links'     => $builder->findAll(),
             'cat'       => $cat,

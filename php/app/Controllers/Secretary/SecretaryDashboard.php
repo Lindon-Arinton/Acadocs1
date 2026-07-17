@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Secretary;
 
+use App\Controllers\BaseController;
 use App\Models\AnnouncementModel;
 use App\Models\DocumentLinkModel;
 
@@ -19,7 +20,7 @@ class SecretaryDashboard extends BaseController
         $links     = $linkModel->orderBy('date_added', 'DESC')->findAll(6);
         $linkCount = $linkModel->countAllResults();
 
-        return view('pages/secretary_dashboard', [
+        return view('pages/secretary/secretary_dashboard', [
             'pageTitle'         => 'Secretary Dashboard',
             'user'              => $user,
             'announcements'     => $announcements,

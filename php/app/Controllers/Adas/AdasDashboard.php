@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Adas;
 
+use App\Controllers\BaseController;
 use App\Models\DepedDocumentModel;
 use App\Models\TimeRecordModel;
 
@@ -31,7 +32,7 @@ class AdasDashboard extends BaseController
             }
         }
 
-        return view('pages/adas_dashboard', [
+        return view('pages/adas/adas_dashboard', [
             'pageTitle'        => 'ADAS Dashboard',
             'user'             => $user,
             'dateFilter'       => $dateFilter,

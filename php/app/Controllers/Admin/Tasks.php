@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
 use App\Models\TaskSubmissionModel;
@@ -66,7 +67,7 @@ class Tasks extends BaseController
         }
         unset($task);
 
-        return view('pages/tasks', [
+        return view('pages/admin/tasks', [
             'pageTitle' => 'Tasks & Assignments',
             'tasks'     => $tasks,
             'flash'     => session()->getFlashdata('flash'),
@@ -135,7 +136,7 @@ class Tasks extends BaseController
             static fn (array $u) => ! in_array($u['id'], $submittedUserIds, true)
         ));
 
-        return view('pages/task_detail', [
+        return view('pages/admin/task_detail', [
             'pageTitle'    => 'Task: ' . $task['title'],
             'task'         => $task,
             'submissions'  => $submissions,

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Shared;
 
+use App\Controllers\BaseController;
 use App\Models\TimeRecordModel;
 
 class TimeRecords extends BaseController
@@ -65,7 +66,7 @@ class TimeRecords extends BaseController
             }
         }
 
-        return view('pages/time_records', [
+        return view('pages/shared/time_records', [
             'pageTitle'  => 'Time Records',
             'records'    => $records,
             'summary'    => $summary,

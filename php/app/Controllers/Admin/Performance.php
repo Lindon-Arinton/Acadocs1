@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use App\Models\KpiSnapshotModel;
 use App\Models\PerformanceByLevelModel;
 use App\Models\PerformanceBySubjectModel;
@@ -16,7 +17,7 @@ class Performance extends BaseController
         $bySubject = (new PerformanceBySubjectModel())->where('school_year', $year)->orderBy('mps', 'DESC')->findAll();
         $kpi       = (new KpiSnapshotModel())->forYear($year);
 
-        return view('pages/performance', [
+        return view('pages/admin/performance', [
             'pageTitle' => 'Performance Analytics',
             'year'      => $year,
             'byLevel'   => $byLevel,

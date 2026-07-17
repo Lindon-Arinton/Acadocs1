@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Teacher;
 
+use App\Controllers\BaseController;
 use App\Models\AnnouncementModel;
 use App\Models\DocumentLinkModel;
 use App\Models\DocumentModel;
@@ -33,7 +34,7 @@ class TeacherDashboard extends BaseController
         $links = (new DocumentLinkModel())->whereIn('access_level', ['All Users', 'Teachers'])
             ->orderBy('date_added', 'DESC')->findAll(6);
 
-        return view('pages/teacher_dashboard', [
+        return view('pages/teacher/teacher_dashboard', [
             'pageTitle'     => 'Teacher Dashboard',
             'user'          => $user,
             'teacher'       => $teacher,

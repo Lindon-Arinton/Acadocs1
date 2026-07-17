@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use App\Models\DocumentFeedbackModel;
 use App\Models\DocumentModel;
 
@@ -59,7 +60,7 @@ class Documents extends BaseController
 
         $statusCounts = $documentModel->statusCounts();
 
-        return view('pages/documents', [
+        return view('pages/admin/documents', [
             'pageTitle'    => 'Manage Documents',
             'docs'         => $docs,
             'statusFilter' => $statusFilter,

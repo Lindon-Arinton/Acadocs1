@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use App\Models\RoomPropertyModel;
 
 class Properties extends BaseController
@@ -67,7 +68,7 @@ class Properties extends BaseController
         $condStats  = array_count_values(array_column($items, 'condition_status'));
         $totalItems = array_sum(array_column($items, 'quantity'));
 
-        return view('pages/properties', [
+        return view('pages/admin/properties', [
             'pageTitle'  => 'Property Management',
             'items'      => $items,
             'building'   => $building,

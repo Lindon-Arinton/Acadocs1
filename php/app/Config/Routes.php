@@ -5,9 +5,9 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 
 // ── Auth ─────────────────────────────────────────────────────
-$routes->match(['get', 'post'], '/', 'Auth::login');
-$routes->match(['get', 'post'], 'login', 'Auth::login');
-$routes->get('logout', 'Auth::logout');
+$routes->match(['get', 'post'], '/', 'Shared\Auth::login');
+$routes->match(['get', 'post'], 'login', 'Shared\Auth::login');
+$routes->get('logout', 'Shared\Auth::logout');
 
 // ── API auth (not behind authGuard — this is how a session is obtained) ──
 $routes->post('api/auth/login', 'Api\AuthController::login');
@@ -16,25 +16,25 @@ $routes->get('api/auth/me', 'Api\AuthController::me');
 
 // ── Pages (session required) ────────────────────────────────
 $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $routes) {
-    $routes->get('dashboard', 'Dashboard::index');
-    $routes->get('teacher-dashboard', 'TeacherDashboard::index');
-    $routes->get('secretary-dashboard', 'SecretaryDashboard::index');
-    $routes->get('adas-dashboard', 'AdasDashboard::index');
-    $routes->match(['get', 'post'], 'submit-documents', 'SubmitDocuments::index');
-    $routes->match(['get', 'post'], 'documents', 'Documents::index');
-    $routes->get('performance', 'Performance::index');
-    $routes->get('enrollment-kpis', 'EnrollmentKpis::index');
-    $routes->match(['get', 'post'], 'announcements', 'Announcements::index');
-    $routes->match(['get', 'post'], 'parent-meetings', 'ParentMeetings::index');
-    $routes->match(['get', 'post'], 'time-records', 'TimeRecords::index');
-    $routes->match(['get', 'post'], 'deped-documents', 'DepedDocuments::index');
-    $routes->match(['get', 'post'], 'document-links', 'DocumentLinks::index');
-    $routes->match(['get', 'post'], 'property-management', 'Properties::index');
-    $routes->match(['get', 'post'], 'users', 'Users::index');
-    $routes->match(['get', 'post'], 'tasks', 'Tasks::index');
-    $routes->match(['get', 'post'], 'tasks/(:num)', 'Tasks::view/$1');
-    $routes->match(['get', 'post'], 'my-tasks', 'MyTasks::index');
-    $routes->get('task-submissions/(:num)/download', 'TaskDownload::show/$1');
+    $routes->get('dashboard', 'Admin\Dashboard::index');
+    $routes->get('teacher-dashboard', 'Teacher\TeacherDashboard::index');
+    $routes->get('secretary-dashboard', 'Secretary\SecretaryDashboard::index');
+    $routes->get('adas-dashboard', 'Adas\AdasDashboard::index');
+    $routes->match(['get', 'post'], 'submit-documents', 'Teacher\SubmitDocuments::index');
+    $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
+    $routes->get('performance', 'Admin\Performance::index');
+    $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
+    $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
+    $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');
+    $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
+    $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
+    $routes->match(['get', 'post'], 'document-links', 'Shared\DocumentLinks::index');
+    $routes->match(['get', 'post'], 'property-management', 'Admin\Properties::index');
+    $routes->match(['get', 'post'], 'users', 'Admin\Users::index');
+    $routes->match(['get', 'post'], 'tasks', 'Admin\Tasks::index');
+    $routes->match(['get', 'post'], 'tasks/(:num)', 'Admin\Tasks::view/$1');
+    $routes->match(['get', 'post'], 'my-tasks', 'Shared\MyTasks::index');
+    $routes->get('task-submissions/(:num)/download', 'Shared\TaskDownload::show/$1');
 });
 
 // ── JSON API (session required) ─────────────────────────────

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Shared;
 
+use App\Controllers\BaseController;
 use App\Models\AnnouncementModel;
 
 class Announcements extends BaseController
@@ -53,7 +54,7 @@ class Announcements extends BaseController
             $builder->where('type', $filter);
         }
 
-        return view('pages/announcements', [
+        return view('pages/shared/announcements', [
             'pageTitle'     => 'Announcements',
             'announcements' => $builder->findAll(),
             'filter'        => $filter,

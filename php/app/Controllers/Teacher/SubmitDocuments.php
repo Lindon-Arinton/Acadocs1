@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Teacher;
 
+use App\Controllers\BaseController;
 use App\Models\DocumentModel;
 use App\Models\TeacherModel;
 
@@ -45,7 +46,7 @@ class SubmitDocuments extends BaseController
 
         $myDocs = $teacher ? (new DocumentModel())->myDocsWithFeedback($teacher['id']) : [];
 
-        return view('pages/submit_documents', [
+        return view('pages/teacher/submit_documents', [
             'pageTitle' => 'Submit Documents',
             'teacher'   => $teacher,
             'myDocs'    => $myDocs,

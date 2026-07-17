@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
+use App\Controllers\BaseController;
 use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
 use App\Models\KpiSnapshotModel;
@@ -25,7 +26,7 @@ class Dashboard extends BaseController
         $docSummary    = $documentModel->statusCounts();
         $recentDocs    = $documentModel->allWithTeacher(null, 5);
 
-        return view('pages/dashboard', [
+        return view('pages/admin/dashboard', [
             'pageTitle'   => 'Admin Dashboard',
             'kpi'         => $kpi,
             'enrollment'  => $enrollment,

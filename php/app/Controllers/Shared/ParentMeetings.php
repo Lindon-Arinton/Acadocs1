@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Shared;
 
+use App\Controllers\BaseController;
 use App\Models\ParentMeetingModel;
 
 class ParentMeetings extends BaseController
@@ -45,7 +46,7 @@ class ParentMeetings extends BaseController
             return redirect()->to('/parent-meetings?success=1');
         }
 
-        return view('pages/parent_meetings', [
+        return view('pages/shared/parent_meetings', [
             'pageTitle' => 'Parent Meetings',
             'meetings'  => $model->orderBy('date', 'DESC')->findAll(),
         ]);

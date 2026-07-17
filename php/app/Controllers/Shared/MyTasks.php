@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Shared;
 
+use App\Controllers\BaseController;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
 use App\Models\TaskSubmissionModel;
@@ -102,7 +103,7 @@ class MyTasks extends BaseController
         }
         unset($task);
 
-        return view('pages/my_tasks', [
+        return view('pages/shared/my_tasks', [
             'pageTitle' => 'My Tasks',
             'tasks'     => $tasks,
             'flash'     => session()->getFlashdata('flash'),

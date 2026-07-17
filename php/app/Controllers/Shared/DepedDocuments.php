@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Shared;
 
+use App\Controllers\BaseController;
 use App\Models\DepedDocumentModel;
 
 class DepedDocuments extends BaseController
@@ -68,7 +69,7 @@ class DepedDocuments extends BaseController
             }
         }
 
-        return view('pages/deped_documents', [
+        return view('pages/shared/deped_documents', [
             'pageTitle'   => 'DepEd Documents',
             'docs'        => $docs,
             'statusCount' => $statusCount,
