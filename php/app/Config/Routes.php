@@ -29,6 +29,8 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
     $routes->match(['get', 'post'], 'document-links', 'Shared\DocumentLinks::index');
+    $routes->match(['get', 'post'], 'templates', 'Shared\Templates::index');
+    $routes->get('templates/download/(:num)', 'Shared\Templates::download/$1');
     $routes->match(['get', 'post'], 'property-management', 'Admin\Properties::index');
     $routes->match(['get', 'post'], 'users', 'Admin\Users::index');
     $routes->match(['get', 'post'], 'tasks', 'Admin\Tasks::index');
