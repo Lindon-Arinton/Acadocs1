@@ -148,7 +148,7 @@ function ajaxFormSubmit(form) {
         didOpen: () => Swal.showLoading(),
     });
 
-    fetch(form.action, {
+    fetch(form.getAttribute('action'), {
         method: 'POST',
         body: formData,
         headers: { 'X-Requested-With': 'XMLHttpRequest' },

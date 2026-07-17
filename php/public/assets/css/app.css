@@ -536,7 +536,7 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
   50% { opacity: .5; }
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.animate-in { animation: fadeIn .35s ease forwards; }
+.animate-in { animation: fadeIn .35s ease; }
 
 /* ── Login ────────────────────────────────────────────────── */
 .login-wrapper {

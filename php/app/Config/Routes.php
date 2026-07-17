@@ -31,6 +31,10 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'document-links', 'DocumentLinks::index');
     $routes->match(['get', 'post'], 'property-management', 'Properties::index');
     $routes->match(['get', 'post'], 'users', 'Users::index');
+    $routes->match(['get', 'post'], 'tasks', 'Tasks::index');
+    $routes->match(['get', 'post'], 'tasks/(:num)', 'Tasks::view/$1');
+    $routes->match(['get', 'post'], 'my-tasks', 'MyTasks::index');
+    $routes->get('task-submissions/(:num)/download', 'TaskDownload::show/$1');
 });
 
 // ── JSON API (session required) ─────────────────────────────
