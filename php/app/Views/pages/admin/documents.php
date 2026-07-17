@@ -100,13 +100,19 @@
             data-confirm-text="The document status will be marked as Reviewed.">
         <div class="modal-body">
           <input type="hidden" name="doc_id" id="feedbackDocId">
+          <input type="hidden" name="decision" id="feedbackDecision" value="approve">
           <p class="text-muted small mb-3">Reviewing document for: <strong id="feedbackTeacher"></strong></p>
           <label class="form-label fw-semibold small">Feedback / Comment</label>
           <textarea name="comment" class="form-control" rows="4" required placeholder="Enter your feedback..."></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-maroon"><i class="bi bi-send me-2"></i>Submit Feedback</button>
+          <button type="submit" class="btn btn-outline-danger" onclick="setFeedbackDecision(this,'reject')">
+            <i class="bi bi-x-circle me-2"></i>Reject
+          </button>
+          <button type="submit" class="btn btn-maroon" onclick="setFeedbackDecision(this,'approve')">
+            <i class="bi bi-send me-2"></i>Submit Feedback
+          </button>
         </div>
       </form>
     </div>
@@ -135,7 +141,19 @@ function viewDoc(doc) {
 function feedbackDoc(id, teacher) {
     document.getElementById('feedbackDocId').value = id;
     document.getElementById('feedbackTeacher').textContent = teacher;
+    setFeedbackDecision(null, 'approve');
     new bootstrap.Modal(document.getElementById('feedbackModal')).show();
+}
+function setFeedbackDecision(btn, decision) {
+    document.getElementById('feedbackDecision').value = decision;
+    const form = document.getElementById('feedbackDecision').closest('form');
+    if (decision === 'reject') {
+        form.dataset.confirmTitle = 'Reject this document?';
+        form.dataset.confirmText = 'The document will be marked as Returned and sent back to the teacher for revision.';
+    } else {
+        form.dataset.confirmTitle = 'Submit this feedback?';
+        form.dataset.confirmText = 'The document status will be marked as Reviewed.';
+    }
 }
 </script>";
 include APPPATH . 'Views/layout/footer.php';
