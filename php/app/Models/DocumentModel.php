@@ -11,7 +11,7 @@ class DocumentModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['teacher_id', 'type', 'subject', 'grade_level', 'date_submitted', 'status'];
+    protected $allowedFields = ['teacher_id', 'type', 'subject', 'grade_level', 'date_submitted', 'file_path', 'status'];
 
     public function allWithTeacher(?int $teacherId = null, int $limit = 0): array
     {

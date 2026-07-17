@@ -115,7 +115,11 @@
 
 <?php
 $extraScript = "<script>
+const DOC_FILE_BASE = '" . base_url('documents/') . "';
 function viewDoc(doc) {
+    const fileLink = doc.file_path
+        ? `<a href='\${DOC_FILE_BASE}\${doc.id}/file' target='_blank' rel='noopener' class='btn btn-sm btn-outline-secondary mt-2'><i class='bi bi-eye me-1'></i>View File</a>`
+        : `<p class='text-muted small mb-0 mt-2'>No file attached.</p>`;
     document.getElementById('viewModalBody').innerHTML = `
       <table class='table table-sm'>
         <tr><th>Teacher</th><td>\${doc.teacher_name}</td></tr>
@@ -124,7 +128,8 @@ function viewDoc(doc) {
         <tr><th>Grade</th><td>\${doc.grade_level}</td></tr>
         <tr><th>Submitted</th><td>\${doc.date_submitted}</td></tr>
         <tr><th>Status</th><td><span class='badge bg-secondary'>\${doc.status}</span></td></tr>
-      </table>`;
+      </table>
+      \${fileLink}`;
     new bootstrap.Modal(document.getElementById('viewModal')).show();
 }
 function feedbackDoc(id, teacher) {
