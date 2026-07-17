@@ -21,7 +21,7 @@ class Templates extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
-            if (! hasRole('admin', 'adas')) {
+            if (! hasRole('adas')) {
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/templates');
             }
 
@@ -56,9 +56,12 @@ class Templates extends BaseController
                 } elseif ($action === 'upload') {
                     $categoryId = (int) $this->request->getPost('category_id');
                     $category   = $categoryModel->find($categoryId);
+                    $title      = trim($this->request->getPost('title') ?? '');
 
                     if (! $category) {
                         $error = 'Please choose a valid category.';
+                    } elseif ($title === '') {
+                        $error = 'Please enter a title.';
                     } else {
                         $rules = [
                             'file' => [
@@ -85,11 +88,10 @@ class Templates extends BaseController
                             $newName = $file->getRandomName();
                             $file->move($targetDir, $newName);
 
-                            $title = trim($this->request->getPost('title') ?? '');
-
                             $templateModel->insert([
                                 'category_id' => $categoryId,
-                                'title'       => $title !== '' ? $title : pathinfo($file->getClientName(), PATHINFO_FILENAME),
+                                'title'       => $title,
+                                'description' => trim($this->request->getPost('description') ?? ''),
                                 'file_path'   => $targetDir . DIRECTORY_SEPARATOR . $newName,
                                 'file_name'   => $file->getClientName(),
                                 'file_ext'    => strtolower(pathinfo($file->getClientName(), PATHINFO_EXTENSION)),
@@ -187,5 +189,28 @@ class Templates extends BaseController
         }
 
         return $this->response->download($template['file_path'], null)->setFileName($template['file_name']);
+    }
+
+    public function preview(int $id)
+    {
+        $template = (new TemplateModel())->find($id);
+
+        if (! $template || ! is_file($template['file_path'])) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $mimeMap = [
+            'pdf'  => 'application/pdf',
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'txt'  => 'text/plain',
+        ];
+        $mime = $mimeMap[$template['file_ext']] ?? 'application/octet-stream';
+
+        return $this->response
+            ->setHeader('Content-Type', $mime)
+            ->setHeader('Content-Disposition', 'inline; filename="' . $template['file_name'] . '"')
+            ->setBody(file_get_contents($template['file_path']));
     }
 }

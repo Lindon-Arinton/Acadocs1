@@ -34,8 +34,9 @@ $grouped = [];
 foreach ($templates as $t) {
     $grouped[$t['category_id']][] = $t;
 }
+$previewableExt  = ['pdf', 'jpg', 'jpeg', 'png', 'txt'];
 $hasActiveFilter = $search !== '' || $fileType !== 'all';
-$canManage       = hasRole('admin', 'adas');
+$canManage       = hasRole('adas');
 
 include APPPATH . 'Views/layout/header.php';
 ?>
@@ -69,11 +70,11 @@ include APPPATH . 'Views/layout/header.php';
 <!-- Search + Filters -->
 <div class="card mb-4">
   <div class="card-body py-3">
-    <form method="GET" action="<?= base_url('templates') ?>" class="d-flex gap-2 flex-wrap align-items-center">
+    <form method="GET" action="<?= base_url('templates') ?>" id="filterForm" class="d-flex gap-2 flex-wrap align-items-center">
       <div class="input-group input-group-sm" style="flex:1;min-width:220px;max-width:340px;">
         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
         <input type="text" name="q" value="<?= e($search) ?>" placeholder="Search templates by title or file name..."
-               class="form-control border-start-0 ps-0">
+               class="form-control border-start-0 ps-0" id="templateSearchInput" autocomplete="off">
       </div>
 
       <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
@@ -122,13 +123,21 @@ include APPPATH . 'Views/layout/header.php';
       <span class="fw-semibold"><i class="bi bi-folder2 me-2 text-muted"></i><?= e($cat['name']) ?></span>
       <span class="badge badge-secondary ms-2"><?= count($items) ?></span>
     </div>
-    <?php if ($canManage && count($items) === 0): ?>
-    <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
-          data-confirm-title="Delete this section?" data-confirm-text="This section has no templates and will be removed.">
-      <input type="hidden" name="action" value="delete_category">
-      <input type="hidden" name="id" value="<?= $cat['id'] ?>">
-      <button class="btn btn-ghost btn-sm text-danger" title="Delete empty section"><i class="bi bi-trash"></i></button>
-    </form>
+    <?php if ($canManage): ?>
+    <div class="d-flex align-items-center gap-1">
+      <button type="button" class="btn btn-ghost btn-sm" title="Upload to this section"
+              onclick="openUploadModal(<?= $cat['id'] ?>)">
+        <i class="bi bi-cloud-upload"></i>
+      </button>
+      <?php if (count($items) === 0): ?>
+      <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
+            data-confirm-title="Delete this section?" data-confirm-text="This section has no templates and will be removed.">
+        <input type="hidden" name="action" value="delete_category">
+        <input type="hidden" name="id" value="<?= $cat['id'] ?>">
+        <button class="btn btn-ghost btn-sm text-danger" title="Delete empty section"><i class="bi bi-trash"></i></button>
+      </form>
+      <?php endif; ?>
+    </div>
     <?php endif; ?>
   </div>
   <div class="card-body">
@@ -160,13 +169,37 @@ include APPPATH . 'Views/layout/header.php';
                 <?php endif; ?>
               </div>
               <h6 class="fw-bold mb-1 text-truncate" style="font-size:.88rem" title="<?= e($t['title']) ?>"><?= e($t['title']) ?></h6>
-              <p class="text-muted mb-3 text-truncate" style="font-size:.75rem;" title="<?= e($t['file_name']) ?>">
+              <p class="text-muted mb-1 text-truncate" style="font-size:.75rem;" title="<?= e($t['file_name']) ?>">
                 <?= e($t['file_name']) ?> · <?= tplFormatBytes((int) $t['file_size']) ?>
               </p>
-              <a href="<?= base_url('templates/download/' . $t['id']) ?>"
-                 class="btn btn-sm w-100" style="border:1.5px solid <?= $tc ?>;color:<?= $tc ?>;background:transparent;">
-                <i class="bi bi-download me-1"></i>Download
-              </a>
+              <?php if (! empty($t['description'])): ?>
+              <p class="text-muted mb-3" style="font-size:.72rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                <?= e($t['description']) ?>
+              </p>
+              <?php else: ?>
+              <div class="mb-3"></div>
+              <?php endif; ?>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm flex-fill" style="border:1.5px solid <?= $tc ?>;color:<?= $tc ?>;background:transparent;"
+                        onclick='previewTemplate(<?= json_encode([
+                            'id'          => (int) $t['id'],
+                            'title'       => $t['title'],
+                            'description' => $t['description'],
+                            'ext'         => $t['file_ext'],
+                            'category'    => $t['category_name'],
+                            'uploader'    => $t['uploaded_by'],
+                            'date'        => date('M d, Y', strtotime($t['date_added'])),
+                            'fileName'    => $t['file_name'],
+                            'fileSize'    => tplFormatBytes((int) $t['file_size']),
+                            'previewable' => in_array($t['file_ext'], $previewableExt, true),
+                        ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                  <i class="bi bi-eye me-1"></i>View
+                </button>
+                <button type="button" class="btn btn-sm flex-fill" style="background:<?= $tc ?>;color:#fff;"
+                        onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id']) ?>', '<?= e(addslashes($t['file_name'])) ?>')">
+                  <i class="bi bi-download me-1"></i>Download
+                </button>
+              </div>
             </div>
           </div>
           <div class="d-flex justify-content-between mt-3 pt-2 border-top" style="font-size:.7rem;color:#9ca3af;">
@@ -189,6 +222,7 @@ include APPPATH . 'Views/layout/header.php';
 </div></div>
 <?php endif; ?>
 
+<?php if ($canManage): ?>
 <!-- Add Category Modal -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1">
   <div class="modal-dialog">
@@ -227,21 +261,26 @@ include APPPATH . 'Views/layout/header.php';
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Section</label>
-            <select name="category_id" class="form-select" required>
+            <select name="category_id" id="uploadCategorySelect" class="form-select" required>
               <?php foreach ($categories as $c): ?>
               <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Title <span class="text-muted">(optional)</span></label>
-            <input type="text" name="title" class="form-control" placeholder="Defaults to the file name">
+            <label class="form-label">File</label>
+            <input type="file" name="file" id="uploadFileInput" class="form-control"
+                   accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png"
+                   onchange="autofillTemplateTitle(this)" required>
+            <p class="text-muted mt-1 mb-0" style="font-size:.75rem;">PDF, Word, Excel, CSV, PowerPoint, images or archives · Max 10MB</p>
           </div>
           <div class="mb-3">
-            <label class="form-label">File</label>
-            <input type="file" name="file" class="form-control"
-                   accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png" required>
-            <p class="text-muted mt-1 mb-0" style="font-size:.75rem;">PDF, Word, Excel, CSV, PowerPoint, images or archives · Max 10MB</p>
+            <label class="form-label">Title</label>
+            <input type="text" name="title" id="uploadTitleInput" class="form-control" placeholder="Select a file to auto-fill, or type your own" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description <span class="text-muted">(optional)</span></label>
+            <textarea name="description" class="form-control" rows="2" placeholder="What is this template for?"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -252,5 +291,112 @@ include APPPATH . 'Views/layout/header.php';
     </div>
   </div>
 </div>
+<?php endif; ?>
 
-<?php include APPPATH . 'Views/layout/footer.php'; ?>
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--maroon);color:#fff;">
+        <h6 class="modal-title fw-bold" id="previewModalTitle"><i class="bi bi-eye me-2"></i>Template</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="previewModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="previewModalDownloadBtn">
+          <i class="bi bi-download me-1"></i>Download
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php
+$extraScript = "<script>
+const TEMPLATES_PREVIEW_BASE = '" . base_url('templates/preview/') . "';
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str ?? '';
+    return div.innerHTML;
+}
+
+function previewTemplate(t) {
+    document.getElementById('previewModalTitle').innerHTML = '<i class=\"bi bi-eye me-2\"></i>' + escapeHtml(t.title);
+
+    const previewUrl = TEMPLATES_PREVIEW_BASE + t.id;
+    let previewHtml;
+    if (t.ext === 'pdf') {
+        previewHtml = '<iframe src=\"' + previewUrl + '\" style=\"width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;\"></iframe>';
+    } else if (['jpg','jpeg','png'].includes(t.ext)) {
+        previewHtml = '<div class=\"text-center\"><img src=\"' + previewUrl + '\" style=\"max-width:100%;max-height:65vh;border-radius:8px;\"></div>';
+    } else if (t.ext === 'txt') {
+        previewHtml = '<iframe src=\"' + previewUrl + '\" style=\"width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;background:#fff;\"></iframe>';
+    } else {
+        previewHtml = '<div class=\"text-center text-muted py-4\"><i class=\"bi bi-file-earmark-fill fs-1 d-block mb-2\"></i>Preview isn\\'t available for this file type. Download it to view the contents.</div>';
+    }
+
+    document.getElementById('previewModalBody').innerHTML = `
+      <div class=\"mb-3\">
+        <table class=\"table table-sm mb-0\">
+          <tr><th style=\"width:120px\">Section</th><td>\${escapeHtml(t.category)}</td></tr>
+          <tr><th>File</th><td>\${escapeHtml(t.fileName)} · \${escapeHtml(t.fileSize)}</td></tr>
+          <tr><th>Uploaded By</th><td>\${escapeHtml(t.uploader)}</td></tr>
+          <tr><th>Date Added</th><td>\${escapeHtml(t.date)}</td></tr>
+          \${t.description ? '<tr><th>Description</th><td>' + escapeHtml(t.description) + '</td></tr>' : ''}
+        </table>
+      </div>
+      \${previewHtml}
+    `;
+
+    document.getElementById('previewModalDownloadBtn').onclick = () => downloadTemplate(
+        '" . base_url('templates/download/') . "' + t.id, t.fileName
+    );
+
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+}
+
+async function downloadTemplate(url, suggestedName) {
+    if (window.showSaveFilePicker) {
+        try {
+            const handle = await window.showSaveFilePicker({ suggestedName });
+            const res = await fetch(url);
+            const blob = await res.blob();
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return;
+        } catch (err) {
+            if (err && err.name === 'AbortError') return;
+        }
+    }
+    window.location.href = url;
+}
+
+function openUploadModal(categoryId) {
+    const select = document.getElementById('uploadCategorySelect');
+    if (select && categoryId) {
+        select.value = categoryId;
+    }
+    new bootstrap.Modal(document.getElementById('uploadModal')).show();
+}
+
+function autofillTemplateTitle(fileInput) {
+    if (!fileInput.files || !fileInput.files[0]) return;
+    const name = fileInput.files[0].name;
+    const withoutExt = name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
+    document.getElementById('uploadTitleInput').value = withoutExt;
+}
+
+/* ── Live search (debounced auto-submit, no need to press Enter) ── */
+const templateSearchInput = document.getElementById('templateSearchInput');
+if (templateSearchInput) {
+    let searchDebounce;
+    templateSearchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => document.getElementById('filterForm').requestSubmit(), 500);
+    });
+}
+</script>";
+include APPPATH . 'Views/layout/footer.php'; ?>

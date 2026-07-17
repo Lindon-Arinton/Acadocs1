@@ -12,7 +12,7 @@ class TemplateModel extends Model
     protected $returnType = 'array';
     protected $useTimestamps = false;
     protected $allowedFields = [
-        'category_id', 'title', 'file_path', 'file_name', 'file_ext', 'file_size', 'uploaded_by', 'date_added',
+        'category_id', 'title', 'description', 'file_path', 'file_name', 'file_ext', 'file_size', 'uploaded_by', 'date_added',
     ];
 
     public function distinctExtensions(): array

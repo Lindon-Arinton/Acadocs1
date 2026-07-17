@@ -358,6 +358,7 @@ CREATE TABLE IF NOT EXISTS `templates` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `category_id` int(10) UNSIGNED NOT NULL,
   `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
   `file_path` varchar(255) NOT NULL,
   `file_name` varchar(255) NOT NULL,
   `file_ext` varchar(20) NOT NULL,
