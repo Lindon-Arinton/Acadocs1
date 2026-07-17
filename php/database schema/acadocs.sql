@@ -321,6 +321,57 @@ CREATE TABLE IF NOT EXISTS `teacher_subjects` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `template_categories`
+--
+
+CREATE TABLE IF NOT EXISTS `template_categories` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `created_by` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Seed default template categories (INSERT IGNORE so re-running this file
+-- does not error out on the duplicate `name` key)
+--
+
+INSERT IGNORE INTO `template_categories` (`name`, `created_by`) VALUES
+('Certificate', 'System'),
+('BAC Forms', 'System'),
+('Research Template', 'System'),
+('Travel-Records Checklist', 'System'),
+('Curriculum Implementation Division-CID', 'System'),
+('COA Forms', 'System'),
+('HRD Forms', 'System');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `templates`
+--
+
+CREATE TABLE IF NOT EXISTS `templates` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `category_id` int(10) UNSIGNED NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_ext` varchar(20) NOT NULL,
+  `file_size` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `uploaded_by` varchar(100) NOT NULL,
+  `date_added` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `templates_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `template_categories` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `time_records`
 --
 
