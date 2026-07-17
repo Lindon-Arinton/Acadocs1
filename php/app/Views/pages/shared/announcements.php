@@ -39,7 +39,10 @@
       ][$a['type']] ?? ['#f9fafb','#374151','bi-bell'];
       [$bg,$tc,$icon] = $cfg;
       $preview = mb_strlen($a['content']) > 140 ? mb_substr($a['content'], 0, 140) . '…' : $a['content'];
-      $modalData = $a + ['date_formatted' => date('F d, Y', strtotime($a['date']))];
+      $modalData = $a + [
+          'date_formatted' => date('F d, Y', strtotime($a['date'])),
+          'content_html'   => richText($a['content']),
+      ];
     ?>
     <div class="announcement-card" style="border-left:4px solid <?= $tc ?>;cursor:pointer;"
          onclick="viewAnnouncement(<?= htmlspecialchars(json_encode($modalData), ENT_QUOTES) ?>, '<?= $bg ?>', '<?= $tc ?>', '<?= $icon ?>')">
@@ -69,7 +72,7 @@
               <?php endif; ?>
             </div>
           </div>
-          <p class="text-muted mb-0" style="font-size:.8rem;line-height:1.5;"><?= e($preview) ?></p>
+          <p class="text-muted mb-0" style="font-size:.8rem;line-height:1.5;"><?= richText($preview) ?></p>
         </div>
       </div>
     </div>
@@ -101,7 +104,16 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Content</label>
-            <textarea name="content" class="form-control" rows="4" required></textarea>
+            <div class="btn-group btn-group-sm mb-1" role="group" aria-label="Text formatting">
+              <button type="button" class="btn btn-outline-secondary" title="Bold" onclick="wrapSelection('announcementContent','**')">
+                <i class="bi bi-type-bold"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" title="Italic" onclick="wrapSelection('announcementContent','*')">
+                <i class="bi bi-type-italic"></i>
+              </button>
+            </div>
+            <textarea name="content" id="announcementContent" class="form-control" rows="4" required
+                      placeholder="Select text and click Bold/Italic, or type **bold** / *italic* directly"></textarea>
           </div>
           <div class="mb-3">
             <label class="form-label">Date</label>
@@ -130,7 +142,7 @@
           <span class="badge" id="viewAnnouncementType"></span>
           <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i><span id="viewAnnouncementDate"></span></span>
         </div>
-        <p class="mb-0" style="white-space:pre-wrap;" id="viewAnnouncementContent"></p>
+        <p class="mb-0" id="viewAnnouncementContent"></p>
       </div>
     </div>
   </div>
@@ -147,8 +159,18 @@ function viewAnnouncement(a, bg, tc, icon) {
     document.getElementById('viewAnnouncementType').style.color = tc;
     document.getElementById('viewAnnouncementType').style.border = '1px solid ' + tc + '33';
     document.getElementById('viewAnnouncementDate').textContent = a.date_formatted;
-    document.getElementById('viewAnnouncementContent').textContent = a.content;
+    document.getElementById('viewAnnouncementContent').innerHTML = a.content_html;
     new bootstrap.Modal(document.getElementById('viewAnnouncementModal')).show();
+}
+
+function wrapSelection(id, marker) {
+    const el = document.getElementById(id);
+    const start = el.selectionStart, end = el.selectionEnd;
+    const selected = el.value.substring(start, end) || 'text';
+    el.value = el.value.substring(0, start) + marker + selected + marker + el.value.substring(end);
+    el.focus();
+    el.selectionStart = start + marker.length;
+    el.selectionEnd = start + marker.length + selected.length;
 }
 </script>";
 include APPPATH . 'Views/layout/footer.php';
