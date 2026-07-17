@@ -5,32 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Login — ACADOCS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
 </head>
 <body>
 <div class="login-wrapper">
-  <div class="login-card" style="background:#fff;">
+  <div class="login-shell">
 
-    <!-- Gradient header -->
-    <div class="p-5 text-center text-white"
-         style="background:linear-gradient(135deg,#9d174d 0%,#800000 50%,#c2410c 100%);position:relative;overflow:hidden;">
-      <div style="position:absolute;top:-50px;right:-50px;width:160px;height:160px;background:rgba(255,255,255,.1);border-radius:50%;"></div>
-      <div style="position:absolute;bottom:-40px;left:-40px;width:120px;height:120px;background:rgba(255,255,255,.08);border-radius:50%;"></div>
-      <div style="position:relative;">
-        <div style="width:64px;height:64px;background:rgba(255,255,255,.2);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-          <i class="bi bi-mortarboard-fill" style="font-size:1.8rem;color:#fff;"></i>
+    <!-- Brand / welcome panel -->
+    <div class="login-brand-panel">
+      <div class="login-brand-decor"></div>
+      <div class="login-brand-content">
+        <div class="login-brand-icon"><i class="bi bi-mortarboard-fill"></i></div>
+        <h2>Hello, Welcome</h2>
+        <p>ACADOCS keeps your school's documents, performance records, and day-to-day operations organized in one place.</p>
+
+        <div class="login-clock-widget">
+          <div class="login-clock" id="liveClock">--:--:--</div>
+          <div class="login-date" id="liveDate">Loading date…</div>
         </div>
-        <h4 class="fw-bold mb-1">ACADOCS</h4>
-        <p class="mb-0" style="opacity:.8;font-size:.88rem;">Academic Document Management System</p>
+
+        <div class="mini-calendar">
+          <div class="mini-calendar-head" id="calMonthLabel"></div>
+          <div class="mini-calendar-dow">
+            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+          </div>
+          <div class="mini-calendar-grid" id="calGrid"></div>
+        </div>
       </div>
     </div>
 
-    <!-- Form -->
-    <div class="p-4">
-      <h6 class="fw-bold text-center mb-4" style="color:#374151;">Sign in to your account</h6>
+    <!-- Form panel -->
+    <div class="login-form-panel">
+      <h3 class="login-form-title">Sign In</h3>
+      <p class="login-form-sub">Enter your credentials to access your dashboard</p>
 
       <?php if ($error ?? ''): ?>
       <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
@@ -40,39 +50,26 @@
       <?php endif; ?>
 
       <form method="POST" action="<?= base_url('login') ?>">
-        <div class="mb-3">
-          <label class="form-label">Email Address</label>
-          <div class="input-group">
-            <span class="input-group-text" style="background:#f9fafb;border-right:0;">
-              <i class="bi bi-envelope text-muted"></i>
-            </span>
-            <input type="email" name="email" class="form-control" style="border-left:0;"
-                   value="<?= e($email ?? 'principal@school.edu') ?>"
-                   placeholder="email@school.edu" required>
-          </div>
+        <div class="login-input-group">
+          <input type="email" name="email" value="<?= e($email ?? 'principal@school.edu') ?>"
+                 placeholder="email@school.edu" required>
+          <span class="login-input-icon"><i class="bi bi-envelope"></i></span>
         </div>
 
-        <div class="mb-4">
-          <label class="form-label">Password</label>
-          <div class="input-group">
-            <span class="input-group-text" style="background:#f9fafb;border-right:0;">
-              <i class="bi bi-lock text-muted"></i>
-            </span>
-            <input type="password" name="password" id="pwdField" class="form-control" style="border-left:0;border-right:0;"
-                   value="admin123" placeholder="••••••••" required>
-            <button type="button" class="input-group-text" style="background:#f9fafb;cursor:pointer;" onclick="togglePwd()">
-              <i class="bi bi-eye" id="pwdIcon"></i>
-            </button>
-          </div>
+        <div class="login-input-group">
+          <input type="password" name="password" id="pwdField" value="admin123" placeholder="••••••••" required>
+          <button type="button" class="login-input-icon" onclick="togglePwd()">
+            <i class="bi bi-eye" id="pwdIcon"></i>
+          </button>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+        <button type="submit" class="login-submit-btn mt-2">
           <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
         </button>
       </form>
 
       <!-- Quick credentials -->
-      <div class="mt-4 p-3 rounded-3" style="background:#f9fafb;border:1px solid #e5e7eb;">
+      <div class="login-demo-creds">
         <p class="fw-semibold mb-2 text-muted" style="font-size:.75rem;">
           <i class="bi bi-info-circle me-1"></i>Demo Credentials
         </p>
@@ -112,6 +109,44 @@ function togglePwd() {
     f.type = show ? 'text' : 'password';
     i.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
 }
+
+/* ── Live clock ───────────────────────────────────────────── */
+function updateClock() {
+    const now = new Date();
+    document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-US', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+    });
+    document.getElementById('liveDate').textContent = now.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ── Mini calendar (current month, today highlighted) ────────── */
+function buildMiniCalendar() {
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = now.getMonth();
+    const today = now.getDate();
+
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('calMonthLabel').textContent = monthNames[month] + ' ' + year;
+
+    const firstDay     = new Date(year, month, 1).getDay();
+    const daysInMonth  = new Date(year, month + 1, 0).getDate();
+    const grid         = document.getElementById('calGrid');
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) {
+        html += '<span class="is-empty">.</span>';
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        html += '<span class="' + (d === today ? 'is-today' : '') + '">' + d + '</span>';
+    }
+    grid.innerHTML = html;
+}
+buildMiniCalendar();
 </script>
 </body>
 </html>
