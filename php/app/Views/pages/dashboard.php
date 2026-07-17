@@ -85,10 +85,10 @@
   </div>
 </div>
 
-<!-- Document Status + Fund Balance -->
+<!-- Document Status + Recent Documents -->
 <div class="row g-4 mb-4">
   <!-- Document Status -->
-  <div class="col-lg-4">
+  <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header bg-white py-3">
         <span class="fw-semibold"><i class="bi bi-pie-chart me-2 text-muted"></i>Document Status</span>
@@ -107,30 +107,8 @@
     </div>
   </div>
 
-  <!-- Canteen Summary -->
-  <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3">
-        <span class="fw-semibold"><i class="bi bi-cash me-2 text-muted"></i>Canteen Financial Summary</span>
-      </div>
-      <div class="card-body">
-        <?php foreach ([
-          ['Total Revenue',  '₱'.number_format($canteen['rev'] ?? 0,2), '#d1fae5','#065f46'],
-          ['Total Expenses', '₱'.number_format($canteen['exp'] ?? 0,2), '#fee2e2','#991b1b'],
-          ['Net Income',     '₱'.number_format($canteen['net'] ?? 0,2), '#dbeafe','#1e40af'],
-          ['Fund Balance',   '₱'.number_format($fundBalance ?? 0,2),    '#fef9c3','#713f12'],
-        ] as [$label,$val,$bg,$tc]): ?>
-        <div class="d-flex justify-content-between align-items-center p-3 rounded-3 mb-2" style="background:<?= $bg ?>;">
-          <span class="small fw-semibold" style="color:<?= $tc ?>"><?= $label ?></span>
-          <strong style="color:<?= $tc ?>"><?= $val ?></strong>
-        </div>
-        <?php endforeach; ?>
-      </div>
-    </div>
-  </div>
-
   <!-- Recent Documents -->
-  <div class="col-lg-4">
+  <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
         <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Submissions</span>

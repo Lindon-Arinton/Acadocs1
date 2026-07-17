@@ -6,10 +6,16 @@ use App\Models\UserModel;
 
 class Auth extends BaseController
 {
+    private const ROLE_DASHBOARDS = [
+        'teacher'   => '/teacher-dashboard',
+        'secretary' => '/secretary-dashboard',
+        'adas'      => '/adas-dashboard',
+    ];
+
     public function login()
     {
         if (currentUser()) {
-            return redirect()->to(currentUser()['role'] === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+            return redirect()->to(self::ROLE_DASHBOARDS[currentUser()['role']] ?? '/dashboard');
         }
 
         $error = '';
@@ -26,7 +32,7 @@ class Auth extends BaseController
                     unset($user['password']);
                     session()->set('user', $user);
 
-                    return redirect()->to($user['role'] === 'teacher' ? '/teacher-dashboard' : '/dashboard');
+                    return redirect()->to(self::ROLE_DASHBOARDS[$user['role']] ?? '/dashboard');
                 }
 
                 $error = 'Invalid email or password. Please try again.';

@@ -81,8 +81,6 @@ Navigate to `http://localhost:8080/` — you'll be redirected to the login page.
 | Teacher    | maria.santos@school.edu        | teacher123    |
 | Teacher    | juan.delacruz@school.edu       | teacher123    |
 | Secretary  | secretary@school.edu           | sec123        |
-| Canteen    | canteen@school.edu             | canteen123    |
-| Disbursing | disbursing@school.edu          | disb123       |
 | ADAS       | adas@school.edu                | adas123       |
 
 > Passwords are stored as bcrypt hashes in the `users` table (carried over
@@ -134,8 +132,6 @@ public/
 | `performance_by_subject`   | MPS per subject and instructor                   |
 | `parent_meetings`          | PTA conference attendance records                |
 | `document_links`           | Secretary-managed external resource links        |
-| `canteen_records`          | Weekly canteen revenue/expense (generated `net_income`) |
-| `school_funds`             | School fund disbursement ledger                  |
 | `time_records`             | Daily employee time-in/time-out attendance       |
 | `deped_documents`          | DepEd-required forms with completion tracking    |
 | `room_properties`          | Room-by-room asset and equipment inventory       |
@@ -144,22 +140,23 @@ public/
 
 ## Role-Based Access
 
-| Feature                  | Admin | Teacher | Secretary | Canteen | Disbursing | ADAS |
-|--------------------------|:-----:|:-------:|:---------:|:-------:|:----------:|:----:|
-| Admin Dashboard          | ✓     |         |           |         |            |      |
-| Teacher Dashboard        |       | ✓       |           |         |            |      |
-| Submit Documents         | ✓     | ✓       |           |         |            |      |
-| Manage Documents         | ✓     |         |           |         |            |      |
-| Performance Analytics    | ✓     |         |           |         |            |      |
-| Enrollment KPIs          | ✓     |         |           |         |            |      |
-| Announcements            | ✓     | ✓       | ✓         |         |            |      |
-| Parent Meetings          | ✓     |         | ✓         |         |            |      |
-| Financial Reports        | ✓     |         |           | ✓       | ✓          |      |
-| Time Records             | ✓     |         |           |         |            | ✓    |
-| DepEd Documents          | ✓     |         |           |         |            | ✓    |
-| Document Links           | ✓     | ✓       | ✓         |         |            |      |
-| Property Management      | ✓     |         |           |         |            |      |
-| User Management          | ✓     |         |           |         |            |      |
+| Feature                  | Admin | Teacher | Secretary | ADAS |
+|--------------------------|:-----:|:-------:|:---------:|:----:|
+| Admin Dashboard          | ✓     |         |           |      |
+| Teacher Dashboard        |       | ✓       |           |      |
+| Secretary Dashboard      |       |         | ✓         |      |
+| ADAS Dashboard           |       |         |           | ✓    |
+| Submit Documents         | ✓     | ✓       |           |      |
+| Manage Documents         | ✓     |         |           |      |
+| Performance Analytics    | ✓     |         |           |      |
+| Enrollment KPIs          | ✓     |         |           |      |
+| Announcements            | ✓     | ✓       | ✓         |      |
+| Parent Meetings          | ✓     |         | ✓         |      |
+| Time Records             | ✓     |         |           | ✓    |
+| DepEd Documents          | ✓     |         |           | ✓    |
+| Document Links           | ✓     | ✓       | ✓         |      |
+| Property Management      | ✓     |         |           |      |
+| User Management          | ✓     |         |           |      |
 
 Enforced per-controller via the `hasRole()` helper, matching the original app's
 inline checks. All page and API routes additionally require an authenticated
@@ -172,10 +169,10 @@ session via the `authGuard` route filter.
 Unchanged from the original app — see `app/Config/Routes.php`:
 
 ```
-/login, /logout, /dashboard, /teacher-dashboard, /submit-documents,
-/documents, /performance, /enrollment-kpis, /announcements,
-/parent-meetings, /financial-reports, /time-records, /deped-documents,
-/document-links, /property-management, /users
+/login, /logout, /dashboard, /teacher-dashboard, /secretary-dashboard,
+/adas-dashboard, /submit-documents, /documents, /performance,
+/enrollment-kpis, /announcements, /parent-meetings, /time-records,
+/deped-documents, /document-links, /property-management, /users
 ```
 
 ---
@@ -209,12 +206,6 @@ PUT    /api/documents?id=X          { type, subject, grade_level, status }
 DELETE /api/documents?id=X
 
 GET    /api/performance?school_year=2025-2026
-
-GET    /api/financial?type=canteen
-GET    /api/financial?type=funds
-POST   /api/financial?type=canteen  { date, description, revenue, expenses, transaction_count }
-POST   /api/financial?type=funds    { date, category, description, amount }
-DELETE /api/financial?type=canteen&id=X
 
 GET    /api/time-records[?date=YYYY-MM-DD]
 POST   /api/time-records            { date, employee_name, employee_id, time_in, time_out, status }

@@ -81,8 +81,6 @@
             ['Admin',      'principal@school.edu',  'admin123'],
             ['Teacher',    'maria.santos@school.edu','teacher123'],
             ['Secretary',  'secretary@school.edu',   'sec123'],
-            ['Canteen',    'canteen@school.edu',      'canteen123'],
-            ['Disbursing', 'disbursing@school.edu',  'disb123'],
             ['ADAS',       'adas@school.edu',         'adas123'],
           ] as [$role,$email,$pass]): ?>
           <div class="col-6">

@@ -2,13 +2,11 @@
 
 namespace App\Controllers;
 
-use App\Models\CanteenRecordModel;
 use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
 use App\Models\KpiSnapshotModel;
 use App\Models\PerformanceByLevelModel;
 use App\Models\PerformanceBySubjectModel;
-use App\Models\SchoolFundModel;
 
 class Dashboard extends BaseController
 {
@@ -27,9 +25,6 @@ class Dashboard extends BaseController
         $docSummary    = $documentModel->statusCounts();
         $recentDocs    = $documentModel->allWithTeacher(null, 5);
 
-        $canteen     = (new CanteenRecordModel())->totals();
-        $fundBalance = (new SchoolFundModel())->currentBalance();
-
         return view('pages/dashboard', [
             'pageTitle'   => 'Admin Dashboard',
             'kpi'         => $kpi,
@@ -39,8 +34,6 @@ class Dashboard extends BaseController
             'allPerf'     => $allPerf,
             'docSummary'  => $docSummary,
             'recentDocs'  => $recentDocs,
-            'canteen'     => $canteen,
-            'fundBalance' => $fundBalance,
         ]);
     }
 }

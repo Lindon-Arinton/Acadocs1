@@ -119,17 +119,12 @@ try {
 
     <!-- OPERATIONS -->
     <div class="sidebar-section">
-      <button class="sidebar-section-btn <?= str_contains($uri,'financial')||str_contains($uri,'time-records')||str_contains($uri,'deped')||str_contains($uri,'document-links')||str_contains($uri,'property')?'open':'' ?>"
+      <button class="sidebar-section-btn <?= str_contains($uri,'time-records')||str_contains($uri,'deped')||str_contains($uri,'document-links')||str_contains($uri,'property')?'open':'' ?>"
               onclick="toggleSection(this)">
         <span class="sidebar-section-label">Operations</span>
         <i class="bi bi-chevron-down sidebar-section-arrow"></i>
       </button>
-      <div class="sidebar-section-items <?= str_contains($uri,'financial')||str_contains($uri,'time-records')||str_contains($uri,'deped')||str_contains($uri,'document-links')||str_contains($uri,'property')?'open':'' ?>">
-        <a href="<?= base_url('financial-reports') ?>"
-           class="nav-link <?= str_contains($uri,'financial')?'active':'' ?>">
-          <i class="bi bi-cash-stack nav-icon"></i>
-          <span class="sidebar-label">Financial Reports</span>
-        </a>
+      <div class="sidebar-section-items <?= str_contains($uri,'time-records')||str_contains($uri,'deped')||str_contains($uri,'document-links')||str_contains($uri,'property')?'open':'' ?>">
         <a href="<?= base_url('time-records') ?>"
            class="nav-link <?= str_contains($uri,'time-records')?'active':'' ?>">
           <i class="bi bi-clock nav-icon"></i>
@@ -207,37 +202,14 @@ try {
         <i class="bi bi-chevron-down sidebar-section-arrow"></i>
       </button>
       <div class="sidebar-section-items open">
+        <a href="<?= base_url('secretary-dashboard') ?>" class="nav-link <?= str_contains($uri,'secretary-dashboard')?'active':'' ?>">
+          <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
+        </a>
         <a href="<?= base_url('document-links') ?>" class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
           <i class="bi bi-link-45deg nav-icon"></i><span class="sidebar-label">Document Links</span>
         </a>
         <a href="<?= base_url('announcements') ?>" class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i><span class="sidebar-label">Announcements</span>
-        </a>
-      </div>
-    </div>
-
-    <?php elseif ($role === 'canteen'): ?>
-    <div class="sidebar-section">
-      <button class="sidebar-section-btn open" onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Canteen</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items open">
-        <a href="<?= base_url('financial-reports') ?>" class="nav-link">
-          <i class="bi bi-cash-stack nav-icon"></i><span class="sidebar-label">Financial Reports</span>
-        </a>
-      </div>
-    </div>
-
-    <?php elseif ($role === 'disbursing'): ?>
-    <div class="sidebar-section">
-      <button class="sidebar-section-btn open" onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Disbursing</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items open">
-        <a href="<?= base_url('financial-reports') ?>" class="nav-link">
-          <i class="bi bi-bank nav-icon"></i><span class="sidebar-label">School Funds</span>
         </a>
       </div>
     </div>
@@ -249,6 +221,9 @@ try {
         <i class="bi bi-chevron-down sidebar-section-arrow"></i>
       </button>
       <div class="sidebar-section-items open">
+        <a href="<?= base_url('adas-dashboard') ?>" class="nav-link <?= str_contains($uri,'adas-dashboard')?'active':'' ?>">
+          <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
+        </a>
         <a href="<?= base_url('time-records') ?>" class="nav-link <?= str_contains($uri,'time-records')?'active':'' ?>">
           <i class="bi bi-clock nav-icon"></i><span class="sidebar-label">Time Records</span>
         </a>

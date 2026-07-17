@@ -18,13 +18,14 @@ $routes->get('api/auth/me', 'Api\AuthController::me');
 $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $routes) {
     $routes->get('dashboard', 'Dashboard::index');
     $routes->get('teacher-dashboard', 'TeacherDashboard::index');
+    $routes->get('secretary-dashboard', 'SecretaryDashboard::index');
+    $routes->get('adas-dashboard', 'AdasDashboard::index');
     $routes->match(['get', 'post'], 'submit-documents', 'SubmitDocuments::index');
     $routes->match(['get', 'post'], 'documents', 'Documents::index');
     $routes->get('performance', 'Performance::index');
     $routes->get('enrollment-kpis', 'EnrollmentKpis::index');
     $routes->match(['get', 'post'], 'announcements', 'Announcements::index');
     $routes->match(['get', 'post'], 'parent-meetings', 'ParentMeetings::index');
-    $routes->match(['get', 'post'], 'financial-reports', 'Financial::index');
     $routes->match(['get', 'post'], 'time-records', 'TimeRecords::index');
     $routes->match(['get', 'post'], 'deped-documents', 'DepedDocuments::index');
     $routes->match(['get', 'post'], 'document-links', 'DocumentLinks::index');
@@ -51,10 +52,6 @@ $routes->group('api', ['filter' => 'authGuard'], static function (RouteCollectio
     $routes->delete('documents', 'Api\DocumentsController::delete');
 
     $routes->get('performance', 'Api\PerformanceController::index');
-
-    $routes->get('financial', 'Api\FinancialController::index');
-    $routes->post('financial', 'Api\FinancialController::create');
-    $routes->delete('financial', 'Api\FinancialController::delete');
 
     $routes->get('time-records', 'Api\TimeRecordsController::index');
     $routes->post('time-records', 'Api\TimeRecordsController::create');

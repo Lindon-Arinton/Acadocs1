@@ -14,7 +14,7 @@ class CreateUsers extends Migration
             'name' => ['type' => 'VARCHAR', 'constraint' => 100],
             'email' => ['type' => 'VARCHAR', 'constraint' => 150],
             'password' => ['type' => 'VARCHAR', 'constraint' => 255],
-            'role' => ['type' => 'ENUM', 'constraint' => ['admin', 'teacher', 'secretary', 'canteen', 'disbursing', 'adas']],
+            'role' => ['type' => 'ENUM', 'constraint' => ['admin', 'teacher', 'secretary', 'adas']],
             'created_at' => ['type' => 'TIMESTAMP', 'null' => true, 'default' => new RawSql('CURRENT_TIMESTAMP')],
         ]);
         $this->forge->addKey('id', true);
