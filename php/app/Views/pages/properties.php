@@ -116,7 +116,8 @@ include APPPATH . 'Views/layout/header.php';
             <td class="text-muted" style="font-size:.78rem;max-width:160px" class="truncate"><?= e($item['remarks']) ?></td>
             <?php if (hasRole('admin')): ?>
             <td>
-              <form method="POST" action="<?= base_url('property-management') ?>" onsubmit="return confirm('Delete this item?')">
+              <form method="POST" action="<?= base_url('property-management') ?>" class="ajax-form"
+                    data-confirm-title="Delete this item?">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= $item['id'] ?>">
                 <button class="btn btn-ghost btn-sm text-danger"><i class="bi bi-trash"></i></button>
@@ -145,7 +146,7 @@ include APPPATH . 'Views/layout/header.php';
         <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Property Item</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('property-management') ?>">
+      <form method="POST" action="<?= base_url('property-management') ?>" class="ajax-form">
         <input type="hidden" name="action" value="add">
         <div class="modal-body">
           <div class="row g-3">

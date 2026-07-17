@@ -161,7 +161,7 @@
         <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Canteen Record</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('financial-reports') ?>">
+      <form method="POST" action="<?= base_url('financial-reports') ?>" class="ajax-form" data-confirm-action="add">
         <input type="hidden" name="type" value="canteen">
         <div class="modal-body">
           <p class="text-muted mb-3" style="font-size:.8rem;">Record daily sales and expenses</p>
@@ -203,7 +203,7 @@
         <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Fund Disbursement</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('financial-reports') ?>">
+      <form method="POST" action="<?= base_url('financial-reports') ?>" class="ajax-form" data-confirm-action="add">
         <input type="hidden" name="type" value="fund">
         <div class="modal-body">
           <p class="text-muted mb-3" style="font-size:.8rem;">Record fund allocation or expense</p>

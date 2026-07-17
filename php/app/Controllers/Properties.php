@@ -10,24 +10,41 @@ class Properties extends BaseController
     {
         $model = new RoomPropertyModel();
 
-        if ($this->request->getMethod() === 'POST' && hasRole('admin')) {
-            $action = $this->request->getPost('action');
+        if ($this->request->getMethod() === 'POST') {
+            $isAjax = $this->request->isAJAX();
 
-            if ($action === 'add') {
-                $model->insert([
-                    'room_number'      => $this->request->getPost('room_number'),
-                    'building_name'    => $this->request->getPost('building_name'),
-                    'item_name'        => $this->request->getPost('item_name'),
-                    'quantity'         => (int) $this->request->getPost('quantity'),
-                    'condition_status' => $this->request->getPost('condition_status'),
-                    'last_inspection'  => $this->request->getPost('last_inspection') ?: date('Y-m-d'),
-                    'remarks'          => $this->request->getPost('remarks') ?? '',
-                ]);
-                session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'Item added successfully.']);
-            } elseif ($action === 'delete') {
-                $model->delete((int) $this->request->getPost('id'));
-                session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'Item removed.']);
+            if (! hasRole('admin')) {
+                return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/property-management');
             }
+
+            $action  = $this->request->getPost('action');
+            $message = null;
+
+            try {
+                if ($action === 'add') {
+                    $model->insert([
+                        'room_number'      => $this->request->getPost('room_number'),
+                        'building_name'    => $this->request->getPost('building_name'),
+                        'item_name'        => $this->request->getPost('item_name'),
+                        'quantity'         => (int) $this->request->getPost('quantity'),
+                        'condition_status' => $this->request->getPost('condition_status'),
+                        'last_inspection'  => $this->request->getPost('last_inspection') ?: date('Y-m-d'),
+                        'remarks'          => $this->request->getPost('remarks') ?? '',
+                    ]);
+                    $message = 'Item added successfully.';
+                } elseif ($action === 'delete') {
+                    $model->delete((int) $this->request->getPost('id'));
+                    $message = 'Item removed.';
+                }
+            } catch (\Throwable $e) {
+                return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/property-management');
+            }
+
+            if ($isAjax) {
+                return $message ? $this->ajaxSuccess($message) : $this->ajaxError('Unknown action.');
+            }
+
+            session()->setFlashdata('flash', ['type' => 'success', 'msg' => $message ?? '']);
 
             return redirect()->to('/property-management');
         }

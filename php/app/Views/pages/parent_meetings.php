@@ -82,7 +82,7 @@
       <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Add Meeting Record</h6>
       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
     </div>
-    <form method="POST" action="<?= base_url('parent-meetings') ?>">
+    <form method="POST" action="<?= base_url('parent-meetings') ?>" class="ajax-form">
       <input type="hidden" name="action" value="add">
       <div class="modal-body">
         <div class="row g-3">

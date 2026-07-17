@@ -15,25 +15,40 @@ class Users extends BaseController
         $model = new UserModel();
 
         if ($this->request->getMethod() === 'POST') {
-            $action = $this->request->getPost('action');
+            $action  = $this->request->getPost('action');
+            $isAjax  = $this->request->isAJAX();
+            $message = null;
 
-            if ($action === 'add') {
-                $model->insert([
-                    'name'     => $this->request->getPost('name'),
-                    'email'    => $this->request->getPost('email'),
-                    'password' => password_hash($this->request->getPost('password'), PASSWORD_BCRYPT),
-                    'role'     => $this->request->getPost('role'),
-                ]);
-                session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'User created successfully.']);
-            } elseif ($action === 'delete' && (int) $this->request->getPost('id') !== (int) currentUser()['id']) {
-                $model->delete((int) $this->request->getPost('id'));
-                session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'User deleted.']);
-            } elseif ($action === 'reset_pw') {
-                $model->update((int) $this->request->getPost('id'), [
-                    'password' => password_hash($this->request->getPost('new_password'), PASSWORD_BCRYPT),
-                ]);
-                session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'Password reset successfully.']);
+            try {
+                if ($action === 'add') {
+                    $model->insert([
+                        'name'     => $this->request->getPost('name'),
+                        'email'    => $this->request->getPost('email'),
+                        'password' => password_hash($this->request->getPost('password'), PASSWORD_BCRYPT),
+                        'role'     => $this->request->getPost('role'),
+                    ]);
+                    $message = 'User created successfully.';
+                } elseif ($action === 'delete') {
+                    if ((int) $this->request->getPost('id') === (int) currentUser()['id']) {
+                        return $isAjax ? $this->ajaxError('You cannot delete your own account.') : redirect()->to('/users');
+                    }
+                    $model->delete((int) $this->request->getPost('id'));
+                    $message = 'User deleted.';
+                } elseif ($action === 'reset_pw') {
+                    $model->update((int) $this->request->getPost('id'), [
+                        'password' => password_hash($this->request->getPost('new_password'), PASSWORD_BCRYPT),
+                    ]);
+                    $message = 'Password reset successfully.';
+                }
+            } catch (\Throwable $e) {
+                return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/users');
             }
+
+            if ($isAjax) {
+                return $message ? $this->ajaxSuccess($message) : $this->ajaxError('Unknown action.');
+            }
+
+            session()->setFlashdata('flash', ['type' => 'success', 'msg' => $message ?? '']);
 
             return redirect()->to('/users');
         }

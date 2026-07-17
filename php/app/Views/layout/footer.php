@@ -128,6 +128,91 @@ document.querySelectorAll('[data-counter]').forEach(el => {
     animateCounter(el, parseInt(el.dataset.counter));
 });
 
+/* ── AJAX form handler (SweetAlert2 confirm / loading / success / error) ── */
+const AJAX_ACTION_LABELS = {
+    add:       { title: 'Add this record?',    confirmText: 'Yes, add it',    icon: 'question' },
+    update:    { title: 'Save these changes?', confirmText: 'Yes, save',      icon: 'question' },
+    reset_pw:  { title: 'Reset this password?',confirmText: 'Yes, reset it',  icon: 'warning', danger: true },
+    delete:    { title: 'Are you sure?',       confirmText: 'Yes, delete it', icon: 'warning', danger: true },
+    default:   { title: 'Proceed with this action?', confirmText: 'Yes, proceed', icon: 'question' },
+};
+
+function ajaxFormSubmit(form) {
+    const formData = new FormData(form);
+
+    Swal.fire({
+        title: form.dataset.loadingText || 'Processing...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+    });
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+        .then(res => res.json().catch(() => ({ status: 'error', message: 'Unexpected server response.' })))
+        .then(data => {
+            if (data.status === 'success') {
+                return Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: data.message || 'Action completed successfully.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                }).then(() => window.location.reload());
+            }
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Something went wrong. Please try again.' });
+        })
+        .catch(() => {
+            Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server. Please check your connection and try again.' });
+        });
+}
+
+document.addEventListener('submit', function (e) {
+    const form = e.target;
+    if (!form.classList.contains('ajax-form')) return;
+    e.preventDefault();
+
+    const actionKey = form.dataset.confirmAction || form.querySelector('[name="action"]')?.value || 'default';
+    const cfg = AJAX_ACTION_LABELS[actionKey] || AJAX_ACTION_LABELS.default;
+
+    Swal.fire({
+        title: form.dataset.confirmTitle || cfg.title,
+        text: form.dataset.confirmText || '',
+        icon: form.dataset.confirmIcon || cfg.icon,
+        showCancelButton: true,
+        confirmButtonText: cfg.confirmText,
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: cfg.danger ? '#dc2626' : '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+    }).then(result => {
+        if (result.isConfirmed) ajaxFormSubmit(form);
+    });
+});
+
+/* ── Logout confirmation ─────────────────────────────────── */
+function confirmLogout(e, link) {
+    e.preventDefault();
+    Swal.fire({
+        title: 'Log out?',
+        text: 'You will need to sign in again to continue.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, log out',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+    }).then(result => {
+        if (result.isConfirmed) window.location.href = link.href;
+    });
+    return false;
+}
+
 /* ── Chart.js global defaults ─────────────────────────────── */
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size   = 12;

@@ -158,7 +158,7 @@
         <h6 class="modal-title"><i class="bi bi-clock me-2"></i>Add Time Record</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('time-records') ?>">
+      <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form">
         <input type="hidden" name="action" value="add">
         <div class="modal-body">
           <div class="row g-3">
@@ -212,7 +212,7 @@
         <h6 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Record</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('time-records') ?>">
+      <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form">
         <input type="hidden" name="action" value="update">
         <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
         <input type="hidden" name="id" id="editId">
