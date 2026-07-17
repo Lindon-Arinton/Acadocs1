@@ -55,7 +55,8 @@ include APPPATH . 'Views/layout/header.php';
               <?= e($link['category']) ?>
             </span>
             <?php if (hasRole('admin','secretary')): ?>
-            <form method="POST" action="<?= base_url('document-links') ?>" onsubmit="return confirm('Remove this link?')">
+            <form method="POST" action="<?= base_url('document-links') ?>" class="ajax-form"
+                  data-confirm-title="Remove this link?">
               <input type="hidden" name="action" value="delete">
               <input type="hidden" name="id" value="<?= $link['id'] ?>">
               <button class="btn btn-ghost btn-sm text-danger py-0 px-1"><i class="bi bi-x-lg"></i></button>
@@ -95,7 +96,7 @@ include APPPATH . 'Views/layout/header.php';
         <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Document Link</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('document-links') ?>">
+      <form method="POST" action="<?= base_url('document-links') ?>" class="ajax-form">
         <input type="hidden" name="action" value="add">
         <div class="modal-body">
           <div class="row g-3">

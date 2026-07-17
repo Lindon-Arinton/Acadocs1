@@ -42,4 +42,14 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
     }
+
+    protected function ajaxSuccess(string $message, array $extra = [])
+    {
+        return $this->response->setJSON(array_merge(['status' => 'success', 'message' => $message], $extra));
+    }
+
+    protected function ajaxError(string $message, int $statusCode = 400)
+    {
+        return $this->response->setStatusCode($statusCode)->setJSON(['status' => 'error', 'message' => $message]);
+    }
 }

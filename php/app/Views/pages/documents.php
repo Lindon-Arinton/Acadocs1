@@ -95,7 +95,9 @@
         <h6 class="modal-title fw-bold"><i class="bi bi-chat-dots me-2"></i>Add Feedback</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('documents') ?>">
+      <form method="POST" action="<?= base_url('documents') ?>" class="ajax-form"
+            data-confirm-action="update" data-confirm-title="Submit this feedback?"
+            data-confirm-text="The document status will be marked as Reviewed.">
         <div class="modal-body">
           <input type="hidden" name="doc_id" id="feedbackDocId">
           <p class="text-muted small mb-3">Reviewing document for: <strong id="feedbackTeacher"></strong></p>

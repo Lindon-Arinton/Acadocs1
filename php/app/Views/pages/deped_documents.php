@@ -114,7 +114,7 @@
         <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add DepEd Document</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('deped-documents') ?>">
+      <form method="POST" action="<?= base_url('deped-documents') ?>" class="ajax-form">
         <input type="hidden" name="action" value="add">
         <div class="modal-body">
           <div class="row g-3">
@@ -159,7 +159,7 @@
         <h6 class="modal-title"><i class="bi bi-pencil me-2"></i>Update Progress</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('deped-documents') ?>">
+      <form method="POST" action="<?= base_url('deped-documents') ?>" class="ajax-form">
         <input type="hidden" name="action" value="update">
         <input type="hidden" name="id" id="updId">
         <div class="modal-body">

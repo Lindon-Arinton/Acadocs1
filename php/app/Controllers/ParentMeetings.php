@@ -10,19 +10,36 @@ class ParentMeetings extends BaseController
     {
         $model = new ParentMeetingModel();
 
-        if ($this->request->getMethod() === 'POST' && hasRole('admin', 'secretary')) {
-            if ($this->request->getPost('action') === 'add') {
-                $actual   = (int) $this->request->getPost('actual_attendance');
-                $expected = (int) $this->request->getPost('expected_parents');
-                $rate     = $expected > 0 ? round($actual / $expected * 100, 2) : 0;
+        if ($this->request->getMethod() === 'POST') {
+            $isAjax = $this->request->isAJAX();
 
-                $model->insert([
-                    'title'             => $this->request->getPost('title'),
-                    'date'              => $this->request->getPost('date'),
-                    'expected_parents'  => $expected,
-                    'actual_attendance' => $actual,
-                    'attendance_rate'   => $rate,
-                ]);
+            if (! hasRole('admin', 'secretary')) {
+                return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/parent-meetings');
+            }
+
+            $message = null;
+
+            try {
+                if ($this->request->getPost('action') === 'add') {
+                    $actual   = (int) $this->request->getPost('actual_attendance');
+                    $expected = (int) $this->request->getPost('expected_parents');
+                    $rate     = $expected > 0 ? round($actual / $expected * 100, 2) : 0;
+
+                    $model->insert([
+                        'title'             => $this->request->getPost('title'),
+                        'date'              => $this->request->getPost('date'),
+                        'expected_parents'  => $expected,
+                        'actual_attendance' => $actual,
+                        'attendance_rate'   => $rate,
+                    ]);
+                    $message = 'Meeting record saved.';
+                }
+            } catch (\Throwable $e) {
+                return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/parent-meetings');
+            }
+
+            if ($isAjax) {
+                return $message ? $this->ajaxSuccess($message) : $this->ajaxError('Unknown action.');
             }
 
             return redirect()->to('/parent-meetings?success=1');

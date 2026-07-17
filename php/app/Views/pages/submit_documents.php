@@ -23,7 +23,9 @@
         <?php if (!$teacher): ?>
         <div class="alert alert-warning small">Your account is not linked to a teacher profile.</div>
         <?php else: ?>
-        <form method="POST" action="<?= base_url('submit-documents') ?>">
+        <form method="POST" action="<?= base_url('submit-documents') ?>" class="ajax-form"
+              data-confirm-action="add" data-confirm-title="Submit this document?"
+              data-confirm-text="It will be sent for review and cannot be edited afterward.">
           <div class="mb-3">
             <label class="form-label small fw-semibold">Document Type</label>
             <select name="type" class="form-select form-select-sm">

@@ -13,33 +13,45 @@ class Financial extends BaseController
         $fundModel    = new SchoolFundModel();
 
         if ($this->request->getMethod() === 'POST') {
-            $type = $this->request->getPost('type');
+            $isAjax  = $this->request->isAJAX();
+            $type    = $this->request->getPost('type');
+            $message = null;
 
-            if ($type === 'canteen' && hasRole('admin', 'canteen')) {
-                $canteenModel->insert([
-                    'date'              => $this->request->getPost('date'),
-                    'description'       => $this->request->getPost('description'),
-                    'revenue'           => (float) $this->request->getPost('revenue'),
-                    'expenses'          => (float) $this->request->getPost('expenses'),
-                    'transaction_count' => (int) $this->request->getPost('transaction_count'),
-                ]);
-                session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'Canteen record added successfully!']);
-            } elseif ($type === 'fund' && hasRole('admin', 'disbursing')) {
-                $last    = $fundModel->currentBalance();
-                $amount  = -abs((float) $this->request->getPost('amount'));
-                $balance = $last + $amount;
+            try {
+                if ($type === 'canteen' && hasRole('admin', 'canteen')) {
+                    $canteenModel->insert([
+                        'date'              => $this->request->getPost('date'),
+                        'description'       => $this->request->getPost('description'),
+                        'revenue'           => (float) $this->request->getPost('revenue'),
+                        'expenses'          => (float) $this->request->getPost('expenses'),
+                        'transaction_count' => (int) $this->request->getPost('transaction_count'),
+                    ]);
+                    $message = 'Canteen record added successfully!';
+                } elseif ($type === 'fund' && hasRole('admin', 'disbursing')) {
+                    $last    = $fundModel->currentBalance();
+                    $amount  = -abs((float) $this->request->getPost('amount'));
+                    $balance = $last + $amount;
 
-                $fundModel->insert([
-                    'date'        => $this->request->getPost('date'),
-                    'category'    => $this->request->getPost('category'),
-                    'description' => $this->request->getPost('description'),
-                    'particulars' => $this->request->getPost('particulars') ?? '',
-                    'amount'      => $amount,
-                    'balance'     => $balance,
-                    'prepared_by' => currentUser()['name'],
-                ]);
-                session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'Fund disbursement record added successfully!']);
+                    $fundModel->insert([
+                        'date'        => $this->request->getPost('date'),
+                        'category'    => $this->request->getPost('category'),
+                        'description' => $this->request->getPost('description'),
+                        'particulars' => $this->request->getPost('particulars') ?? '',
+                        'amount'      => $amount,
+                        'balance'     => $balance,
+                        'prepared_by' => currentUser()['name'],
+                    ]);
+                    $message = 'Fund disbursement record added successfully!';
+                }
+            } catch (\Throwable $e) {
+                return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/financial-reports');
             }
+
+            if ($isAjax) {
+                return $message ? $this->ajaxSuccess($message) : $this->ajaxError('Unknown action.');
+            }
+
+            session()->setFlashdata('flash', ['type' => 'success', 'msg' => $message ?? '']);
 
             return redirect()->to('/financial-reports');
         }

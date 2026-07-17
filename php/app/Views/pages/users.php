@@ -83,7 +83,9 @@
                 <i class="bi bi-key"></i>
               </button>
               <?php if (!$isMe): ?>
-              <form method="POST" action="<?= base_url('users') ?>" class="d-inline" onsubmit="return confirm('Delete <?= e(addslashes($u['name'])) ?>?')">
+              <form method="POST" action="<?= base_url('users') ?>" class="d-inline ajax-form"
+                    data-confirm-title="Delete <?= e(addslashes($u['name'])) ?>?"
+                    data-confirm-text="This will permanently remove this user account.">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= $u['id'] ?>">
                 <button class="btn btn-ghost btn-sm text-danger" title="Delete user">
@@ -108,7 +110,8 @@
         <h6 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add New User</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('users') ?>">
+      <form method="POST" action="<?= base_url('users') ?>" class="ajax-form"
+            data-confirm-text="A new account will be created and the user will be able to sign in immediately.">
         <input type="hidden" name="action" value="add">
         <div class="modal-body">
           <div class="row g-3">
@@ -154,7 +157,8 @@
         <h6 class="modal-title"><i class="bi bi-key me-2"></i>Reset Password</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('users') ?>">
+      <form method="POST" action="<?= base_url('users') ?>" class="ajax-form"
+            data-confirm-text="The user will need to use this new password to sign in.">
         <input type="hidden" name="action" value="reset_pw">
         <input type="hidden" name="id" id="resetUserId">
         <div class="modal-body">

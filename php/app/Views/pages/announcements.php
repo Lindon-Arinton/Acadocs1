@@ -57,7 +57,8 @@
                 <i class="bi bi-calendar3 me-1"></i><?= date('M d, Y', strtotime($a['date'])) ?>
               </span>
               <?php if (hasRole('admin','secretary')): ?>
-              <form method="POST" action="<?= base_url('announcements') ?>" onsubmit="return confirm('Delete this announcement?')" class="d-inline">
+              <form method="POST" action="<?= base_url('announcements') ?>" class="d-inline ajax-form"
+                    data-confirm-title="Delete this announcement?">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= $a['id'] ?>">
                 <button class="btn btn-ghost btn-sm text-danger py-0 px-1"><i class="bi bi-trash"></i></button>
@@ -80,7 +81,8 @@
         <div class="card-title" style="color:#fff;"><i class="bi bi-plus-circle me-2"></i>Post Announcement</div>
       </div>
       <div class="card-body">
-        <form method="POST" action="<?= base_url('announcements') ?>">
+        <form method="POST" action="<?= base_url('announcements') ?>" class="ajax-form"
+              data-confirm-title="Post this announcement?" data-confirm-text="It will be visible to everyone right away.">
           <input type="hidden" name="action" value="add">
           <div class="mb-3">
             <label class="form-label">Type</label>

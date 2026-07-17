@@ -11,20 +11,38 @@ class Documents extends BaseController
     {
         $documentModel = new DocumentModel();
 
-        if ($this->request->getMethod() === 'POST' && hasRole('admin')) {
+        if ($this->request->getMethod() === 'POST') {
+            $isAjax = $this->request->isAJAX();
+
+            if (! hasRole('admin')) {
+                return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/documents');
+            }
+
             $docId   = (int) $this->request->getPost('doc_id');
             $comment = trim($this->request->getPost('comment') ?? '');
 
             if ($docId && $comment) {
-                (new DocumentFeedbackModel())->insert([
-                    'document_id' => $docId,
-                    'author'      => currentUser()['name'],
-                    'comment'     => $comment,
-                    'date'        => date('Y-m-d'),
-                ]);
-                $documentModel->update($docId, ['status' => 'Reviewed']);
+                try {
+                    (new DocumentFeedbackModel())->insert([
+                        'document_id' => $docId,
+                        'author'      => currentUser()['name'],
+                        'comment'     => $comment,
+                        'date'        => date('Y-m-d'),
+                    ]);
+                    $documentModel->update($docId, ['status' => 'Reviewed']);
+                } catch (\Throwable $e) {
+                    return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/documents');
+                }
+
+                if ($isAjax) {
+                    return $this->ajaxSuccess('Feedback submitted successfully.');
+                }
 
                 return redirect()->to('/documents?success=1');
+            }
+
+            if ($isAjax) {
+                return $this->ajaxError('Please enter a comment before submitting.');
             }
         }
 
