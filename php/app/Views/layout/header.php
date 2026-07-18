@@ -4,7 +4,9 @@ $user      = currentUser();
 $initials  = implode('', array_map(fn ($w) => strtoupper($w[0]), array_slice(explode(' ', $user['name'] ?? 'U'), 0, 2)));
 $role      = $user['role'] ?? '';
 $uri       = $_SERVER['REQUEST_URI'] ?? '/';
-$photoUrl  = ! empty($user['photo']) ? base_url('uploads/avatars/' . $user['photo']) : null;
+$photoUrl  = (! empty($user['photo']) && is_file(FCPATH . 'uploads/avatars/' . $user['photo']))
+    ? base_url('uploads/avatars/' . $user['photo'])
+    : null;
 
 try {
     $recentAnnouncements = (new \App\Models\AnnouncementModel())
@@ -330,6 +332,14 @@ $chatNavBadge = $unreadChatCount > 0
 
   <!-- Actions -->
   <div class="d-flex align-items-center gap-2 ms-auto">
+    <!-- Chat Shortcut -->
+    <a href="<?= base_url('chat') ?>" class="notif-btn" title="Chat">
+      <i class="bi bi-chat-dots fs-5"></i>
+      <?php if ($unreadChatCount > 0): ?>
+      <span class="notif-badge"><?= $unreadChatCount ?></span>
+      <?php endif; ?>
+    </a>
+
     <!-- Notification Bell -->
     <div class="position-relative">
       <button class="notif-btn" onclick="toggleNotif(event)" title="Notifications">

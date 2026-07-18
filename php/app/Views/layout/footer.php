@@ -162,7 +162,13 @@ function ajaxFormSubmit(form) {
                     text: data.message || 'Action completed successfully.',
                     timer: 1600,
                     showConfirmButton: false,
-                }).then(() => window.location.reload());
+                }).then(() => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.reload();
+                    }
+                });
             }
             Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Something went wrong. Please try again.' });
         })

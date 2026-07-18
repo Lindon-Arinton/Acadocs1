@@ -43,6 +43,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'chat', 'Shared\Chat::index');
     $routes->get('chat/(:num)/messages', 'Shared\Chat::messages/$1');
     $routes->post('chat/(:num)/send', 'Shared\Chat::send/$1');
+    $routes->get('chat/attachment/(:num)', 'Shared\Chat::attachment/$1');
 });
 
 // ── JSON API (session required) ─────────────────────────────

@@ -11,11 +11,13 @@ class MessageModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['conversation_id', 'sender_id', 'body'];
+    protected $allowedFields = [
+        'conversation_id', 'sender_id', 'body', 'attachment_path', 'attachment_name', 'attachment_ext',
+    ];
 
     public function forConversation(int $conversationId, int $afterId = 0): array
     {
-        $builder = $this->select('messages.*, users.name AS sender_name, users.photo AS sender_photo')
+        $builder = $this->select('messages.*, users.name AS sender_name, users.photo AS sender_photo, users.role AS sender_role')
             ->join('users', 'users.id = messages.sender_id')
             ->where('conversation_id', $conversationId);
 

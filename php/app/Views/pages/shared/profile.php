@@ -1,6 +1,8 @@
 <?php
 $initials = implode('', array_map(fn ($w) => strtoupper($w[0]), array_slice(explode(' ', $profile['name'] ?? 'U'), 0, 2)));
-$photoUrl = ! empty($profile['photo']) ? base_url('uploads/avatars/' . $profile['photo']) : null;
+$photoUrl = (! empty($profile['photo']) && is_file(FCPATH . 'uploads/avatars/' . $profile['photo']))
+    ? base_url('uploads/avatars/' . $profile['photo'])
+    : null;
 
 include APPPATH . 'Views/layout/header.php';
 ?>
