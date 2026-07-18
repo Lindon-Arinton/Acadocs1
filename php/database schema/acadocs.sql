@@ -123,10 +123,6 @@ CREATE TABLE IF NOT EXISTS `documents` (
   CONSTRAINT `documents_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
-ALTER TABLE `documents`
-ADD COLUMN `file_path` VARCHAR(500) DEFAULT NULL
-AFTER `date_submitted`;
 -- --------------------------------------------------------
 
 --
