@@ -60,7 +60,30 @@ class DepedDocuments extends BaseController
             return redirect()->to('/deped-documents');
         }
 
-        $docs = $model->orderBy('due_date', 'ASC')->findAll();
+        $statusFilter = $this->request->getGet('status') ?? 'all';
+        $search       = trim($this->request->getGet('q') ?? '');
+        $sort         = $this->request->getGet('sort') ?? 'due_asc';
+
+        $builder = $model;
+        if ($statusFilter !== 'all') {
+            $builder->where('status', $statusFilter);
+        }
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('document_type', $search)
+                ->orLike('description', $search)
+                ->orLike('prepared_by', $search)
+                ->groupEnd();
+        }
+
+        match ($sort) {
+            'due_desc'   => $builder->orderBy('due_date', 'DESC'),
+            'completion' => $builder->orderBy('completion_rate', 'DESC'),
+            'status'     => $builder->orderBy('status', 'ASC'),
+            default      => $builder->orderBy('due_date', 'ASC'),
+        };
+
+        $docs = $builder->findAll();
 
         $statusCount = ['Completed' => 0, 'In Progress' => 0, 'Pending' => 0];
         foreach ($docs as $d) {
@@ -70,10 +93,13 @@ class DepedDocuments extends BaseController
         }
 
         return view('pages/shared/deped_documents', [
-            'pageTitle'   => 'DepEd Documents',
-            'docs'        => $docs,
-            'statusCount' => $statusCount,
-            'flash'       => session()->getFlashdata('flash'),
+            'pageTitle'    => 'DepEd Documents',
+            'docs'         => $docs,
+            'statusCount'  => $statusCount,
+            'statusFilter' => $statusFilter,
+            'search'       => $search,
+            'sort'         => $sort,
+            'flash'        => session()->getFlashdata('flash'),
         ]);
     }
 }

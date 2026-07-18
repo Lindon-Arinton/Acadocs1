@@ -4,7 +4,9 @@ $user      = currentUser();
 $initials  = implode('', array_map(fn ($w) => strtoupper($w[0]), array_slice(explode(' ', $user['name'] ?? 'U'), 0, 2)));
 $role      = $user['role'] ?? '';
 $uri       = $_SERVER['REQUEST_URI'] ?? '/';
-$photoUrl  = ! empty($user['photo']) ? base_url('uploads/avatars/' . $user['photo']) : null;
+$photoUrl  = (! empty($user['photo']) && is_file(FCPATH . 'uploads/avatars/' . $user['photo']))
+    ? base_url('uploads/avatars/' . $user['photo'])
+    : null;
 
 try {
     $recentAnnouncements = (new \App\Models\AnnouncementModel())
@@ -12,6 +14,23 @@ try {
 } catch (\Throwable $e) {
     $recentAnnouncements = [];
 }
+
+try {
+    $unreadChatCount = 0;
+    if ($user) {
+        $chatConvoModel = new \App\Models\ConversationModel();
+        $chatMsgModel   = new \App\Models\MessageModel();
+        foreach ($chatConvoModel->forUser((int) $user['id']) as $conv) {
+            $unreadChatCount += $chatMsgModel->unreadCount((int) $conv['id'], (int) $user['id'], $conv['last_read_at']);
+        }
+    }
+} catch (\Throwable $e) {
+    $unreadChatCount = 0;
+}
+
+$chatNavBadge = $unreadChatCount > 0
+    ? '<span class="badge bg-danger ms-auto" style="font-size:.62rem;">' . $unreadChatCount . '</span>'
+    : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -62,6 +81,12 @@ try {
            class="nav-link <?= str_contains($uri,'dashboard')?'active':'' ?>">
           <i class="bi bi-speedometer2 nav-icon"></i>
           <span class="sidebar-label">Dashboard</span>
+        </a>
+        <a href="<?= base_url('chat') ?>"
+           class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
+          <i class="bi bi-chat-dots-fill nav-icon"></i>
+          <span class="sidebar-label">Chat</span>
+          <?= $chatNavBadge ?>
         </a>
       </div>
     </div>
@@ -183,6 +208,12 @@ try {
           <i class="bi bi-house-fill nav-icon"></i>
           <span class="sidebar-label">My Dashboard</span>
         </a>
+        <a href="<?= base_url('chat') ?>"
+           class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
+          <i class="bi bi-chat-dots-fill nav-icon"></i>
+          <span class="sidebar-label">Chat</span>
+          <?= $chatNavBadge ?>
+        </a>
         <a href="<?= base_url('submit-documents') ?>"
            class="nav-link <?= str_contains($uri,'submit')?'active':'' ?>">
           <i class="bi bi-upload nav-icon"></i>
@@ -216,6 +247,10 @@ try {
         <a href="<?= base_url('secretary-dashboard') ?>" class="nav-link <?= str_contains($uri,'secretary-dashboard')?'active':'' ?>">
           <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
         </a>
+        <a href="<?= base_url('chat') ?>" class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
+          <i class="bi bi-chat-dots-fill nav-icon"></i><span class="sidebar-label">Chat</span>
+          <?= $chatNavBadge ?>
+        </a>
         <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
         </a>
@@ -237,6 +272,10 @@ try {
       <div class="sidebar-section-items open">
         <a href="<?= base_url('adas-dashboard') ?>" class="nav-link <?= str_contains($uri,'adas-dashboard')?'active':'' ?>">
           <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
+        </a>
+        <a href="<?= base_url('chat') ?>" class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
+          <i class="bi bi-chat-dots-fill nav-icon"></i><span class="sidebar-label">Chat</span>
+          <?= $chatNavBadge ?>
         </a>
         <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
@@ -293,6 +332,14 @@ try {
 
   <!-- Actions -->
   <div class="d-flex align-items-center gap-2 ms-auto">
+    <!-- Chat Shortcut -->
+    <a href="<?= base_url('chat') ?>" class="notif-btn" title="Chat">
+      <i class="bi bi-chat-dots fs-5"></i>
+      <?php if ($unreadChatCount > 0): ?>
+      <span class="notif-badge"><?= $unreadChatCount ?></span>
+      <?php endif; ?>
+    </a>
+
     <!-- Notification Bell -->
     <div class="position-relative">
       <button class="notif-btn" onclick="toggleNotif(event)" title="Notifications">

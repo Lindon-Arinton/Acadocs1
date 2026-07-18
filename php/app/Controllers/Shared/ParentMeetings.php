@@ -46,9 +46,32 @@ class ParentMeetings extends BaseController
             return redirect()->to('/parent-meetings?success=1');
         }
 
+        $search = trim($this->request->getGet('q') ?? '');
+        $sort   = $this->request->getGet('sort') ?? 'newest';
+
+        $builder = $model;
+        if ($search !== '') {
+            $builder->like('title', $search);
+        }
+
+        match ($sort) {
+            'oldest'        => $builder->orderBy('date', 'ASC'),
+            'attendance_hi' => $builder->orderBy('attendance_rate', 'DESC'),
+            'attendance_lo' => $builder->orderBy('attendance_rate', 'ASC'),
+            default         => $builder->orderBy('date', 'DESC'),
+        };
+
+        $meetings = $builder->findAll();
+
+        $chartMeetings = $meetings;
+        usort($chartMeetings, static fn (array $a, array $b): int => strtotime($a['date']) <=> strtotime($b['date']));
+
         return view('pages/shared/parent_meetings', [
-            'pageTitle' => 'Parent Meetings',
-            'meetings'  => $model->orderBy('date', 'DESC')->findAll(),
+            'pageTitle'     => 'Parent Meetings',
+            'meetings'      => $meetings,
+            'chartMeetings' => $chartMeetings,
+            'search'        => $search,
+            'sort'          => $sort,
         ]);
     }
 }

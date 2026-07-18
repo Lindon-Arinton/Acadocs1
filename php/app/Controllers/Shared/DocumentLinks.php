@@ -50,16 +50,33 @@ class DocumentLinks extends BaseController
             return redirect()->to('/document-links');
         }
 
-        $cat     = $this->request->getGet('category') ?? 'all';
-        $builder = $model->orderBy('date_added', 'DESC');
+        $cat    = $this->request->getGet('category') ?? 'all';
+        $search = trim($this->request->getGet('q') ?? '');
+        $sort   = $this->request->getGet('sort') ?? 'newest';
+
+        $builder = $model;
         if ($cat !== 'all') {
             $builder->where('category', $cat);
         }
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('title', $search)
+                ->orLike('description', $search)
+                ->groupEnd();
+        }
+
+        match ($sort) {
+            'oldest'   => $builder->orderBy('date_added', 'ASC'),
+            'title_az' => $builder->orderBy('title', 'ASC'),
+            default    => $builder->orderBy('date_added', 'DESC'),
+        };
 
         return view('pages/shared/document_links', [
             'pageTitle' => 'Document Links',
             'links'     => $builder->findAll(),
             'cat'       => $cat,
+            'search'    => $search,
+            'sort'      => $sort,
             'flash'     => session()->getFlashdata('flash'),
         ]);
     }

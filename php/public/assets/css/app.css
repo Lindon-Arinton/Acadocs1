@@ -538,6 +538,28 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .animate-in { animation: fadeIn .35s ease; }
 
+/* ── Chat ─────────────────────────────────────────────────── */
+.chat-filter-pill {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 600;
+  padding: .2rem .6rem;
+  border-radius: 50px;
+  white-space: nowrap;
+}
+.chat-filter-pill.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chat-section-label {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  padding: .6rem 1rem .3rem;
+}
+.chat-convo-item:hover, .chat-user-item:hover { background: #f9fafb; }
+
 /* ── Login ────────────────────────────────────────────────── */
 .login-wrapper {
   min-height: 100vh;

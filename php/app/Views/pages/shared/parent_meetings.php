@@ -12,12 +12,29 @@
 </div>
 <?php endif; ?>
 
-<div class="d-flex justify-content-end mb-4">
-  <?php if (hasRole('admin','secretary')): ?>
-  <button class="btn btn-maroon btn-sm" data-bs-toggle="modal" data-bs-target="#addMeetingModal">
-    <i class="bi bi-plus-lg me-1"></i>Add Meeting
-  </button>
-  <?php endif; ?>
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <form method="GET" action="<?= base_url('parent-meetings') ?>" id="filterForm" class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="input-group input-group-sm" style="max-width:260px;">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" id="meetingSearchInput" value="<?= e($search) ?>"
+                 class="form-control border-start-0 ps-0" placeholder="Search meeting title...">
+        </div>
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <option value="newest"        <?= $sort==='newest'        ? 'selected' : '' ?>>Newest First</option>
+          <option value="oldest"        <?= $sort==='oldest'        ? 'selected' : '' ?>>Oldest First</option>
+          <option value="attendance_hi" <?= $sort==='attendance_hi' ? 'selected' : '' ?>>Attendance Rate (High-Low)</option>
+          <option value="attendance_lo" <?= $sort==='attendance_lo' ? 'selected' : '' ?>>Attendance Rate (Low-High)</option>
+        </select>
+      </form>
+      <?php if (hasRole('admin','secretary')): ?>
+      <button class="btn btn-maroon btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addMeetingModal">
+        <i class="bi bi-plus-lg me-1"></i>Add Meeting
+      </button>
+      <?php endif; ?>
+    </div>
+  </div>
 </div>
 
 <!-- Chart -->
@@ -73,6 +90,14 @@
     </div>
   </div>
   <?php endforeach; ?>
+  <?php if (empty($meetings)): ?>
+  <div class="col-12">
+    <div class="card"><div class="card-body text-center py-5">
+      <i class="bi bi-inbox fs-1 d-block mb-3 text-muted"></i>
+      <p class="text-muted mb-0">No meetings found matching your search.</p>
+    </div></div>
+  </div>
+  <?php endif; ?>
 </div>
 
 <!-- Add Modal -->
@@ -105,18 +130,24 @@
 </div>
 
 <?php
-$extraScript = '<script>
+$chartScript = '';
+if (! empty($meetings)) {
+    $chartScript = '
 new Chart(document.getElementById("meetingChart"),{
   type:"bar",
   data:{
-    labels:' . json_encode(array_map(fn($m)=>date('M Y',strtotime($m['date'])),array_reverse($meetings))) . ',
+    labels:' . json_encode(array_map(fn($m)=>date('M Y',strtotime($m['date'])),$chartMeetings)) . ',
     datasets:[
-      {label:"Expected",data:' . json_encode(array_column(array_reverse($meetings),'expected_parents')) . ',backgroundColor:"#e5e7eb",borderRadius:6},
-      {label:"Attended",data:' . json_encode(array_column(array_reverse($meetings),'actual_attendance')) . ',backgroundColor:"#800000",borderRadius:6}
+      {label:"Expected",data:' . json_encode(array_column($chartMeetings,'expected_parents')) . ',backgroundColor:"#e5e7eb",borderRadius:6},
+      {label:"Attended",data:' . json_encode(array_column($chartMeetings,'actual_attendance')) . ',backgroundColor:"#800000",borderRadius:6}
     ]
   },
   options:{responsive:true,scales:{y:{beginAtZero:true,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}}}
-});
+});';
+}
+
+$extraScript = '<script>' . $chartScript . '
+initLiveSearch("meetingSearchInput", "filterForm");
 </script>';
 include APPPATH . 'Views/layout/footer.php';
 ?>

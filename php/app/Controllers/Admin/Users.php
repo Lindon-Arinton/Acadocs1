@@ -55,18 +55,28 @@ class Users extends BaseController
         }
 
         $search = trim($this->request->getGet('q') ?? '');
-        $users = $model->select('id,name,email,role,created_at')
+        $sort   = $this->request->getGet('sort') ?? 'role';
+
+        $builder = $model->select('id,name,email,role,created_at')
             ->groupStart()
                 ->like('name', $search)
                 ->orLike('email', $search)
-            ->groupEnd()
-            ->orderBy('role')->orderBy('name')
-            ->findAll();
+            ->groupEnd();
+
+        match ($sort) {
+            'name_az' => $builder->orderBy('name', 'ASC'),
+            'newest'  => $builder->orderBy('created_at', 'DESC'),
+            'oldest'  => $builder->orderBy('created_at', 'ASC'),
+            default   => $builder->orderBy('role', 'ASC')->orderBy('name', 'ASC'),
+        };
+
+        $users = $builder->findAll();
 
         return view('pages/admin/users', [
             'pageTitle' => 'User Management',
             'users'     => $users,
             'search'    => $search,
+            'sort'      => $sort,
             'flash'     => session()->getFlashdata('flash'),
         ]);
     }

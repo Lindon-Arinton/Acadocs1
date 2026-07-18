@@ -21,6 +21,33 @@
 </div>
 <?php endif; ?>
 
+<!-- Search + Filter + Sort -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="GET" action="<?= base_url('deped-documents') ?>" id="filterForm" class="d-flex align-items-center gap-2 flex-wrap">
+      <select name="status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <option value="all"         <?= $statusFilter==='all'         ? 'selected' : '' ?>>All Statuses</option>
+        <option value="Pending"     <?= $statusFilter==='Pending'     ? 'selected' : '' ?>>Pending</option>
+        <option value="In Progress" <?= $statusFilter==='In Progress' ? 'selected' : '' ?>>In Progress</option>
+        <option value="Completed"   <?= $statusFilter==='Completed'   ? 'selected' : '' ?>>Completed</option>
+      </select>
+
+      <div class="input-group input-group-sm" style="max-width:260px;">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="q" id="depedSearchInput" value="<?= e($search) ?>"
+               class="form-control border-start-0 ps-0" placeholder="Search document, description...">
+      </div>
+
+      <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <option value="due_asc"    <?= $sort==='due_asc'    ? 'selected' : '' ?>>Due Date (Soonest)</option>
+        <option value="due_desc"   <?= $sort==='due_desc'   ? 'selected' : '' ?>>Due Date (Latest)</option>
+        <option value="completion" <?= $sort==='completion' ? 'selected' : '' ?>>Completion %</option>
+        <option value="status"     <?= $sort==='status'     ? 'selected' : '' ?>>Status</option>
+      </select>
+    </form>
+  </div>
+</div>
+
 <!-- Summary cards -->
 <div class="row g-4 mb-4">
   <?php foreach ([
@@ -104,6 +131,14 @@
     </div>
   </div>
   <?php endforeach; ?>
+  <?php if (empty($docs)): ?>
+  <div class="col-12">
+    <div class="card"><div class="card-body text-center py-5">
+      <i class="bi bi-inbox fs-1 d-block mb-3 text-muted"></i>
+      <p class="text-muted mb-0">No documents found matching your search/filters.</p>
+    </div></div>
+  </div>
+  <?php endif; ?>
 </div>
 
 <!-- Add Modal -->
@@ -197,6 +232,7 @@ function updateDoc(d) {
     document.getElementById('updStatus').value = d.status;
     new bootstrap.Modal(document.getElementById('updateModal')).show();
 }
+initLiveSearch('depedSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

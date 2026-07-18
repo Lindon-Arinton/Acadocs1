@@ -389,14 +389,6 @@ function autofillTemplateTitle(fileInput) {
     document.getElementById('uploadTitleInput').value = withoutExt;
 }
 
-/* ── Live search (debounced auto-submit, no need to press Enter) ── */
-const templateSearchInput = document.getElementById('templateSearchInput');
-if (templateSearchInput) {
-    let searchDebounce;
-    templateSearchInput.addEventListener('input', () => {
-        clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(() => document.getElementById('filterForm').requestSubmit(), 500);
-    });
-}
+initLiveSearch('templateSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php'; ?>
