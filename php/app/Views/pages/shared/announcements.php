@@ -14,20 +14,33 @@
 <div class="row g-4">
   <!-- Left: list -->
   <div class="col-lg-<?= hasRole('admin','secretary') ? '8' : '12' ?>">
-    <!-- Filter tabs -->
-    <div class="tab-pills mb-4">
-      <?php foreach (['all'=>'All','Announcement'=>'Announcements','Questionnaires'=>'Questionnaires','Forms'=>'Forms'] as $val=>$lbl): ?>
-      <button class="tab-pill <?= $filter===$val?'active':'' ?>"
-              onclick="window.location='?type=<?= $val ?>'">
-        <?= $lbl ?>
-      </button>
-      <?php endforeach; ?>
-    </div>
+    <!-- Filter tabs + search + sort -->
+    <form method="GET" action="<?= base_url('announcements') ?>" id="filterForm" class="mb-4">
+      <div class="tab-pills mb-3">
+        <?php foreach (['all'=>'All','Announcement'=>'Announcements','Questionnaires'=>'Questionnaires','Forms'=>'Forms'] as $val=>$lbl): ?>
+        <button type="submit" name="type" value="<?= $val ?>" class="tab-pill <?= $filter===$val?'active':'' ?>">
+          <?= $lbl ?>
+        </button>
+        <?php endforeach; ?>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="input-group input-group-sm" style="max-width:260px;">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" id="announcementSearchInput" value="<?= e($search) ?>"
+                 class="form-control border-start-0 ps-0" placeholder="Search title, content...">
+        </div>
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Newest First</option>
+          <option value="oldest"   <?= $sort==='oldest'   ? 'selected' : '' ?>>Oldest First</option>
+          <option value="title_az" <?= $sort==='title_az' ? 'selected' : '' ?>>Title A-Z</option>
+        </select>
+      </div>
+    </form>
 
     <?php if (empty($announcements)): ?>
     <div class="card"><div class="card-body text-center py-5">
       <i class="bi bi-inbox fs-1 d-block mb-3 text-muted"></i>
-      <p class="text-muted mb-0">No announcements found.</p>
+      <p class="text-muted mb-0">No announcements found matching your search/filters.</p>
     </div></div>
     <?php endif; ?>
 
@@ -172,6 +185,7 @@ function wrapSelection(id, marker) {
     el.selectionStart = start + marker.length;
     el.selectionEnd = start + marker.length + selected.length;
 }
+initLiveSearch('announcementSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

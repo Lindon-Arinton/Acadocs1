@@ -52,14 +52,32 @@ class Properties extends BaseController
 
         $building  = $this->request->getGet('building') ?? 'all';
         $condition = $this->request->getGet('condition') ?? 'all';
+        $search    = trim($this->request->getGet('q') ?? '');
+        $sort      = $this->request->getGet('sort') ?? 'building_az';
 
-        $builder = $model->orderBy('building_name')->orderBy('room_number')->orderBy('item_name');
+        $builder = $model;
         if ($building !== 'all') {
             $builder->where('building_name', $building);
         }
         if ($condition !== 'all') {
             $builder->where('condition_status', $condition);
         }
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('room_number', $search)
+                ->orLike('item_name', $search)
+                ->orLike('remarks', $search)
+                ->groupEnd();
+        }
+
+        match ($sort) {
+            'item_az'   => $builder->orderBy('item_name', 'ASC'),
+            'condition' => $builder->orderBy('condition_status', 'ASC')->orderBy('item_name', 'ASC'),
+            'qty_desc'  => $builder->orderBy('quantity', 'DESC'),
+            'inspected' => $builder->orderBy('last_inspection', 'DESC'),
+            default     => $builder->orderBy('building_name', 'ASC')->orderBy('room_number', 'ASC')->orderBy('item_name', 'ASC'),
+        };
+
         $items = $builder->findAll();
 
         $buildings  = array_column((new RoomPropertyModel())->distinct()->select('building_name')->orderBy('building_name')->findAll(), 'building_name');
@@ -73,6 +91,8 @@ class Properties extends BaseController
             'items'      => $items,
             'building'   => $building,
             'condition'  => $condition,
+            'search'     => $search,
+            'sort'       => $sort,
             'buildings'  => $buildings,
             'conditions' => $conditions,
             'condStats'  => $condStats,

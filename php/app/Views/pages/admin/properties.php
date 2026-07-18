@@ -52,26 +52,38 @@ include APPPATH . 'Views/layout/header.php';
 <div class="card mb-4">
   <div class="card-body py-3">
     <div class="d-flex align-items-center gap-3 flex-wrap">
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-building text-muted"></i>
-        <select class="form-select form-select-sm" style="width:auto;"
-                onchange="window.location='?building='+this.value+'&condition=<?= urlencode($condition) ?>'">
-          <option value="all" <?= $building==='all'?'selected':'' ?>>All Buildings</option>
-          <?php foreach ($buildings as $b): ?>
-          <option value="<?= e($b) ?>" <?= $building===$b?'selected':'' ?>><?= e($b) ?></option>
-          <?php endforeach; ?>
+      <form method="GET" action="<?= base_url('property-management') ?>" id="filterForm" class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-building text-muted"></i>
+          <select name="building" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            <option value="all" <?= $building==='all'?'selected':'' ?>>All Buildings</option>
+            <?php foreach ($buildings as $b): ?>
+            <option value="<?= e($b) ?>" <?= $building===$b?'selected':'' ?>><?= e($b) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-funnel text-muted"></i>
+          <select name="condition" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            <option value="all" <?= $condition==='all'?'selected':'' ?>>All Conditions</option>
+            <?php foreach ($conditions as $c): ?>
+            <option value="<?= $c ?>" <?= $condition===$c?'selected':'' ?>><?= $c ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="input-group input-group-sm" style="max-width:220px;">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" id="propSearchInput" value="<?= e($search) ?>"
+                 class="form-control border-start-0 ps-0" placeholder="Search room, item, remarks...">
+        </div>
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <option value="building_az" <?= $sort==='building_az' ? 'selected' : '' ?>>Building A-Z</option>
+          <option value="item_az"     <?= $sort==='item_az'     ? 'selected' : '' ?>>Item Name A-Z</option>
+          <option value="condition"   <?= $sort==='condition'   ? 'selected' : '' ?>>Condition</option>
+          <option value="qty_desc"    <?= $sort==='qty_desc'    ? 'selected' : '' ?>>Quantity (High-Low)</option>
+          <option value="inspected"   <?= $sort==='inspected'   ? 'selected' : '' ?>>Recently Inspected</option>
         </select>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-funnel text-muted"></i>
-        <select class="form-select form-select-sm" style="width:auto;"
-                onchange="window.location='?building=<?= urlencode($building) ?>&condition='+this.value">
-          <option value="all" <?= $condition==='all'?'selected':'' ?>>All Conditions</option>
-          <?php foreach ($conditions as $c): ?>
-          <option value="<?= $c ?>" <?= $condition===$c?'selected':'' ?>><?= $c ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+      </form>
       <div class="ms-auto d-flex gap-2 align-items-center">
         <span class="text-muted" style="font-size:.78rem;"><?= count($items) ?> items · <?= $totalItems ?> total units</span>
         <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('prop-table','properties')">
@@ -206,6 +218,7 @@ function exportTable(tableId, filename) {
     });
     a.click();
 }
+initLiveSearch('propSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

@@ -213,6 +213,18 @@ function confirmLogout(e, link) {
     return false;
 }
 
+/* ── Live search (debounced auto-submit, no need to press Enter) ── */
+function initLiveSearch(inputId, formId, delay = 500) {
+    const input = document.getElementById(inputId);
+    const form  = document.getElementById(formId);
+    if (!input || !form) return;
+    let timer;
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => form.requestSubmit(), delay);
+    });
+}
+
 /* ── Chart.js global defaults ─────────────────────────────── */
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size   = 12;

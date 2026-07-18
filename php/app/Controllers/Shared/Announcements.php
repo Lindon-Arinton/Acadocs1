@@ -49,15 +49,32 @@ class Announcements extends BaseController
         }
 
         $filter = $this->request->getGet('type') ?? 'all';
-        $builder = $model->orderBy('date', 'DESC');
+        $search = trim($this->request->getGet('q') ?? '');
+        $sort   = $this->request->getGet('sort') ?? 'newest';
+
+        $builder = $model;
         if ($filter !== 'all') {
             $builder->where('type', $filter);
         }
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('title', $search)
+                ->orLike('content', $search)
+                ->groupEnd();
+        }
+
+        match ($sort) {
+            'oldest'   => $builder->orderBy('date', 'ASC'),
+            'title_az' => $builder->orderBy('title', 'ASC'),
+            default    => $builder->orderBy('date', 'DESC'),
+        };
 
         return view('pages/shared/announcements', [
             'pageTitle'     => 'Announcements',
             'announcements' => $builder->findAll(),
             'filter'        => $filter,
+            'search'        => $search,
+            'sort'          => $sort,
             'flash'         => session()->getFlashdata('flash'),
         ]);
     }

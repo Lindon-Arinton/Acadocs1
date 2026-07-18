@@ -29,14 +29,28 @@ include APPPATH . 'Views/layout/header.php';
 </div>
 <?php endif; ?>
 
-<!-- Category filter (tab pills) -->
-<div class="tab-pills mb-4">
-  <?php foreach (['all'=>'All','Forms'=>'Forms','Questionnaires'=>'Questionnaires','Templates'=>'Templates','Guidelines'=>'Guidelines'] as $v=>$l): ?>
-  <button class="tab-pill <?= $cat===$v?'active':'' ?>" onclick="window.location='?category=<?= $v ?>'">
-    <?= $l ?>
-  </button>
-  <?php endforeach; ?>
-</div>
+<!-- Category filter + search + sort -->
+<form method="GET" action="<?= base_url('document-links') ?>" id="filterForm" class="mb-4">
+  <div class="tab-pills mb-3">
+    <?php foreach (['all'=>'All','Forms'=>'Forms','Questionnaires'=>'Questionnaires','Templates'=>'Templates','Guidelines'=>'Guidelines'] as $v=>$l): ?>
+    <button type="submit" name="category" value="<?= $v ?>" class="tab-pill <?= $cat===$v?'active':'' ?>">
+      <?= $l ?>
+    </button>
+    <?php endforeach; ?>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <div class="input-group input-group-sm" style="max-width:260px;">
+      <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+      <input type="text" name="q" id="linkSearchInput" value="<?= e($search) ?>"
+             class="form-control border-start-0 ps-0" placeholder="Search title, description...">
+    </div>
+    <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+      <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Newest First</option>
+      <option value="oldest"   <?= $sort==='oldest'   ? 'selected' : '' ?>>Oldest First</option>
+      <option value="title_az" <?= $sort==='title_az' ? 'selected' : '' ?>>Title A-Z</option>
+    </select>
+  </div>
+</form>
 
 <!-- Link cards grid -->
 <div class="row g-4">
@@ -82,7 +96,7 @@ include APPPATH . 'Views/layout/header.php';
   <div class="col-12">
     <div class="card"><div class="card-body text-center py-5">
       <i class="bi bi-link-45deg fs-1 d-block mb-3 text-muted"></i>
-      <p class="text-muted mb-0">No links found in this category.</p>
+      <p class="text-muted mb-0">No links found matching your search/filters.</p>
     </div></div>
   </div>
   <?php endif; ?>
@@ -136,4 +150,8 @@ include APPPATH . 'Views/layout/header.php';
   </div>
 </div>
 
-<?php include APPPATH . 'Views/layout/footer.php'; ?>
+<?php
+$extraScript = "<script>
+initLiveSearch('linkSearchInput', 'filterForm');
+</script>";
+include APPPATH . 'Views/layout/footer.php'; ?>

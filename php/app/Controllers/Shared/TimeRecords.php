@@ -57,7 +57,26 @@ class TimeRecords extends BaseController
         }
 
         $dateFilter = $this->request->getGet('date') ?? date('Y-m-d');
-        $records    = $model->where('date', $dateFilter)->orderBy('employee_name')->findAll();
+        $search     = trim($this->request->getGet('q') ?? '');
+        $sort       = $this->request->getGet('sort') ?? 'name_az';
+
+        $builder = $model->where('date', $dateFilter);
+
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('employee_name', $search)
+                ->orLike('employee_id', $search)
+                ->orLike('remarks', $search)
+                ->groupEnd();
+        }
+
+        match ($sort) {
+            'status'  => $builder->orderBy('status', 'ASC')->orderBy('employee_name', 'ASC'),
+            'time_in' => $builder->orderBy('time_in', 'ASC'),
+            default   => $builder->orderBy('employee_name', 'ASC'),
+        };
+
+        $records = $builder->findAll();
 
         $summary = ['Present' => 0, 'Late' => 0, 'Absent' => 0, 'On Leave' => 0];
         foreach ($records as $r) {
@@ -71,6 +90,8 @@ class TimeRecords extends BaseController
             'records'    => $records,
             'summary'    => $summary,
             'dateFilter' => $dateFilter,
+            'search'     => $search,
+            'sort'       => $sort,
             'flash'      => session()->getFlashdata('flash'),
         ]);
     }

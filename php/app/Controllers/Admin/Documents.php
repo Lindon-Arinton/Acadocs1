@@ -48,13 +48,30 @@ class Documents extends BaseController
         }
 
         $statusFilter = $this->request->getGet('status') ?? 'all';
+        $search       = trim($this->request->getGet('q') ?? '');
+        $sort         = $this->request->getGet('sort') ?? 'date_desc';
+
         $builder = $documentModel->select('documents.*, teachers.name AS teacher_name')
-            ->join('teachers', 'teachers.id = documents.teacher_id')
-            ->orderBy('documents.date_submitted', 'DESC');
+            ->join('teachers', 'teachers.id = documents.teacher_id');
 
         if ($statusFilter !== 'all') {
             $builder->where('documents.status', $statusFilter);
         }
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('teachers.name', $search)
+                ->orLike('documents.subject', $search)
+                ->orLike('documents.type', $search)
+                ->orLike('documents.grade_level', $search)
+                ->groupEnd();
+        }
+
+        match ($sort) {
+            'date_asc'   => $builder->orderBy('documents.date_submitted', 'ASC'),
+            'teacher_az' => $builder->orderBy('teachers.name', 'ASC'),
+            'status'     => $builder->orderBy('documents.status', 'ASC'),
+            default      => $builder->orderBy('documents.date_submitted', 'DESC'),
+        };
 
         $docs = $builder->findAll();
 
@@ -65,6 +82,8 @@ class Documents extends BaseController
             'docs'         => $docs,
             'statusFilter' => $statusFilter,
             'statusCounts' => $statusCounts,
+            'search'       => $search,
+            'sort'         => $sort,
         ]);
     }
 }

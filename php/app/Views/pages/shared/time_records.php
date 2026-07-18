@@ -19,19 +19,30 @@
 </div>
 <?php endif; ?>
 
-<!-- Date filter + actions -->
+<!-- Date filter + search + sort + actions -->
 <div class="card mb-4">
   <div class="card-body py-3">
     <div class="d-flex align-items-center gap-3 flex-wrap">
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-calendar3 text-muted"></i>
-        <label class="form-label mb-0 fw-semibold" style="font-size:.82rem;">Date</label>
-        <form method="GET" class="d-inline">
+      <form method="GET" action="<?= base_url('time-records') ?>" id="filterForm" class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-calendar3 text-muted"></i>
           <input type="date" name="date" value="<?= e($dateFilter) ?>"
                  class="form-control form-control-sm" style="width:auto;"
                  onchange="this.form.submit()">
-        </form>
-      </div>
+        </div>
+
+        <div class="input-group input-group-sm" style="max-width:220px;">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" id="timeSearchInput" value="<?= e($search) ?>"
+                 class="form-control border-start-0 ps-0" placeholder="Search name, ID, remarks...">
+        </div>
+
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <option value="name_az" <?= $sort==='name_az' ? 'selected' : '' ?>>Name A-Z</option>
+          <option value="status"  <?= $sort==='status'  ? 'selected' : '' ?>>Status</option>
+          <option value="time_in" <?= $sort==='time_in' ? 'selected' : '' ?>>Time In</option>
+        </select>
+      </form>
       <div class="ms-auto d-flex gap-2">
         <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('time-table','time_records')">
           <i class="bi bi-download me-1"></i>Export
@@ -270,6 +281,7 @@ function exportTable(tableId, filename) {
     });
     a.click();
 }
+initLiveSearch('timeSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

@@ -15,17 +15,32 @@
 <!-- Filters -->
 <div class="card mb-4">
   <div class="card-body py-3">
-    <div class="d-flex gap-2 flex-wrap">
-      <?php foreach (['all'=>'All','Submitted'=>'Submitted','Reviewed'=>'Reviewed','Pending'=>'Pending','Returned'=>'Returned'] as $val=>$lbl): ?>
-      <a href="?status=<?= $val ?>"
-         class="btn btn-sm <?= $statusFilter===$val ? 'btn-maroon' : 'btn-outline-secondary' ?>">
-        <?= $lbl ?>
-        <?php if ($val !== 'all'): ?>
-        <span class="badge bg-secondary ms-1"><?= $statusCounts[$val] ?? 0 ?></span>
-        <?php endif; ?>
-      </a>
-      <?php endforeach; ?>
-    </div>
+    <form method="GET" action="<?= base_url('documents') ?>" id="filterForm" class="d-flex flex-wrap gap-2 align-items-center">
+      <div class="d-flex gap-2 flex-wrap">
+        <?php foreach (['all'=>'All','Submitted'=>'Submitted','Reviewed'=>'Reviewed','Pending'=>'Pending','Returned'=>'Returned'] as $val=>$lbl): ?>
+        <button type="submit" name="status" value="<?= $val ?>"
+                class="btn btn-sm <?= $statusFilter===$val ? 'btn-maroon' : 'btn-outline-secondary' ?>">
+          <?= $lbl ?>
+          <?php if ($val !== 'all'): ?>
+          <span class="badge bg-secondary ms-1"><?= $statusCounts[$val] ?? 0 ?></span>
+          <?php endif; ?>
+        </button>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="input-group input-group-sm ms-auto" style="max-width:260px;">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="q" id="docSearchInput" value="<?= e($search) ?>"
+               class="form-control border-start-0 ps-0" placeholder="Search teacher, subject...">
+      </div>
+
+      <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <option value="date_desc"  <?= $sort==='date_desc'  ? 'selected' : '' ?>>Newest First</option>
+        <option value="date_asc"   <?= $sort==='date_asc'   ? 'selected' : '' ?>>Oldest First</option>
+        <option value="teacher_az" <?= $sort==='teacher_az' ? 'selected' : '' ?>>Teacher A-Z</option>
+        <option value="status"     <?= $sort==='status'     ? 'selected' : '' ?>>Status</option>
+      </select>
+    </form>
   </div>
 </div>
 
@@ -137,6 +152,7 @@ function feedbackDoc(id, teacher) {
     document.getElementById('feedbackTeacher').textContent = teacher;
     new bootstrap.Modal(document.getElementById('feedbackModal')).show();
 }
+initLiveSearch('docSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

@@ -15,13 +15,18 @@
 <div class="card mb-4">
   <div class="card-body py-3">
     <div class="d-flex gap-3 flex-wrap align-items-center">
-      <form class="d-flex gap-2" style="flex:1;max-width:380px;">
-        <div class="input-group input-group-sm">
+      <form method="GET" action="<?= base_url('users') ?>" id="filterForm" class="d-flex gap-2 flex-wrap align-items-center" style="flex:1;">
+        <div class="input-group input-group-sm" style="max-width:320px;">
           <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" name="q" value="<?= e($search) ?>" placeholder="Search teachers by name or email..."
+          <input type="text" name="q" id="userSearchInput" value="<?= e($search) ?>" placeholder="Search by name or email..."
                  class="form-control border-start-0 ps-0">
         </div>
-        <button class="btn btn-outline-secondary btn-sm">Search</button>
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <option value="role"    <?= $sort==='role'    ? 'selected' : '' ?>>Role</option>
+          <option value="name_az" <?= $sort==='name_az' ? 'selected' : '' ?>>Name A-Z</option>
+          <option value="newest"  <?= $sort==='newest'  ? 'selected' : '' ?>>Newest First</option>
+          <option value="oldest"  <?= $sort==='oldest'  ? 'selected' : '' ?>>Oldest First</option>
+        </select>
       </form>
       <button class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addUserModal">
         <i class="bi bi-person-plus me-1"></i>Add User
@@ -94,6 +99,9 @@
             </td>
           </tr>
           <?php endforeach; ?>
+          <?php if (empty($users)): ?>
+          <tr><td colspan="6" class="text-center py-5 text-muted">No users found matching your search.</td></tr>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -180,6 +188,7 @@ function resetPw(id, name) {
     document.getElementById('resetUserName').textContent = name;
     new bootstrap.Modal(document.getElementById('resetPwModal')).show();
 }
+initLiveSearch('userSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>
