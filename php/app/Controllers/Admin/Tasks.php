@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\NotificationModel;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
 use App\Models\TaskSubmissionModel;
@@ -26,13 +27,32 @@ class Tasks extends BaseController
 
             try {
                 if ($action === 'add') {
-                    $taskModel->insert([
-                        'title'         => $this->request->getPost('title'),
+                    $title        = $this->request->getPost('title');
+                    $assignedRole = $this->request->getPost('assigned_role');
+                    $deadline     = $this->request->getPost('deadline');
+
+                    $taskId = $taskModel->insert([
+                        'title'         => $title,
                         'description'   => $this->request->getPost('description') ?? '',
-                        'assigned_role' => $this->request->getPost('assigned_role'),
-                        'deadline'      => $this->request->getPost('deadline'),
+                        'assigned_role' => $assignedRole,
+                        'deadline'      => $deadline,
                         'created_by'    => currentUser()['name'],
                     ]);
+
+                    $notifModel = new NotificationModel();
+                    foreach ((new UserModel())->where('role', $assignedRole)->findAll() as $recipient) {
+                        $notifModel->insert([
+                            'user_id'  => $recipient['id'],
+                            'type'     => 'task_assigned',
+                            'title'    => 'New Task: ' . $title,
+                            'sub'      => 'Due ' . date('M d, Y', strtotime($deadline)),
+                            'url'      => base_url('my-tasks'),
+                            'ref_type' => 'task_assigned',
+                            'ref_id'   => $taskId,
+                            'is_read'  => 0,
+                        ]);
+                    }
+
                     $message = 'Task posted successfully.';
                 } elseif ($action === 'close') {
                     $taskModel->update((int) $this->request->getPost('id'), ['status' => 'Closed']);
@@ -103,6 +123,19 @@ class Tasks extends BaseController
                         'date'                => date('Y-m-d'),
                     ]);
                     $submissionModel->update($submissionId, ['status' => 'Reviewed']);
+
+                    $submission = $submissionModel->find($submissionId);
+                    if ($submission) {
+                        (new NotificationModel())->upsertGrouped(
+                            (int) $submission['user_id'],
+                            'task_feedback',
+                            $submissionId,
+                            'task_feedback',
+                            'New feedback on: ' . $task['title'],
+                            mb_strimwidth($comment, 0, 80, '…'),
+                            base_url('my-tasks')
+                        );
+                    }
                 } catch (\Throwable $e) {
                     return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/tasks/' . $id);
                 }

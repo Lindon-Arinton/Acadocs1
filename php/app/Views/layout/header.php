@@ -8,12 +8,23 @@ $photoUrl  = (! empty($user['photo']) && is_file(FCPATH . 'uploads/avatars/' . $
     ? base_url('uploads/avatars/' . $user['photo'])
     : null;
 
+$notifTypeIcons = [
+    'announcement'      => ['bi-megaphone-fill', '#fff0f0', '#800000'],
+    'task_assigned'     => ['bi-list-task', '#fff0f0', '#800000'],
+    'task_submission'   => ['bi-check2-square', '#f0fdf4', '#065f46'],
+    'task_feedback'     => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
+    'document_feedback' => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
+];
+
 try {
-    $recentAnnouncements = (new \App\Models\AnnouncementModel())
-        ->where('status', 'active')->orderBy('date', 'DESC')->findAll(4);
+    $notifModel       = new \App\Models\NotificationModel();
+    $notifItems       = $user ? $notifModel->forUser((int) $user['id'], 8) : [];
+    $unreadNotifCount = $user ? $notifModel->unreadCount((int) $user['id']) : 0;
 } catch (\Throwable $e) {
-    $recentAnnouncements = [];
+    $notifItems       = [];
+    $unreadNotifCount = 0;
 }
+
 
 try {
     $unreadChatCount = 0;
@@ -344,35 +355,44 @@ $chatNavBadge = $unreadChatCount > 0
     <div class="position-relative">
       <button class="notif-btn" onclick="toggleNotif(event)" title="Notifications">
         <i class="bi bi-bell fs-5"></i>
-        <?php if (count($recentAnnouncements) > 0): ?>
-        <span class="notif-badge"><?= count($recentAnnouncements) ?></span>
+        <?php if ($unreadNotifCount > 0): ?>
+        <span class="notif-badge"><?= $unreadNotifCount ?></span>
         <?php endif; ?>
       </button>
 
       <div class="notif-panel" id="notif-panel">
         <div class="notif-panel-header d-flex justify-content-between align-items-center">
           <span>Notifications</span>
-          <span class="badge badge-maroon" style="font-size:.65rem;"><?= count($recentAnnouncements) ?> new</span>
+          <span class="badge badge-maroon" style="font-size:.65rem;"><?= $unreadNotifCount ?> new</span>
         </div>
-        <?php foreach ($recentAnnouncements as $a):
-          $ico = ['Announcement'=>['bi-megaphone-fill','#fff0f0','#800000'],
-                  'Questionnaires'=>['bi-card-list','#f0f4ff','#3730a3'],
-                  'Forms'=>['bi-file-earmark-text-fill','#f0fdf4','#065f46']][$a['type']] ?? ['bi-bell','#f9fafb','#374151'];
+        <?php foreach ($notifItems as $n):
+          $ico = $notifTypeIcons[$n['type']] ?? ['bi-bell', '#f9fafb', '#374151'];
         ?>
-        <a href="<?= base_url('announcements') ?>" class="notif-item text-decoration-none" style="color:inherit;">
+        <a href="<?= e($n['url'] ?? '#') ?>" class="notif-item text-decoration-none <?= $n['is_read'] ? '' : 'notif-unread' ?>"
+           style="color:inherit;" data-notif-id="<?= $n['id'] ?>">
           <div class="notif-item-icon" style="background:<?= $ico[1] ?>">
             <i class="bi <?= $ico[0] ?>" style="color:<?= $ico[2] ?>;font-size:.85rem;"></i>
           </div>
           <div>
-            <div class="notif-item-title"><?= e($a['title']) ?></div>
-            <div class="notif-item-sub"><?= e($a['type']) ?> · <?= date('M d', strtotime($a['date'])) ?></div>
+            <div class="notif-item-title"><?= e($n['title']) ?><?= $n['is_read'] ? '' : ' <span class="notif-dot"></span>' ?></div>
+            <?php if ($n['sub']): ?>
+            <div class="notif-item-sub"><?= e($n['sub']) ?></div>
+            <?php endif; ?>
           </div>
         </a>
         <?php endforeach; ?>
-        <div class="p-2 text-center">
+        <?php if (empty($notifItems)): ?>
+        <p class="text-muted text-center small p-4 mb-0">No notifications yet.</p>
+        <?php endif; ?>
+        <div class="p-2 text-center d-flex gap-2">
           <a href="<?= base_url('announcements') ?>" class="btn btn-sm btn-outline-maroon w-100" style="font-size:.75rem;">
-            View all announcements
+            View announcements
           </a>
+          <?php if (in_array($role, ['teacher', 'secretary', 'adas'], true)): ?>
+          <a href="<?= base_url('my-tasks') ?>" class="btn btn-sm btn-outline-maroon w-100" style="font-size:.75rem;">
+            View my tasks
+          </a>
+          <?php endif; ?>
         </div>
       </div>
     </div>

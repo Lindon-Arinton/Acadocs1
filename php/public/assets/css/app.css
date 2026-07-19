@@ -269,6 +269,9 @@ body.sidebar-collapsed #topbar { left: 64px; }
 .notif-item-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .notif-item-title { font-size: .78rem; font-weight: 600; color: #111; }
 .notif-item-sub { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+.notif-item.notif-unread { background: #fff7f7; }
+.notif-item.notif-unread .notif-item-title { font-weight: 700; }
+.notif-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); margin-left: 5px; vertical-align: middle; }
 
 /* ── Main content ─────────────────────────────────────────── */
 #main-content {
