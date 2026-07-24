@@ -477,8 +477,11 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
   border-radius: 8px;
   padding: .45rem .75rem;
   color: #111;
-  background: #fff;
+  background-color: #fff;
   transition: border-color .15s, box-shadow .15s;
+}
+.form-select {
+  padding-right: 2.25rem;
 }
 .form-control:focus, .form-select:focus {
   border-color: var(--primary);
@@ -526,6 +529,12 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 /* Document link cards */
 .doclink-card { border-radius: var(--radius); border: 1px solid var(--border); background: #fff; padding: 1.25rem; height: 100%; transition: box-shadow .2s, transform .2s; }
 .doclink-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); transform: translateY(-2px); }
+
+/* Collapsible template sections */
+.section-toggle-btn { color: inherit; }
+.section-toggle-btn:hover .section-toggle-arrow { color: var(--primary); }
+.section-toggle-arrow { transition: transform .2s; }
+.section-toggle-btn.collapsed .section-toggle-arrow { transform: rotate(-90deg); }
 
 /* Property condition badges */
 .cond-excellent { background: #d1fae5; color: #065f46; }

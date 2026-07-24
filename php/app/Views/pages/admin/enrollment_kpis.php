@@ -6,106 +6,83 @@
       <h4><i class="bi bi-people-fill me-2"></i>Enrollment KPIs</h4>
       <p>Student enrollment statistics by grade level</p>
     </div>
-    <form class="d-flex gap-2 align-items-center">
-      <label class="text-white small fw-semibold">School Year:</label>
-      <select name="year" class="form-select form-select-sm" onchange="this.form.submit()" style="width:auto;">
-        <option value="2025-2026" <?= $year==='2025-2026'?'selected':'' ?>>2025–2026</option>
-        <option value="2024-2025" <?= $year==='2024-2025'?'selected':'' ?>>2024–2025</option>
+    <div class="d-flex gap-2 align-items-center" style="position:relative;z-index:1;">
+      <label class="text-white small fw-semibold" for="year-filter">School Year:</label>
+      <select id="year-filter" class="form-select form-select-sm" style="width:auto;">
+        <?php foreach ($years as $y): ?>
+          <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+        <?php endforeach; ?>
       </select>
-    </form>
+    </div>
   </div>
 </div>
 
-<!-- KPI Cards -->
-<div class="row g-3 mb-4">
-  <?php foreach ([
-    ['Total Enrollment',     number_format($kpi['total_enrollment']??0),   'bi-people-fill',           '#800000'],
-    ['Submission Compliance',($kpi['submission_compliance']??0).'%',        'bi-file-earmark-check',    '#560000'],
-    ['Average MPS',          ($kpi['average_mps']??0).'%',                 'bi-graph-up',              '#a52a2a'],
-    ['Dropout Count',        $kpi['dropout_count']??0,                     'bi-exclamation-triangle',  '#6b0000'],
-    ['Parent Attendance',    ($kpi['parent_attendance']??0).'%',            'bi-people',                '#800000'],
-  ] as [$l,$v,$i,$c]): ?>
-  <div class="col-6 col-xl">
-    <div class="kpi-card text-center">
-      <i class="bi <?= $i ?> fs-2 mb-2" style="color:<?= $c ?>"></i>
-      <div class="fw-bold" style="font-size:1.6rem;color:<?= $c ?>"><?= $v ?></div>
-      <div class="text-muted small mt-1"><?= $l ?></div>
-    </div>
-  </div>
-  <?php endforeach; ?>
-</div>
-
-<div class="row g-4">
-  <!-- Bar Chart -->
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-header bg-white py-3 fw-semibold">
-        <i class="bi bi-bar-chart me-2 text-muted"></i>Students per Grade Level
-      </div>
-      <div class="card-body"><canvas id="enrollChart" height="250"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Breakdown Table -->
-  <div class="col-lg-5">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3 fw-semibold">
-        <i class="bi bi-table me-2 text-muted"></i>Enrollment Breakdown
-      </div>
-      <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-          <thead><tr><th>Grade Level</th><th class="text-center">Sections</th>
-                      <th class="text-end">Students</th><th class="text-end">Share</th></tr></thead>
-          <tbody>
-            <?php foreach ($enrollment as $e): $pct = $total > 0 ? round($e['students']/$total*100,1) : 0; ?>
-            <tr>
-              <td class="fw-semibold"><?= e($e['grade_level']) ?></td>
-              <td class="text-center"><?= $e['sections'] ?></td>
-              <td class="text-end fw-bold"><?= number_format($e['students']) ?></td>
-              <td class="text-end">
-                <div class="d-flex align-items-center gap-2 justify-content-end">
-                  <div class="progress flex-grow-1" style="height:6px;min-width:60px;">
-                    <div class="progress-bar" style="width:<?= $pct ?>%"></div>
-                  </div>
-                  <span class="small text-muted"><?= $pct ?>%</span>
-                </div>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-          <tfoot class="table-light">
-            <tr>
-              <td class="fw-bold">Total</td>
-              <td class="text-center fw-bold"><?= array_sum(array_column($enrollment,'sections')) ?></td>
-              <td class="text-end fw-bold"><?= number_format($total) ?></td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  </div>
+<div id="enrollment-content">
+  <?php include APPPATH . 'Views/pages/admin/enrollment_kpis_content.php'; ?>
 </div>
 
 <?php
 $extraScript = '<script>
-new Chart(document.getElementById("enrollChart"),{
-  type:"bar",
-  data:{
-    labels:' . json_encode(array_column($enrollment,'grade_level')) . ',
-    datasets:[{
-      label:"Students",
-      data:' . json_encode(array_column($enrollment,'students')) . ',
-      backgroundColor:["#800000","#a52a2a","#8b0000","#560000"],
-      borderRadius:10
-    }]
-  },
-  options:{
-    responsive:true,
-    plugins:{legend:{display:false}},
-    scales:{y:{beginAtZero:false,min:290,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}}
-  }
+const ENROLLMENT_URL = ' . json_encode(current_url()) . ';
+let enrollChart = null;
+
+function renderEnrollmentChart(enrollment) {
+  if (enrollChart) { enrollChart.destroy(); enrollChart = null; }
+  const enrollCanvas = document.getElementById("enrollChart");
+  if (!enrollCanvas) return;
+
+  enrollChart = new Chart(enrollCanvas, {
+    type: "bar",
+    data: {
+      labels: enrollment.map(e => e.grade_level),
+      datasets: [{
+        label: "Students",
+        data: enrollment.map(e => e.students),
+        backgroundColor: ["#800000","#a52a2a","#8b0000","#560000"],
+        borderRadius: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: false, min: 290, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } }
+    }
+  });
+}
+
+const yearFilter = document.getElementById("year-filter");
+const contentBox = document.getElementById("enrollment-content");
+
+yearFilter?.addEventListener("change", () => {
+  const year = yearFilter.value;
+  contentBox.style.opacity = "0.5";
+
+  fetch(ENROLLMENT_URL + "?year=" + encodeURIComponent(year), {
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(data => {
+      contentBox.innerHTML = data.html;
+      renderEnrollmentChart(data.enrollment);
+      history.replaceState(null, "", "?year=" + encodeURIComponent(year));
+    })
+    .catch(err => {
+      console.error("Enrollment year switch failed:", err);
+      showToast("Could not load enrollment data for that school year.", "danger");
+    })
+    .finally(() => {
+      contentBox.style.opacity = "1";
+    });
 });
+
+try {
+  renderEnrollmentChart(' . json_encode($enrollment) . ');
+} catch (err) {
+  console.error("Initial chart render failed:", err);
+}
 </script>';
 include APPPATH . 'Views/layout/footer.php';
 ?>

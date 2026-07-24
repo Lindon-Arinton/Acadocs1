@@ -114,7 +114,7 @@
           <div class="col-12"><label class="form-label small fw-semibold">Meeting Title</label>
             <input type="text" name="title" class="form-control" required></div>
           <div class="col-6"><label class="form-label small fw-semibold">Date</label>
-            <input type="date" name="date" class="form-control" required></div>
+            <input type="date" name="date" class="form-control" min="<?= date('Y-m-d') ?>" required></div>
           <div class="col-6"><label class="form-label small fw-semibold">Expected Parents</label>
             <input type="number" name="expected_parents" class="form-control" value="450" required></div>
           <div class="col-6"><label class="form-label small fw-semibold">Actual Attendance</label>

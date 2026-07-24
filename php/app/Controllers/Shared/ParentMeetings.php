@@ -22,6 +22,14 @@ class ParentMeetings extends BaseController
 
             try {
                 if ($this->request->getPost('action') === 'add') {
+                    $date = $this->request->getPost('date');
+
+                    if ($date < date('Y-m-d')) {
+                        $error = 'Meeting date cannot be in the past.';
+
+                        return $isAjax ? $this->ajaxError($error) : redirect()->to('/parent-meetings')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                    }
+
                     $actual   = (int) $this->request->getPost('actual_attendance');
                     $expected = (int) $this->request->getPost('expected_parents');
                     $rate     = $expected > 0 ? round($actual / $expected * 100, 2) : 0;
