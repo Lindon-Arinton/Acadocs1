@@ -14,7 +14,7 @@ class Tasks extends BaseController
 {
     public function index()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'secretary')) {
             return redirect()->to('/dashboard');
         }
 
@@ -96,7 +96,7 @@ class Tasks extends BaseController
 
     public function view(int $id)
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'secretary')) {
             return redirect()->to('/dashboard');
         }
 

@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ParentMeetingSeeder::class);
         $this->call(DocumentLinkSeeder::class);
         $this->call(TimeRecordSeeder::class);
-        $this->call(DepedDocumentSeeder::class);
         $this->call(RoomPropertySeeder::class);
     }
 }

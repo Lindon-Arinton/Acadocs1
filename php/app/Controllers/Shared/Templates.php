@@ -3,6 +3,7 @@
 namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
+use App\Libraries\OfficeConverter;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -12,6 +13,30 @@ class Templates extends BaseController
     private const ALLOWED_EXT = [
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'txt', 'zip', 'rar', 'jpg', 'jpeg', 'png',
     ];
+
+    /** File types LibreOffice can convert to PDF for preview/download. */
+    private const OFFICE_TO_PDF = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'odt', 'ods', 'odp'];
+
+    /**
+     * Returns the extra download/preview format a file's "usual type" can be
+     * converted to (Word/Excel/PowerPoint documents -> PDF), or [] if none applies.
+     *
+     * PDF -> Word is intentionally not offered: LibreOffice's PDF import filter
+     * reliably hangs headless conversion in this environment, so it isn't a safe
+     * conversion to expose in the UI.
+     */
+    public static function conversionTargets(string $ext): array
+    {
+        if (! (new OfficeConverter())->isAvailable()) {
+            return [];
+        }
+
+        if (in_array($ext, self::OFFICE_TO_PDF, true)) {
+            return ['pdf'];
+        }
+
+        return [];
+    }
 
     public function index()
     {
@@ -188,6 +213,27 @@ class Templates extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
+        $as = strtolower(trim($this->request->getGet('as') ?? ''));
+
+        if ($as !== '' && $as !== $template['file_ext']) {
+            if (! in_array($as, self::conversionTargets($template['file_ext']), true)) {
+                throw PageNotFoundException::forPageNotFound();
+            }
+
+            $converted = $this->convertedPath($template, $as);
+
+            if (! $converted) {
+                return redirect()->back()->with('flash', [
+                    'type' => 'danger',
+                    'msg'  => 'Could not convert this file to ' . strtoupper($as) . '. Downloading the original instead.',
+                ]);
+            }
+
+            $downloadName = pathinfo($template['file_name'], PATHINFO_FILENAME) . '.' . $as;
+
+            return $this->response->download($converted, null)->setFileName($downloadName);
+        }
+
         return $this->response->download($template['file_path'], null)->setFileName($template['file_name']);
     }
 
@@ -199,6 +245,8 @@ class Templates extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
+        $ext = $template['file_ext'];
+
         $mimeMap = [
             'pdf'  => 'application/pdf',
             'jpg'  => 'image/jpeg',
@@ -206,11 +254,65 @@ class Templates extends BaseController
             'png'  => 'image/png',
             'txt'  => 'text/plain',
         ];
-        $mime = $mimeMap[$template['file_ext']] ?? 'application/octet-stream';
+
+        if (isset($mimeMap[$ext])) {
+            return $this->response
+                ->setHeader('Content-Type', $mimeMap[$ext])
+                ->setHeader('Content-Disposition', 'inline; filename="' . $template['file_name'] . '"')
+                ->setBody(file_get_contents($template['file_path']));
+        }
+
+        if (in_array($ext, self::OFFICE_TO_PDF, true)) {
+            $pdfPath = $this->convertedPath($template, 'pdf');
+
+            if ($pdfPath) {
+                $inlineName = pathinfo($template['file_name'], PATHINFO_FILENAME) . '.pdf';
+
+                return $this->response
+                    ->setHeader('Content-Type', 'application/pdf')
+                    ->setHeader('Content-Disposition', 'inline; filename="' . $inlineName . '"')
+                    ->setBody(file_get_contents($pdfPath));
+            }
+        }
 
         return $this->response
-            ->setHeader('Content-Type', $mime)
-            ->setHeader('Content-Disposition', 'inline; filename="' . $template['file_name'] . '"')
-            ->setBody(file_get_contents($template['file_path']));
+            ->setHeader('Content-Type', 'text/html; charset=UTF-8')
+            ->setBody('<div style="font-family:sans-serif;color:#6b7280;text-align:center;padding:3rem 1rem;">'
+                . 'Preview isn\'t available for this file type. Download it to view the contents.</div>');
+    }
+
+    /**
+     * Returns a cached converted copy of the template's file, converting via
+     * LibreOffice headless and caching the result if it isn't cached yet (or
+     * the source file changed since the cached copy was made).
+     */
+    private function convertedPath(array $template, string $targetExt): ?string
+    {
+        $cacheDir = WRITEPATH . 'cache/templates';
+
+        if (! is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+
+        $cached = $cacheDir . DIRECTORY_SEPARATOR . $template['id'] . '.' . $targetExt;
+
+        if (is_file($cached) && filemtime($cached) >= filemtime($template['file_path'])) {
+            return $cached;
+        }
+
+        $result = (new OfficeConverter())->convert($template['file_path'], $targetExt, $cacheDir);
+
+        if (! $result) {
+            return null;
+        }
+
+        if ($result !== $cached) {
+            if (is_file($cached)) {
+                unlink($cached);
+            }
+            rename($result, $cached);
+        }
+
+        return $cached;
     }
 }

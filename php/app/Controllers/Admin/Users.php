@@ -9,7 +9,7 @@ class Users extends BaseController
 {
     public function index()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'secretary')) {
             return redirect()->to('/dashboard');
         }
 

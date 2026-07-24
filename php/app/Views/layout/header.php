@@ -79,7 +79,7 @@ $chatNavBadge = $unreadChatCount > 0
   <!-- Scrollable nav -->
   <div class="sidebar-scroll">
 
-    <?php if ($role === 'admin'): ?>
+    <?php if ($role === 'admin' || $role === 'secretary'): ?>
 
     <!-- MAIN -->
     <div class="sidebar-section">
@@ -156,21 +156,16 @@ $chatNavBadge = $unreadChatCount > 0
 
     <!-- OPERATIONS -->
     <div class="sidebar-section">
-      <button class="sidebar-section-btn <?= str_contains($uri,'time-records')||str_contains($uri,'deped')||str_contains($uri,'document-links')||str_contains($uri,'property')||str_contains($uri,'templates')?'open':'' ?>"
+      <button class="sidebar-section-btn <?= str_contains($uri,'time-records')||str_contains($uri,'document-links')||str_contains($uri,'property')||str_contains($uri,'templates')?'open':'' ?>"
               onclick="toggleSection(this)">
         <span class="sidebar-section-label">Operations</span>
         <i class="bi bi-chevron-down sidebar-section-arrow"></i>
       </button>
-      <div class="sidebar-section-items <?= str_contains($uri,'time-records')||str_contains($uri,'deped')||str_contains($uri,'document-links')||str_contains($uri,'property')||str_contains($uri,'templates')?'open':'' ?>">
+      <div class="sidebar-section-items <?= str_contains($uri,'time-records')||str_contains($uri,'document-links')||str_contains($uri,'property')||str_contains($uri,'templates')?'open':'' ?>">
         <a href="<?= base_url('time-records') ?>"
            class="nav-link <?= str_contains($uri,'time-records')?'active':'' ?>">
           <i class="bi bi-clock nav-icon"></i>
           <span class="sidebar-label">Time Records</span>
-        </a>
-        <a href="<?= base_url('deped-documents') ?>"
-           class="nav-link <?= str_contains($uri,'deped')?'active':'' ?>">
-          <i class="bi bi-clipboard2-check nav-icon"></i>
-          <span class="sidebar-label">DepEd Documents</span>
         </a>
         <a href="<?= base_url('document-links') ?>"
            class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
@@ -248,32 +243,6 @@ $chatNavBadge = $unreadChatCount > 0
       </div>
     </div>
 
-    <?php elseif ($role === 'secretary'): ?>
-    <div class="sidebar-section">
-      <button class="sidebar-section-btn open" onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Secretary</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items open">
-        <a href="<?= base_url('secretary-dashboard') ?>" class="nav-link <?= str_contains($uri,'secretary-dashboard')?'active':'' ?>">
-          <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
-        </a>
-        <a href="<?= base_url('chat') ?>" class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
-          <i class="bi bi-chat-dots-fill nav-icon"></i><span class="sidebar-label">Chat</span>
-          <?= $chatNavBadge ?>
-        </a>
-        <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
-          <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
-        </a>
-        <a href="<?= base_url('document-links') ?>" class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
-          <i class="bi bi-link-45deg nav-icon"></i><span class="sidebar-label">Document Links</span>
-        </a>
-        <a href="<?= base_url('announcements') ?>" class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
-          <i class="bi bi-megaphone-fill nav-icon"></i><span class="sidebar-label">Announcements</span>
-        </a>
-      </div>
-    </div>
-
     <?php elseif ($role === 'adas'): ?>
     <div class="sidebar-section">
       <button class="sidebar-section-btn open" onclick="toggleSection(this)">
@@ -293,9 +262,6 @@ $chatNavBadge = $unreadChatCount > 0
         </a>
         <a href="<?= base_url('time-records') ?>" class="nav-link <?= str_contains($uri,'time-records')?'active':'' ?>">
           <i class="bi bi-clock nav-icon"></i><span class="sidebar-label">Time Records</span>
-        </a>
-        <a href="<?= base_url('deped-documents') ?>" class="nav-link <?= str_contains($uri,'deped')?'active':'' ?>">
-          <i class="bi bi-clipboard2-check nav-icon"></i><span class="sidebar-label">DepEd Documents</span>
         </a>
         <a href="<?= base_url('templates') ?>" class="nav-link <?= str_contains($uri,'templates')?'active':'' ?>">
           <i class="bi bi-folder2-open nav-icon"></i><span class="sidebar-label">Templates</span>

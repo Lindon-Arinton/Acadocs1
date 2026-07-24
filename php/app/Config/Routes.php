@@ -18,7 +18,6 @@ $routes->get('api/auth/me', 'Api\AuthController::me');
 $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $routes) {
     $routes->get('dashboard', 'Admin\Dashboard::index');
     $routes->get('teacher-dashboard', 'Teacher\TeacherDashboard::index');
-    $routes->get('secretary-dashboard', 'Secretary\SecretaryDashboard::index');
     $routes->get('adas-dashboard', 'Adas\AdasDashboard::index');
     $routes->match(['get', 'post'], 'submit-documents', 'Teacher\SubmitDocuments::index');
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
@@ -28,7 +27,6 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
     $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
-    $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
     $routes->match(['get', 'post'], 'document-links', 'Shared\DocumentLinks::index');
     $routes->match(['get', 'post'], 'templates', 'Shared\Templates::index');
     $routes->get('templates/download/(:num)', 'Shared\Templates::download/$1');
@@ -71,11 +69,6 @@ $routes->group('api', ['filter' => 'authGuard'], static function (RouteCollectio
     $routes->post('time-records', 'Api\TimeRecordsController::create');
     $routes->put('time-records', 'Api\TimeRecordsController::update');
     $routes->delete('time-records', 'Api\TimeRecordsController::delete');
-
-    $routes->get('deped-documents', 'Api\DepedDocumentsController::index');
-    $routes->post('deped-documents', 'Api\DepedDocumentsController::create');
-    $routes->put('deped-documents', 'Api\DepedDocumentsController::update');
-    $routes->delete('deped-documents', 'Api\DepedDocumentsController::delete');
 
     $routes->get('properties', 'Api\PropertiesController::index');
     $routes->post('properties', 'Api\PropertiesController::create');

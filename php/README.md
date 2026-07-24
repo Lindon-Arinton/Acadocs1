@@ -133,7 +133,6 @@ public/
 | `parent_meetings`          | PTA conference attendance records                |
 | `document_links`           | Secretary-managed external resource links        |
 | `time_records`             | Daily employee time-in/time-out attendance       |
-| `deped_documents`          | DepEd-required forms with completion tracking    |
 | `room_properties`          | Room-by-room asset and equipment inventory       |
 
 ---
@@ -142,21 +141,25 @@ public/
 
 | Feature                  | Admin | Teacher | Secretary | ADAS |
 |--------------------------|:-----:|:-------:|:---------:|:----:|
-| Admin Dashboard          | ✓     |         |           |      |
+| Admin Dashboard          | ✓     |         | ✓         |      |
 | Teacher Dashboard        |       | ✓       |           |      |
-| Secretary Dashboard      |       |         | ✓         |      |
 | ADAS Dashboard           |       |         |           | ✓    |
 | Submit Documents         | ✓     | ✓       |           |      |
-| Manage Documents         | ✓     |         |           |      |
-| Performance Analytics    | ✓     |         |           |      |
-| Enrollment KPIs          | ✓     |         |           |      |
+| Manage Documents         | ✓     |         | ✓         |      |
+| Performance Analytics    | ✓     |         | ✓         |      |
+| Enrollment KPIs          | ✓     |         | ✓         |      |
 | Announcements            | ✓     | ✓       | ✓         |      |
 | Parent Meetings          | ✓     |         | ✓         |      |
-| Time Records             | ✓     |         |           | ✓    |
-| DepEd Documents          | ✓     |         |           | ✓    |
+| Time Records             | ✓     |         | ✓         | ✓    |
 | Document Links           | ✓     | ✓       | ✓         |      |
-| Property Management      | ✓     |         |           |      |
-| User Management          | ✓     |         |           |      |
+| Templates (view)         | ✓     |         | ✓         | ✓    |
+| Templates (manage)       |       |         |           | ✓    |
+| Property Management      | ✓     |         | ✓         |      |
+| User Management          | ✓     |         | ✓         |      |
+
+Secretary acts as the principal's administrative assistant and shares the
+same navigation and permissions as Admin, with one exception: only ADAS can
+upload/manage Templates (Admin and Secretary are view-only there).
 
 Enforced per-controller via the `hasRole()` helper, matching the original app's
 inline checks. All page and API routes additionally require an authenticated
@@ -169,10 +172,10 @@ session via the `authGuard` route filter.
 Unchanged from the original app — see `app/Config/Routes.php`:
 
 ```
-/login, /logout, /dashboard, /teacher-dashboard, /secretary-dashboard,
+/login, /logout, /dashboard, /teacher-dashboard,
 /adas-dashboard, /submit-documents, /documents, /performance,
 /enrollment-kpis, /announcements, /parent-meetings, /time-records,
-/deped-documents, /document-links, /property-management, /users
+/document-links, /property-management, /users
 ```
 
 ---
@@ -211,11 +214,6 @@ GET    /api/time-records[?date=YYYY-MM-DD]
 POST   /api/time-records            { date, employee_name, employee_id, time_in, time_out, status }
 PUT    /api/time-records?id=X
 DELETE /api/time-records?id=X
-
-GET    /api/deped-documents
-POST   /api/deped-documents
-PUT    /api/deped-documents?id=X    { status, completion_rate }
-DELETE /api/deped-documents?id=X
 
 GET    /api/properties[?building=X&room=Y]
 POST   /api/properties              { room_number, building_name, item_name, quantity, condition_status }

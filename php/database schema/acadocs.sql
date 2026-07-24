@@ -86,25 +86,6 @@ CREATE TABLE IF NOT EXISTS `conversation_participants` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `deped_documents`
---
-
-CREATE TABLE IF NOT EXISTS `deped_documents` (
-  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `document_type` varchar(100) NOT NULL,
-  `description` varchar(255) NOT NULL,
-  `due_date` date NOT NULL,
-  `status` enum('Pending','In Progress','Completed') DEFAULT 'Pending',
-  `completion_rate` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
-  `prepared_by` varchar(100) NOT NULL,
-  `last_updated` date NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `documents`
 --
 

@@ -3,7 +3,6 @@
 namespace App\Controllers\Adas;
 
 use App\Controllers\BaseController;
-use App\Models\DepedDocumentModel;
 use App\Models\TimeRecordModel;
 
 class AdasDashboard extends BaseController
@@ -22,23 +21,11 @@ class AdasDashboard extends BaseController
             }
         }
 
-        $depedModel = new DepedDocumentModel();
-        $depedDocs  = $depedModel->orderBy('due_date', 'ASC')->findAll(5);
-
-        $depedStatusCount = ['Completed' => 0, 'In Progress' => 0, 'Pending' => 0];
-        foreach ($depedModel->findAll() as $d) {
-            if (isset($depedStatusCount[$d['status']])) {
-                $depedStatusCount[$d['status']]++;
-            }
-        }
-
         return view('pages/adas/adas_dashboard', [
-            'pageTitle'        => 'ADAS Dashboard',
-            'user'             => $user,
-            'dateFilter'       => $dateFilter,
-            'timeSummary'      => $timeSummary,
-            'depedDocs'        => $depedDocs,
-            'depedStatusCount' => $depedStatusCount,
+            'pageTitle'   => 'ADAS Dashboard',
+            'user'        => $user,
+            'dateFilter'  => $dateFilter,
+            'timeSummary' => $timeSummary,
         ]);
     }
 }
