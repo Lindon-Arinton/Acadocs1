@@ -11,11 +11,51 @@
 </div>
 <?php endif; ?>
 
-<?php foreach ($tasks as $t):
-  $submission = $t['submission'];
-  $overdue    = $t['status'] === 'Open' && ! $submission && strtotime($t['deadline']) < strtotime(date('Y-m-d'));
-?>
+<!-- Search + Due Date Filter -->
 <div class="card mb-3">
+  <div class="card-body py-3">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <div class="input-group input-group-sm" style="flex:1;min-width:220px;max-width:340px;">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" id="taskSearchInput" placeholder="Search tasks by title..."
+               class="form-control border-start-0 ps-0" autocomplete="off">
+      </div>
+      <select id="taskDueFilter" class="form-select form-select-sm" style="width:auto;">
+        <option value="all">All Due Dates</option>
+        <option value="overdue">Overdue</option>
+        <option value="today">Due Today</option>
+        <option value="week">Due This Week</option>
+        <option value="month">Due This Month</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<?php
+$today      = date('Y-m-d');
+$weekStart  = date('Y-m-d', strtotime('monday this week'));
+$weekEnd    = date('Y-m-d', strtotime('sunday this week'));
+$monthStart = date('Y-m-01');
+$monthEnd   = date('Y-m-t');
+?>
+<div id="taskListEmpty" class="card d-none"><div class="card-body text-center py-5 text-muted">
+  <i class="bi bi-funnel fs-1 d-block mb-3"></i>No tasks match your filters.
+</div></div>
+
+<?php foreach ($tasks as $t):
+  $submission   = $t['submission'];
+  $overdue      = $t['status'] === 'Open' && ! $submission && strtotime($t['deadline']) < strtotime(date('Y-m-d'));
+  $deadlineDate = date('Y-m-d', strtotime($t['deadline']));
+  $dueToday     = $deadlineDate === $today;
+  $dueThisWeek  = $deadlineDate >= $weekStart && $deadlineDate <= $weekEnd;
+  $dueThisMonth = $deadlineDate >= $monthStart && $deadlineDate <= $monthEnd;
+?>
+<div class="card mb-3 task-card"
+     data-title="<?= e(strtolower($t['title'])) ?>"
+     data-overdue="<?= $overdue ? '1' : '0' ?>"
+     data-due-today="<?= $dueToday ? '1' : '0' ?>"
+     data-due-week="<?= $dueThisWeek ? '1' : '0' ?>"
+     data-due-month="<?= $dueThisMonth ? '1' : '0' ?>">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
       <div>
@@ -118,6 +158,32 @@ function openSubmitModal(taskId, title) {
     document.getElementById('submitTaskTitle').textContent = title;
     new bootstrap.Modal(document.getElementById('submitTaskModal')).show();
 }
+
+const taskSearchInput = document.getElementById('taskSearchInput');
+const taskDueFilter    = document.getElementById('taskDueFilter');
+const taskCards        = document.querySelectorAll('.task-card');
+const taskListEmpty    = document.getElementById('taskListEmpty');
+
+function applyTaskFilters() {
+    const query = taskSearchInput.value.trim().toLowerCase();
+    const due   = taskDueFilter.value;
+    let visibleCount = 0;
+
+    taskCards.forEach(card => {
+        const matchesSearch = !query || card.dataset.title.includes(query);
+        const matchesDue    = due === 'all' || card.dataset[
+            due === 'overdue' ? 'overdue' : due === 'today' ? 'dueToday' : due === 'week' ? 'dueWeek' : 'dueMonth'
+        ] === '1';
+        const visible = matchesSearch && matchesDue;
+        card.classList.toggle('d-none', !visible);
+        if (visible) visibleCount++;
+    });
+
+    taskListEmpty.classList.toggle('d-none', visibleCount > 0 || taskCards.length === 0);
+}
+
+taskSearchInput?.addEventListener('input', applyTaskFilters);
+taskDueFilter?.addEventListener('change', applyTaskFilters);
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

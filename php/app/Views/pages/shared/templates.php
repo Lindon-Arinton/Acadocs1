@@ -119,10 +119,13 @@ include APPPATH . 'Views/layout/header.php';
 ?>
 <div class="card mb-4">
   <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-    <div>
+    <button type="button" class="btn section-toggle-btn collapsed flex-grow-1 d-flex align-items-center text-start p-0 border-0 bg-transparent"
+            data-bs-toggle="collapse" data-bs-target="#section-body-<?= $cat['id'] ?>"
+            aria-expanded="false" aria-controls="section-body-<?= $cat['id'] ?>">
+      <i class="bi bi-chevron-down section-toggle-arrow me-2 text-muted"></i>
       <span class="fw-semibold"><i class="bi bi-folder2 me-2 text-muted"></i><?= e($cat['name']) ?></span>
       <span class="badge badge-secondary ms-2"><?= count($items) ?></span>
-    </div>
+    </button>
     <?php if ($canManage): ?>
     <div class="d-flex align-items-center gap-1">
       <button type="button" class="btn btn-ghost btn-sm" title="Upload to this section"
@@ -140,6 +143,7 @@ include APPPATH . 'Views/layout/header.php';
     </div>
     <?php endif; ?>
   </div>
+  <div class="collapse" id="section-body-<?= $cat['id'] ?>">
   <div class="card-body">
     <?php if (empty($items)): ?>
     <p class="text-muted mb-0 text-center py-3"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No templates uploaded in this section yet.</p>
@@ -211,6 +215,7 @@ include APPPATH . 'Views/layout/header.php';
       <?php endforeach; ?>
     </div>
     <?php endif; ?>
+  </div>
   </div>
 </div>
 <?php endforeach; ?>

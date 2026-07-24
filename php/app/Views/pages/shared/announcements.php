@@ -130,7 +130,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Date</label>
-            <input type="date" name="date" class="form-control" value="<?= date('Y-m-d') ?>" required>
+            <input type="date" name="date" class="form-control" value="<?= date('Y-m-d') ?>" min="<?= date('Y-m-d') ?>" required>
           </div>
           <button type="submit" class="btn btn-primary w-100">
             <i class="bi bi-send me-2"></i>Post Announcement
