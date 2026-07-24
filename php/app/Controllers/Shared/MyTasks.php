@@ -3,9 +3,11 @@
 namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
+use App\Models\NotificationModel;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
 use App\Models\TaskSubmissionModel;
+use App\Models\UserModel;
 
 class MyTasks extends BaseController
 {
@@ -78,6 +80,25 @@ class MyTasks extends BaseController
                     $submissionModel->update($existing['id'], $data);
                 } else {
                     $submissionModel->insert($data);
+                }
+
+                $totalSubmitted = $submissionModel->where('task_id', $taskId)->countAllResults();
+                $others         = $totalSubmitted - 1;
+                $notifTitle     = $user['name'] . ($others > 0
+                    ? ' and ' . $others . ' other' . ($others > 1 ? 's' : '')
+                    : '') . ' submitted';
+
+                $notifModel = new NotificationModel();
+                foreach ((new UserModel())->where('role', 'admin')->findAll() as $admin) {
+                    $notifModel->upsertGrouped(
+                        (int) $admin['id'],
+                        'task_submission',
+                        $taskId,
+                        'task_submission',
+                        $notifTitle,
+                        'Task: ' . $task['title'],
+                        base_url('tasks/' . $taskId)
+                    );
                 }
             } catch (\Throwable $e) {
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/my-tasks');

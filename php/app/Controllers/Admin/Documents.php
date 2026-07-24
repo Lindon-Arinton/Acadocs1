@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\DocumentFeedbackModel;
 use App\Models\DocumentModel;
+use App\Models\NotificationModel;
 
 class Documents extends BaseController
 {
@@ -32,6 +33,22 @@ class Documents extends BaseController
                         'date'        => date('Y-m-d'),
                     ]);
                     $documentModel->update($docId, ['status' => $decision === 'reject' ? 'Returned' : 'Reviewed']);
+
+                    $doc = $documentModel->select('documents.*, teachers.user_id AS teacher_user_id')
+                        ->join('teachers', 'teachers.id = documents.teacher_id')
+                        ->find($docId);
+
+                    if ($doc && $doc['teacher_user_id']) {
+                        (new NotificationModel())->upsertGrouped(
+                            (int) $doc['teacher_user_id'],
+                            'document_feedback',
+                            $docId,
+                            'document_feedback',
+                            'New feedback on your ' . $doc['type'] . ' submission',
+                            mb_strimwidth($comment, 0, 80, '…'),
+                            base_url('submit-documents')
+                        );
+                    }
                 } catch (\Throwable $e) {
                     return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/documents');
                 }

@@ -4,6 +4,8 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Models\AnnouncementModel;
+use App\Models\NotificationModel;
+use App\Models\UserModel;
 
 class Announcements extends BaseController
 {
@@ -23,13 +25,31 @@ class Announcements extends BaseController
 
             try {
                 if ($action === 'add') {
+                    $type  = $this->request->getPost('type');
+                    $title = $this->request->getPost('title');
+                    $date  = $this->request->getPost('date');
+
                     $model->insert([
-                        'type'    => $this->request->getPost('type'),
-                        'title'   => $this->request->getPost('title'),
+                        'type'    => $type,
+                        'title'   => $title,
                         'content' => $this->request->getPost('content'),
-                        'date'    => $this->request->getPost('date'),
+                        'date'    => $date,
                         'status'  => 'active',
                     ]);
+
+                    $poster     = currentUser();
+                    $notifModel = new NotificationModel();
+                    foreach ((new UserModel())->where('id !=', $poster['id'])->findAll() as $recipient) {
+                        $notifModel->insert([
+                            'user_id' => $recipient['id'],
+                            'type'    => 'announcement',
+                            'title'   => $title,
+                            'sub'     => $type . ' · ' . date('M d', strtotime($date)),
+                            'url'     => base_url('announcements'),
+                            'is_read' => 0,
+                        ]);
+                    }
+
                     $message = 'Announcement posted successfully.';
                 } elseif ($action === 'delete') {
                     $model->delete((int) $this->request->getPost('id'));

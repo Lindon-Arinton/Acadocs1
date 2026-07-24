@@ -88,6 +88,31 @@ function toggleNotif(e) {
 }
 document.addEventListener('click', () => notifPanel?.classList.remove('open'));
 
+/* ── Mark notification as read on click ──────────────────── */
+document.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
+    item.addEventListener('click', () => {
+        if (!item.classList.contains('notif-unread')) return;
+        item.classList.remove('notif-unread');
+        item.querySelector('.notif-dot')?.remove();
+
+        const badge = document.querySelector('.notif-btn .notif-badge');
+        if (badge) {
+            const remaining = parseInt(badge.textContent || '0', 10) - 1;
+            if (remaining > 0) {
+                badge.textContent = remaining;
+            } else {
+                badge.remove();
+            }
+        }
+
+        fetch('<?= base_url('notifications/') ?>' + item.dataset.notifId + '/read', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            keepalive: true,
+        }).catch(() => {});
+    });
+});
+
 /* ── Toast helper ────────────────────────────────────────── */
 function showToast(message, type = 'success') {
     const icons = { success: 'bi-check-circle-fill', danger: 'bi-x-circle-fill', warning: 'bi-exclamation-triangle-fill', info: 'bi-info-circle-fill' };

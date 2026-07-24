@@ -160,7 +160,6 @@ function feedbackDoc(id, teacher) {
     new bootstrap.Modal(document.getElementById('feedbackModal')).show();
 }
 initLiveSearch('docSearchInput', 'filterForm');
-=======
 function setFeedbackDecision(btn, decision) {
     document.getElementById('feedbackDecision').value = decision;
     const form = document.getElementById('feedbackDecision').closest('form');
