@@ -20,8 +20,9 @@ class Documents extends BaseController
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/documents');
             }
 
-            $docId   = (int) $this->request->getPost('doc_id');
-            $comment = trim($this->request->getPost('comment') ?? '');
+            $docId    = (int) $this->request->getPost('doc_id');
+            $comment  = trim($this->request->getPost('comment') ?? '');
+            $decision = $this->request->getPost('decision') === 'reject' ? 'reject' : 'approve';
 
             if ($docId && $comment) {
                 try {
@@ -31,7 +32,7 @@ class Documents extends BaseController
                         'comment'     => $comment,
                         'date'        => date('Y-m-d'),
                     ]);
-                    $documentModel->update($docId, ['status' => 'Reviewed']);
+                    $documentModel->update($docId, ['status' => $decision === 'reject' ? 'Returned' : 'Reviewed']);
 
                     $doc = $documentModel->select('documents.*, teachers.user_id AS teacher_user_id')
                         ->join('teachers', 'teachers.id = documents.teacher_id')
@@ -52,8 +53,10 @@ class Documents extends BaseController
                     return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/documents');
                 }
 
+                $message = $decision === 'reject' ? 'Document rejected and returned to teacher.' : 'Feedback submitted successfully.';
+
                 if ($isAjax) {
-                    return $this->ajaxSuccess('Feedback submitted successfully.');
+                    return $this->ajaxSuccess($message);
                 }
 
                 return redirect()->to('/documents?success=1');
