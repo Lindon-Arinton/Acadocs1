@@ -189,9 +189,9 @@ function ajaxFormSubmit(form) {
                     showConfirmButton: false,
                 }).then(() => {
                     if (data.redirect) {
-                        window.location.href = data.redirect;
+                        loadPage(data.redirect, { scroll: true });
                     } else {
-                        window.location.reload();
+                        loadPage(window.location.href, { push: false, scroll: false });
                     }
                 });
             }
@@ -335,6 +335,181 @@ function initMaroonDatePicker(root) {
 }
 document.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
 
+/* ── AJAX page navigation (no full reload / no white flash) ──
+   Intercepts internal links + GET filter forms, fetches the target
+   page, swaps #main-content in place, and re-runs that page's own
+   script. History (back/forward) is kept in sync via pushState. ── */
+const ajaxProgressBar = document.getElementById('ajax-progress');
+let ajaxNavToken = 0;
+
+function startAjaxProgress() {
+    if (!ajaxProgressBar) return;
+    ajaxProgressBar.style.transition = 'none';
+    ajaxProgressBar.style.width = '0%';
+    void ajaxProgressBar.offsetWidth;
+    ajaxProgressBar.style.transition = 'width .3s ease, opacity .25s ease';
+    ajaxProgressBar.classList.add('active');
+    ajaxProgressBar.style.width = '70%';
+}
+function finishAjaxProgress() {
+    if (!ajaxProgressBar) return;
+    ajaxProgressBar.style.width = '100%';
+    setTimeout(() => {
+        ajaxProgressBar.classList.remove('active');
+        ajaxProgressBar.style.width = '0%';
+    }, 250);
+}
+
+function reinitPageWidgets(scope) {
+    scope.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
+    scope.querySelectorAll('[data-counter]').forEach(el => animateCounter(el, parseInt(el.dataset.counter, 10)));
+}
+
+/*
+ * Re-runs a page's inline script after it has already run once before in
+ * this browser session. Top-level `let`/`const` would throw "already been
+ * declared" the second time a page is (re)visited via AJAX navigation
+ * (they share one global lexical scope across every injected <script>), so
+ * we downgrade top-level declarations to `var`, which safely re-assigns
+ * instead of erroring. Functions/vars declared this way stay reachable
+ * from inline onclick="..." handlers exactly like a normal <script> would.
+ */
+function runPageScript(code) {
+    const safeCode = code.replace(/(^|[;{\n]\s*)(let|const)(\s+)/g, '$1var$3');
+    const script = document.createElement('script');
+    script.textContent = safeCode;
+    document.body.appendChild(script);
+    script.remove();
+
+    // Some pages wire things up inside DOMContentLoaded; that event only
+    // fires once natively, so replay it manually for re-injected scripts.
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    window.dispatchEvent(new Event('DOMContentLoaded'));
+}
+
+function updateActiveNavLinks(pathname) {
+    document.querySelectorAll('#sidebar .nav-link').forEach(link => {
+        const isActive = link.pathname === pathname;
+        link.classList.toggle('active', isActive);
+        if (isActive) {
+            const items = link.closest('.sidebar-section-items');
+            items?.classList.add('open');
+            items?.previousElementSibling?.classList.add('open');
+        }
+    });
+}
+
+function isAjaxNavExempt(url) {
+    return /\/(download|logout|login)(\/|$|\?)/.test(url.pathname) || /\/(file|preview)(\/|$|\?)/.test(url.pathname);
+}
+
+/*
+ * Any Bootstrap modal open at the time of a content swap needs to be torn
+ * down explicitly: bootstrap.Modal appends its .modal-backdrop straight to
+ * <body> (outside #main-content) and locks scrolling via a class + inline
+ * style on <body>. If the modal's own element gets wiped out from under it
+ * by an innerHTML swap, that backdrop/lock is orphaned forever, leaving the
+ * whole page gray and unclickable.
+ */
+function closeAnyOpenModals() {
+    document.querySelectorAll('.modal.show').forEach(el => {
+        bootstrap.Modal.getInstance(el)?.dispose();
+    });
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+}
+
+function loadPage(url, { push = true, scroll = true } = {}) {
+    const target = new URL(url, window.location.href);
+    if (target.origin !== window.location.origin || isAjaxNavExempt(target)) {
+        window.location.href = target.href;
+        return;
+    }
+
+    const token = ++ajaxNavToken;
+    const main = document.getElementById('main-content');
+    startAjaxProgress();
+
+    fetch(target.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load page');
+            return res.text().then(html => ({ html, finalUrl: res.url }));
+        })
+        .then(({ html, finalUrl }) => {
+            if (token !== ajaxNavToken || !main) return;
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newMain = doc.getElementById('main-content');
+            if (!newMain) { window.location.href = finalUrl; return; }
+
+            closeAnyOpenModals();
+            main.innerHTML = newMain.innerHTML;
+            main.classList.remove('animate-in');
+            void main.offsetWidth;
+            main.classList.add('animate-in');
+
+            if (doc.title) document.title = doc.title;
+
+            const newCrumb  = doc.querySelector('.breadcrumb-item.active');
+            const liveCrumb = document.querySelector('.breadcrumb-item.active');
+            if (newCrumb && liveCrumb) liveCrumb.textContent = newCrumb.textContent;
+
+            const finalPath = new URL(finalUrl, window.location.origin).pathname;
+            updateActiveNavLinks(finalPath);
+
+            const newScript = doc.querySelector('#page-extra-script script');
+            if (newScript && newScript.textContent.trim()) {
+                runPageScript(newScript.textContent);
+            }
+            reinitPageWidgets(main);
+
+            if (push) history.pushState({ ajaxNav: true }, '', finalUrl);
+            if (scroll) window.scrollTo({ top: 0, behavior: 'auto' });
+            closeSidebar();
+            finishAjaxProgress();
+        })
+        .catch(err => {
+            console.error('AJAX navigation failed, falling back to a full page load:', err);
+            window.location.href = target.href;
+        });
+}
+
+document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    const link = e.target.closest('a[href]');
+    if (!link || link.target === '_blank' || link.hasAttribute('download') || link.dataset.noAjax !== undefined) return;
+
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return;
+    if (link.hasAttribute('onclick')) return; // has its own navigation handling (e.g. logout confirm)
+
+    let url;
+    try { url = new URL(href, window.location.href); } catch (err) { return; }
+    if (url.origin !== window.location.origin) return;
+
+    e.preventDefault();
+    if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+    loadPage(url.href);
+});
+
+document.addEventListener('submit', function (e) {
+    const form = e.target;
+    if (form.classList.contains('ajax-form') || form.id === 'sendForm') return;
+    if ((form.getAttribute('method') || 'get').toLowerCase() !== 'get') return;
+    if (form.target === '_blank' || form.dataset.noAjax !== undefined) return;
+
+    e.preventDefault();
+    const params = new URLSearchParams(new FormData(form));
+    if (e.submitter && e.submitter.name) params.set(e.submitter.name, e.submitter.value);
+    const query = params.toString();
+    loadPage(form.getAttribute('action') + (query ? '?' + query : ''));
+});
+
+window.addEventListener('popstate', () => loadPage(window.location.href, { push: false }));
+
 /* ── Chart.js global defaults ─────────────────────────────── */
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size   = 12;
@@ -348,6 +523,8 @@ Chart.defaults.plugins.tooltip.cornerRadius = 10;
 Chart.defaults.plugins.tooltip.padding = 10;
 </script>
 
-<?php if (isset($extraScript)) echo $extraScript; ?>
+<?php if (isset($extraScript)): ?>
+<div id="page-extra-script" hidden><?= $extraScript ?></div>
+<?php endif; ?>
 </body>
 </html>

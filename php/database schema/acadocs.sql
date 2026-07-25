@@ -124,6 +124,23 @@ CREATE TABLE IF NOT EXISTS `documents` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `document_files`
+--
+
+CREATE TABLE IF NOT EXISTS `document_files` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `document_id` int(10) UNSIGNED NOT NULL,
+  `file_path` varchar(500) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `document_id` (`document_id`),
+  CONSTRAINT `document_files_ibfk_1` FOREIGN KEY (`document_id`) REFERENCES `documents` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `document_feedback`
 --
 

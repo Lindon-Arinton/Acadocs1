@@ -55,7 +55,7 @@ include APPPATH . 'Views/layout/header.php';
       <form method="GET" action="<?= base_url('property-management') ?>" id="filterForm" class="d-flex align-items-center gap-3 flex-wrap">
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-building text-muted"></i>
-          <select name="building" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <select name="building" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
             <option value="all" <?= $building==='all'?'selected':'' ?>>All Buildings</option>
             <?php foreach ($buildings as $b): ?>
             <option value="<?= e($b) ?>" <?= $building===$b?'selected':'' ?>><?= e($b) ?></option>
@@ -64,7 +64,7 @@ include APPPATH . 'Views/layout/header.php';
         </div>
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-funnel text-muted"></i>
-          <select name="condition" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+          <select name="condition" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
             <option value="all" <?= $condition==='all'?'selected':'' ?>>All Conditions</option>
             <?php foreach ($conditions as $c): ?>
             <option value="<?= $c ?>" <?= $condition===$c?'selected':'' ?>><?= $c ?></option>
@@ -76,7 +76,7 @@ include APPPATH . 'Views/layout/header.php';
           <input type="text" name="q" id="propSearchInput" value="<?= e($search) ?>"
                  class="form-control border-start-0 ps-0" placeholder="Search room, item, remarks...">
         </div>
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
           <option value="building_az" <?= $sort==='building_az' ? 'selected' : '' ?>>Building A-Z</option>
           <option value="item_az"     <?= $sort==='item_az'     ? 'selected' : '' ?>>Item Name A-Z</option>
           <option value="condition"   <?= $sort==='condition'   ? 'selected' : '' ?>>Condition</option>
@@ -225,7 +225,7 @@ function exportTable(tableId, filename) {
         [...r.querySelectorAll('th,td')].map(c => JSON.stringify(c.innerText.trim())).join(',')
     );
     const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'})),
+        href: URL.createObjectURL(new Blob([rows.join('\\n')],{type:'text/csv'})),
         download: filename+'.csv'
     });
     a.click();

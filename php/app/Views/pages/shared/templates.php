@@ -78,21 +78,21 @@ include APPPATH . 'Views/layout/header.php';
                class="form-control border-start-0 ps-0" id="templateSearchInput" autocomplete="off">
       </div>
 
-      <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+      <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
         <option value="0" <?= $catId === 0 ? 'selected' : '' ?>>All Sections</option>
         <?php foreach ($categories as $c): ?>
         <option value="<?= $c['id'] ?>" <?= $catId === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option>
         <?php endforeach; ?>
       </select>
 
-      <select name="type" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+      <select name="type" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
         <option value="all" <?= $fileType === 'all' ? 'selected' : '' ?>>All File Types</option>
         <?php foreach ($fileTypes as $ft): ?>
         <option value="<?= e($ft) ?>" <?= $fileType === $ft ? 'selected' : '' ?>><?= strtoupper(e($ft)) ?></option>
         <?php endforeach; ?>
       </select>
 
-      <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+      <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
         <option value="date_desc" <?= $sort === 'date_desc' ? 'selected' : '' ?>>Newest First</option>
         <option value="date_asc"  <?= $sort === 'date_asc'  ? 'selected' : '' ?>>Oldest First</option>
         <option value="section"   <?= $sort === 'section'   ? 'selected' : '' ?>>Sort by Section</option>

@@ -59,6 +59,9 @@ $chatNavBadge = $unreadChatCount > 0
 </head>
 <body>
 
+<!-- AJAX navigation progress bar -->
+<div id="ajax-progress"></div>
+
 <!-- Sidebar overlay (mobile) -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 

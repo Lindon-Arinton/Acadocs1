@@ -23,6 +23,8 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
     $routes->get('documents/(:num)/file', 'Shared\DocumentFile::show/$1');
     $routes->get('documents/(:num)/download', 'Shared\DocumentFile::download/$1');
+    $routes->get('document-files/(:num)/download', 'Shared\DocumentFileDownload::show/$1');
+    $routes->get('document-files/(:num)/preview', 'Shared\DocumentFileDownload::preview/$1');
     $routes->get('performance', 'Admin\Performance::index');
     $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');

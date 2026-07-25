@@ -47,22 +47,12 @@
                    value="<?= e($teacher['grade_level'] ?? '') ?>" required>
           </div>
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Add Document</label>
-            <input type="file" name="document_file" id="documentFileInput" class="form-control form-control-sm"
-                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png" required
-                   onchange="previewSelectedFile(this)">
-            <div class="form-text small">Upload the file you want to submit for review.</div>
-            <div id="filePreviewBox" class="mt-2 p-2 rounded-3 d-none align-items-center gap-2" style="background:#f8f9fa;border:1px solid var(--border);">
-              <img id="filePreviewImg" class="d-none rounded" style="width:44px;height:44px;object-fit:cover;flex-shrink:0;">
-              <i id="filePreviewIcon" class="bi bi-file-earmark-text fs-3 text-muted d-none" style="flex-shrink:0;"></i>
-              <div class="flex-grow-1 overflow-hidden">
-                <div id="filePreviewName" class="small fw-semibold text-truncate"></div>
-                <div id="filePreviewSize" class="text-muted" style="font-size:.7rem;"></div>
-              </div>
-              <button type="button" class="btn btn-ghost btn-sm text-danger py-0 px-1" onclick="clearSelectedFile()">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
+            <label class="form-label small fw-semibold">Add Document(s)</label>
+            <input type="file" name="document_file[]" id="documentFileInput" class="form-control form-control-sm"
+                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png" required multiple
+                   onchange="previewSelectedFiles(this)">
+            <div class="form-text small">You can select multiple files to submit together.</div>
+            <div id="filePreviewBox" class="mt-2 d-none"></div>
           </div>
           <button type="submit" class="btn btn-maroon w-100 btn-sm">
             <i class="bi bi-send me-2"></i>Submit Document
@@ -88,7 +78,21 @@
           </div>
           <span class="status-pill <?= $badgeMap[$doc['status']] ?? 'badge-pending' ?>"><?= e($doc['status']) ?></span>
         </div>
-        <?php if (! empty($doc['file_path'])): ?>
+        <?php if (! empty($doc['files'])): ?>
+        <div class="d-flex flex-column gap-1">
+          <?php foreach ($doc['files'] as $f): ?>
+          <div class="d-flex justify-content-between align-items-center gap-2 p-2 rounded-3" style="background:#f8f9fa;">
+            <span class="small text-truncate"><i class="bi bi-paperclip me-1 text-muted"></i><?= e($f['file_name']) ?></span>
+            <div class="d-flex gap-1 flex-shrink-0">
+              <a href="<?= base_url('document-files/' . $f['id'] . '/preview') ?>" target="_blank" rel="noopener"
+                 class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-eye"></i></a>
+              <a href="<?= base_url('document-files/' . $f['id'] . '/download') ?>"
+                 class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-download"></i></a>
+            </div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php elseif (! empty($doc['file_path'])): ?>
         <a href="<?= base_url('documents/' . $doc['id'] . '/file') ?>" target="_blank" rel="noopener"
            class="btn btn-sm btn-outline-secondary">
           <i class="bi bi-eye me-1"></i>View File
@@ -121,37 +125,25 @@
 $extraScript = "<script>
 const IMAGE_EXT = ['jpg','jpeg','png','gif','webp'];
 
-function previewSelectedFile(input) {
-    const box  = document.getElementById('filePreviewBox');
-    const img  = document.getElementById('filePreviewImg');
-    const icon = document.getElementById('filePreviewIcon');
-    const name = document.getElementById('filePreviewName');
-    const size = document.getElementById('filePreviewSize');
+function previewSelectedFiles(input) {
+    const box = document.getElementById('filePreviewBox');
+    const files = Array.from(input.files || []);
 
-    const file = input.files && input.files[0];
-    if (! file) { box.classList.add('d-none'); return; }
+    if (! files.length) { box.classList.add('d-none'); box.innerHTML = ''; return; }
 
-    const ext = file.name.split('.').pop().toLowerCase();
-    name.textContent = file.name;
-    size.textContent = (file.size / 1024).toFixed(1) + ' KB';
-
-    if (IMAGE_EXT.includes(ext)) {
-        img.src = URL.createObjectURL(file);
-        img.classList.remove('d-none');
-        icon.classList.add('d-none');
-    } else {
-        img.classList.add('d-none');
-        icon.classList.remove('d-none');
-    }
+    box.innerHTML = files.map((file, i) => {
+        const ext     = file.name.split('.').pop().toLowerCase();
+        const iconCls = IMAGE_EXT.includes(ext) ? 'bi-file-earmark-image' : 'bi-file-earmark-text';
+        const size    = (file.size / 1024).toFixed(1) + ' KB';
+        return '<div class=\"d-flex align-items-center gap-2 p-2 rounded-3 mb-1\" style=\"background:#f8f9fa;border:1px solid var(--border);\">'
+            + '<i class=\"bi ' + iconCls + ' fs-5 text-muted flex-shrink-0\"></i>'
+            + '<div class=\"flex-grow-1 overflow-hidden\">'
+            + '<div class=\"small fw-semibold text-truncate\">' + file.name + '</div>'
+            + '<div class=\"text-muted\" style=\"font-size:.7rem;\">' + size + '</div>'
+            + '</div></div>';
+    }).join('');
 
     box.classList.remove('d-none');
-    box.classList.add('d-flex');
-}
-
-function clearSelectedFile() {
-    const input = document.getElementById('documentFileInput');
-    input.value = '';
-    document.getElementById('filePreviewBox').classList.add('d-none');
 }
 </script>";
 include APPPATH . 'Views/layout/footer.php';

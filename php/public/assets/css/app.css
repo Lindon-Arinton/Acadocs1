@@ -1,6 +1,7 @@
 /* ── Design Tokens (mirrors React theme) ──────────────────── */
 :root {
   --primary:        #800000;
+  --maroon:         #800000;
   --primary-dark:   #560000;
   --primary-light:  #a52a2a;
   --primary-deeper: #6b0000;
@@ -272,6 +273,10 @@ body.sidebar-collapsed #topbar { left: 64px; }
 .notif-item.notif-unread { background: #fff7f7; }
 .notif-item.notif-unread .notif-item-title { font-weight: 700; }
 .notif-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); margin-left: 5px; vertical-align: middle; }
+
+/* ── Task card sections (color-coded labels instead of <hr> dividers) ── */
+.task-section + .task-section { margin-top: .35rem; }
+.task-kicker { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 
 /* ── Maroon date picker (replaces native <input type=date>) ── */
 .maroon-dp { position: relative; }
@@ -588,6 +593,14 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .animate-in { animation: fadeIn .35s ease; }
+
+/* ── AJAX navigation progress bar (replaces full-page reload flash) ── */
+#ajax-progress {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0;
+  background: var(--primary); z-index: 99999; opacity: 0;
+  transition: width .3s ease, opacity .25s ease;
+}
+#ajax-progress.active { opacity: 1; }
 
 /* ── Chat ─────────────────────────────────────────────────── */
 .chat-filter-pill {

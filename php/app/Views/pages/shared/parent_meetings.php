@@ -21,7 +21,7 @@
           <input type="text" name="q" id="meetingSearchInput" value="<?= e($search) ?>"
                  class="form-control border-start-0 ps-0" placeholder="Search meeting title...">
         </div>
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
           <option value="newest"        <?= $sort==='newest'        ? 'selected' : '' ?>>Newest First</option>
           <option value="oldest"        <?= $sort==='oldest'        ? 'selected' : '' ?>>Oldest First</option>
           <option value="attendance_hi" <?= $sort==='attendance_hi' ? 'selected' : '' ?>>Attendance Rate (High-Low)</option>

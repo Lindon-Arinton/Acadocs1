@@ -443,15 +443,17 @@ function clearAttachment() {
     document.getElementById('attachPreview').classList.add('d-none');
 }
 
+let isSendingMessage = false;
+
 document.getElementById('sendForm')?.addEventListener('submit', function (e) {
     e.preventDefault();
-    if (!activeConversationId) return;
+    if (!activeConversationId || isSendingMessage) return;
 
     const input = document.getElementById('messageInput');
     const body = input.value.trim();
     if (!body && !selectedAttachment) return;
 
-    input.disabled = true;
+    isSendingMessage = true;
 
     const formData = new FormData();
     formData.append('body', body);
@@ -466,7 +468,7 @@ document.getElementById('sendForm')?.addEventListener('submit', function (e) {
     })
         .then(res => res.json())
         .then(data => {
-            input.disabled = false;
+            isSendingMessage = false;
             if (data.status === 'success') {
                 input.value = '';
                 clearAttachment();
@@ -474,10 +476,12 @@ document.getElementById('sendForm')?.addEventListener('submit', function (e) {
             } else {
                 Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Could not send message.' });
             }
+            input.focus();
         })
         .catch(() => {
-            input.disabled = false;
+            isSendingMessage = false;
             Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server.' });
+            input.focus();
         });
 });
 
