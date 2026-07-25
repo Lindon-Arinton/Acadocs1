@@ -39,6 +39,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'tasks/(:num)', 'Admin\Tasks::view/$1');
     $routes->match(['get', 'post'], 'my-tasks', 'Shared\MyTasks::index');
     $routes->get('task-submissions/(:num)/download', 'Shared\TaskDownload::show/$1');
+    $routes->get('task-submissions/(:num)/preview', 'Shared\TaskDownload::preview/$1');
     $routes->match(['get', 'post'], 'profile', 'Shared\Profile::index');
     $routes->post('notifications/(:num)/read', 'Shared\Notifications::markRead/$1');
     $routes->match(['get', 'post'], 'chat', 'Shared\Chat::index');

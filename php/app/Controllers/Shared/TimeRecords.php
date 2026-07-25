@@ -17,7 +17,7 @@ class TimeRecords extends BaseController
             $isAjax   = $this->request->isAJAX();
             $redirect = '/time-records?date=' . ($this->request->getPost('date') ?? date('Y-m-d'));
 
-            if (! hasRole('admin', 'secretary', 'adas')) {
+            if (! hasRole('admin', 'adas')) {
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to($redirect);
             }
 

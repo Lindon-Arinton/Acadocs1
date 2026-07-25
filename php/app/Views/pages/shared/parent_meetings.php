@@ -28,7 +28,7 @@
           <option value="attendance_lo" <?= $sort==='attendance_lo' ? 'selected' : '' ?>>Attendance Rate (Low-High)</option>
         </select>
       </form>
-      <?php if (hasRole('admin','secretary')): ?>
+      <?php if (hasRole('admin','adas')): ?>
       <button class="btn btn-maroon btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addMeetingModal">
         <i class="bi bi-plus-lg me-1"></i>Add Meeting
       </button>

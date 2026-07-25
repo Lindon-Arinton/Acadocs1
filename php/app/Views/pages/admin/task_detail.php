@@ -9,7 +9,8 @@
       <h4><i class="bi bi-list-task me-2"></i><?= e($task['title']) ?></h4>
       <p>
         Assigned to <strong class="text-capitalize"><?= e($task['assigned_role']) ?></strong>
-        · Deadline <?= date('M d, Y', strtotime($task['deadline'])) ?>
+        · Posted <?= date('M d, Y', strtotime($task['created_at'])) ?>
+        · Deadline <?= date('M d, Y h:i A', strtotime($task['deadline'])) ?>
         · <span class="text-capitalize"><?= e($task['status']) ?></span>
       </p>
     </div>
@@ -43,7 +44,7 @@
           <div>
             <h6 class="fw-bold mb-1"><?= e($s['submitter_name']) ?></h6>
             <span class="text-muted small">
-              <i class="bi bi-paperclip me-1"></i><?= e($s['file_name']) ?>
+              <i class="bi bi-paperclip me-1"></i><?= count($s['files']) ?> file<?= count($s['files']) !== 1 ? 's' : '' ?>
               · Submitted <?= date('M d, Y h:i A', strtotime($s['submitted_at'])) ?>
             </span>
           </div>
@@ -54,21 +55,18 @@
         <p class="small text-muted mb-3"><?= nl2br(e($s['notes'])) ?></p>
         <?php endif; ?>
 
-        <a href="<?= base_url('task-submissions/' . $s['id'] . '/download') ?>" class="btn btn-sm btn-outline-secondary mb-3">
-          <i class="bi bi-download me-1"></i>Download File
-        </a>
-
-        <?php if (! empty($s['feedback'])): ?>
-        <div class="p-3 rounded-3 mb-3" style="background:#f8f9fa;border-left:3px solid var(--maroon);">
-          <p class="small fw-semibold mb-2 text-muted"><i class="bi bi-chat-dots me-1"></i>Your Private Feedback</p>
-          <?php foreach ($s['feedback'] as $fb): ?>
-          <p class="small mb-1"><?= e($fb['comment']) ?> <span class="text-muted">— <?= date('M d, Y', strtotime($fb['date'])) ?></span></p>
-          <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-
-        <button class="btn btn-sm btn-outline-maroon" onclick="feedbackSubmission(<?= $s['id'] ?>, '<?= e(addslashes($s['submitter_name'])) ?>')">
-          <i class="bi bi-chat-dots me-1"></i>Give Feedback
+        <button type="button" class="btn btn-sm btn-outline-maroon"
+                onclick='viewSubmission(<?= json_encode([
+                    'id'            => (int) $s['id'],
+                    'submitterName' => $s['submitter_name'],
+                    'files'         => array_map(static fn ($f) => [
+                        'id'   => (int) $f['id'],
+                        'name' => $f['file_name'],
+                        'ext'  => strtolower(pathinfo($f['file_name'], PATHINFO_EXTENSION)),
+                    ], $s['files']),
+                    'feedback'      => $s['feedback'],
+                ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+          <i class="bi bi-eye me-1"></i>View File<?= count($s['files']) !== 1 ? 's' : '' ?>
         </button>
       </div>
     </div>

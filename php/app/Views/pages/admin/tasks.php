@@ -34,14 +34,17 @@
         </thead>
         <tbody>
           <?php foreach ($tasks as $t):
-            $overdue = $t['status'] === 'Open' && strtotime($t['deadline']) < strtotime(date('Y-m-d'));
+            $overdue = $t['status'] === 'Open' && strtotime($t['deadline']) < time();
             $pct     = $t['eligible_count'] > 0 ? round($t['submitted_count'] / $t['eligible_count'] * 100) : 0;
           ?>
           <tr>
-            <td class="fw-semibold"><?= e($t['title']) ?></td>
+            <td class="fw-semibold">
+              <?= e($t['title']) ?>
+              <div class="text-muted fw-normal" style="font-size:.7rem;">Posted <?= date('M d, Y', strtotime($t['created_at'])) ?></div>
+            </td>
             <td><span class="badge badge-outline text-capitalize"><?= e($t['assigned_role']) ?></span></td>
             <td class="small <?= $overdue ? 'text-danger fw-semibold' : 'text-muted' ?>">
-              <?= date('M d, Y', strtotime($t['deadline'])) ?>
+              <?= date('M d, Y h:i A', strtotime($t['deadline'])) ?>
               <?php if ($overdue): ?><br><span class="small">Overdue</span><?php endif; ?>
             </td>
             <td>
@@ -124,8 +127,14 @@
               </select>
             </div>
             <div class="col-6">
-              <label class="form-label">Deadline</label>
-              <input type="date" name="deadline" class="form-control" value="<?= date('Y-m-d') ?>" required>
+              <label class="form-label">Deadline Date</label>
+              <input type="date" name="deadline_date" class="form-control"
+                     value="<?= date('Y-m-d') ?>" min="<?= date('Y-m-d') ?>" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Deadline Time</label>
+              <input type="time" name="deadline_time" class="form-control" value="00:00">
+              <p class="text-muted mt-1 mb-0" style="font-size:.72rem;">Defaults to 12:00 AM.</p>
             </div>
           </div>
         </div>

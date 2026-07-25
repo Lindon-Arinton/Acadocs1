@@ -410,6 +410,19 @@ function previewTemplate(t) {
     new bootstrap.Modal(document.getElementById('previewModal')).show();
 }
 
+function notifyDownloadSuccess(fileName) {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Download successful',
+        text: fileName,
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+    });
+}
+
 async function downloadTemplate(url, suggestedName) {
     if (window.showSaveFilePicker) {
         try {
@@ -419,12 +432,14 @@ async function downloadTemplate(url, suggestedName) {
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
+            notifyDownloadSuccess(suggestedName);
             return;
         } catch (err) {
             if (err && err.name === 'AbortError') return;
         }
     }
     window.location.href = url;
+    notifyDownloadSuccess(suggestedName);
 }
 
 function openUploadModal(categoryId) {

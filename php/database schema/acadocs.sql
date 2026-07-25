@@ -329,8 +329,8 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `title` varchar(150) NOT NULL,
   `description` text DEFAULT NULL,
-  `assigned_role` enum('teacher','secretary','adas') NOT NULL,
-  `deadline` date NOT NULL,
+  `assigned_role` enum('teacher','adas') NOT NULL,
+  `deadline` datetime NOT NULL,
   `status` enum('Open','Closed') DEFAULT 'Open',
   `created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -347,8 +347,8 @@ CREATE TABLE IF NOT EXISTS `task_submissions` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `task_id` int(10) UNSIGNED NOT NULL,
   `user_id` int(10) UNSIGNED NOT NULL,
-  `file_path` varchar(255) NOT NULL,
-  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) DEFAULT NULL,
+  `file_name` varchar(255) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `status` enum('Submitted','Reviewed') DEFAULT 'Submitted',
   `submitted_at` datetime NOT NULL,
@@ -358,6 +358,23 @@ CREATE TABLE IF NOT EXISTS `task_submissions` (
   KEY `user_id` (`user_id`),
   CONSTRAINT `task_submissions_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
   CONSTRAINT `task_submissions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_submission_files`
+--
+
+CREATE TABLE IF NOT EXISTS `task_submission_files` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `task_submission_id` int(10) UNSIGNED NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `task_submission_id` (`task_submission_id`),
+  CONSTRAINT `task_submission_files_ibfk_1` FOREIGN KEY (`task_submission_id`) REFERENCES `task_submissions` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -497,7 +514,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `name` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','teacher','secretary','adas') NOT NULL,
+  `role` enum('admin','teacher','adas') NOT NULL,
   `ac_no` varchar(20) DEFAULT NULL,
   `position` varchar(50) DEFAULT NULL,
   `photo` varchar(255) DEFAULT NULL,
@@ -516,7 +533,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 
 INSERT IGNORE INTO `users` (`name`, `email`, `password`, `role`, `ac_no`, `position`) VALUES
-('Carmen Lopez', 'secretary@school.edu', '$2y$10$iVemOAuYsrWtDhAe3BmrJe2qYKXSUFiTNFDH851mKd31CMTTxmDYi', 'secretary', NULL, NULL),
+('Carmen Lopez', 'secretary@school.edu', '$2y$10$iVemOAuYsrWtDhAe3BmrJe2qYKXSUFiTNFDH851mKd31CMTTxmDYi', 'adas', NULL, NULL),
 ('Jorge Bautista', 'jorge.bautista002@deped.gov.ph', '$2y$10$mZiXiBtaycSs2DmiVudkq.NT6PlyGsTBSLisKR0G6tH6HQzsVL2Au', 'admin', '25', 'Principal III'),
 ('Rhonnel Magyaya', 'rhonnel.magyaya@deped.gov.ph', '$2y$10$EoWuuEchqWy.jPRi50J/8e1ucyvKvJFL6xcq3YJAshBThctyEzOz.', 'adas', '26', 'ADAS II'),
 ('Judith Abitong', 'judith.abitong@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '5', 'Teacher I'),

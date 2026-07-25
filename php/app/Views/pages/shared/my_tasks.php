@@ -44,7 +44,7 @@ $monthEnd   = date('Y-m-t');
 
 <?php foreach ($tasks as $t):
   $submission   = $t['submission'];
-  $overdue      = $t['status'] === 'Open' && ! $submission && strtotime($t['deadline']) < strtotime(date('Y-m-d'));
+  $overdue      = $t['status'] === 'Open' && ! $submission && strtotime($t['deadline']) < time();
   $deadlineDate = date('Y-m-d', strtotime($t['deadline']));
   $dueToday     = $deadlineDate === $today;
   $dueThisWeek  = $deadlineDate >= $weekStart && $deadlineDate <= $weekEnd;
@@ -60,8 +60,12 @@ $monthEnd   = date('Y-m-t');
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
       <div>
         <h6 class="fw-bold mb-1"><?= e($t['title']) ?></h6>
+        <span class="text-muted small">
+          <i class="bi bi-send me-1"></i>Posted <?= date('M d, Y', strtotime($t['created_at'])) ?>
+        </span>
+        <br>
         <span class="text-muted small <?= $overdue ? 'text-danger fw-semibold' : '' ?>">
-          <i class="bi bi-calendar3 me-1"></i>Deadline <?= date('M d, Y', strtotime($t['deadline'])) ?>
+          <i class="bi bi-calendar3 me-1"></i>Deadline <?= date('M d, Y h:i A', strtotime($t['deadline'])) ?>
           <?= $overdue ? ' · Overdue' : '' ?>
           <?= $t['status'] === 'Closed' ? ' · Closed' : '' ?>
         </span>

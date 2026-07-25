@@ -14,7 +14,7 @@ include APPPATH . 'Views/layout/header.php';
       <h4><i class="bi bi-link-45deg me-2"></i>Document Links</h4>
       <p>Quick access to forms, templates, questionnaires &amp; DepEd guidelines</p>
     </div>
-    <?php if (hasRole('admin','secretary')): ?>
+    <?php if (hasRole('admin','adas')): ?>
     <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);"
             data-bs-toggle="modal" data-bs-target="#addLinkModal">
       <i class="bi bi-plus-lg me-1"></i>Add Link
@@ -68,7 +68,7 @@ include APPPATH . 'Views/layout/header.php';
             <span class="badge mb-1" style="background:<?= $bg ?>;color:<?= $tc ?>;border:1px solid <?= $tc ?>22;font-size:.68rem;">
               <?= e($link['category']) ?>
             </span>
-            <?php if (hasRole('admin','secretary')): ?>
+            <?php if (hasRole('admin','adas')): ?>
             <form method="POST" action="<?= base_url('document-links') ?>" class="ajax-form"
                   data-confirm-title="Remove this link?">
               <input type="hidden" name="action" value="delete">

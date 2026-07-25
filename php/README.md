@@ -80,7 +80,6 @@ Navigate to `http://localhost:8080/` — you'll be redirected to the login page.
 | Admin      | principal@school.edu           | admin123      |
 | Teacher    | maria.santos@school.edu        | teacher123    |
 | Teacher    | juan.delacruz@school.edu       | teacher123    |
-| Secretary  | secretary@school.edu           | sec123        |
 | ADAS       | adas@school.edu                | adas123       |
 
 > Passwords are stored as bcrypt hashes in the `users` table (carried over
@@ -131,35 +130,39 @@ public/
 | `performance_by_level`     | MPS/NDS scores per grade level                   |
 | `performance_by_subject`   | MPS per subject and instructor                   |
 | `parent_meetings`          | PTA conference attendance records                |
-| `document_links`           | Secretary-managed external resource links        |
+| `document_links`           | ADAS-managed external resource links             |
 | `time_records`             | Daily employee time-in/time-out attendance       |
+| `deped_documents`          | DepEd-required forms with completion tracking    |
+| `holidays`                 | Non-school days excluded from time-record imports |
 | `room_properties`          | Room-by-room asset and equipment inventory       |
 
 ---
 
 ## Role-Based Access
 
-| Feature                  | Admin | Teacher | Secretary | ADAS |
-|--------------------------|:-----:|:-------:|:---------:|:----:|
-| Admin Dashboard          | ✓     |         | ✓         |      |
-| Teacher Dashboard        |       | ✓       |           |      |
-| ADAS Dashboard           |       |         |           | ✓    |
-| Submit Documents         | ✓     | ✓       |           |      |
-| Manage Documents         | ✓     |         | ✓         |      |
-| Performance Analytics    | ✓     |         | ✓         |      |
-| Enrollment KPIs          | ✓     |         | ✓         |      |
-| Announcements            | ✓     | ✓       | ✓         |      |
-| Parent Meetings          | ✓     |         | ✓         |      |
-| Time Records             | ✓     |         | ✓         | ✓    |
-| Document Links           | ✓     | ✓       | ✓         |      |
-| Templates (view)         | ✓     |         | ✓         | ✓    |
-| Templates (manage)       |       |         |           | ✓    |
-| Property Management      | ✓     |         | ✓         |      |
-| User Management          | ✓     |         | ✓         |      |
+There is no separate Secretary role — ADAS is the principal's sole administrative
+assistant, with full access to school-office duties (announcements, parent
+meetings, document links, time records, DepEd documents) plus its own exclusive
+ability to manage the Templates library (Admin is view-only there).
 
-Secretary acts as the principal's administrative assistant and shares the
-same navigation and permissions as Admin, with one exception: only ADAS can
-upload/manage Templates (Admin and Secretary are view-only there).
+| Feature                  | Admin | Teacher | ADAS |
+|--------------------------|:-----:|:-------:|:----:|
+| Admin Dashboard          | ✓     |         |      |
+| Teacher Dashboard        |       | ✓       |      |
+| ADAS Dashboard           |       |         | ✓    |
+| Submit Documents         | ✓     | ✓       |      |
+| Manage Documents         | ✓     |         |      |
+| Performance Analytics    | ✓     |         |      |
+| Enrollment KPIs          | ✓     |         |      |
+| Announcements            | ✓     | ✓       | ✓    |
+| Parent Meetings          | ✓     |         | ✓    |
+| Time Records             | ✓     |         | ✓    |
+| DepEd Documents          | ✓     |         | ✓    |
+| Document Links           | ✓     | ✓       | ✓    |
+| Templates (view)         | ✓     |         | ✓    |
+| Templates (manage)       |       |         | ✓    |
+| Property Management      | ✓     |         |      |
+| User Management          | ✓     |         |      |
 
 Enforced per-controller via the `hasRole()` helper, matching the original app's
 inline checks. All page and API routes additionally require an authenticated

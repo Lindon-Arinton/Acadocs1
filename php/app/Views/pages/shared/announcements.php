@@ -13,7 +13,7 @@
 
 <div class="row g-4">
   <!-- Left: list -->
-  <div class="col-lg-<?= hasRole('admin','secretary') ? '8' : '12' ?>">
+  <div class="col-lg-<?= hasRole('admin','adas') ? '8' : '12' ?>">
     <!-- Filter tabs + search + sort -->
     <form method="GET" action="<?= base_url('announcements') ?>" id="filterForm" class="mb-4">
       <div class="tab-pills mb-3">
@@ -75,7 +75,7 @@
               <span class="text-muted" style="font-size:.72rem;">
                 <i class="bi bi-calendar3 me-1"></i><?= date('M d, Y', strtotime($a['date'])) ?>
               </span>
-              <?php if (hasRole('admin','secretary')): ?>
+              <?php if (hasRole('admin','adas')): ?>
               <form method="POST" action="<?= base_url('announcements') ?>" class="d-inline ajax-form" onclick="event.stopPropagation()"
                     data-confirm-title="Delete this announcement?">
                 <input type="hidden" name="action" value="delete">
@@ -93,7 +93,7 @@
   </div>
 
   <!-- Right: post form -->
-  <?php if (hasRole('admin','secretary')): ?>
+  <?php if (hasRole('admin','adas')): ?>
   <div class="col-lg-4">
     <div class="card sticky-top" style="top:80px;">
       <div class="card-header" style="background:linear-gradient(135deg,var(--pink),var(--primary));color:#fff;">

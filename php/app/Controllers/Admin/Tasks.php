@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\NotificationModel;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
+use App\Models\TaskSubmissionFileModel;
 use App\Models\TaskSubmissionModel;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -14,7 +15,7 @@ class Tasks extends BaseController
 {
     public function index()
     {
-        if (! hasRole('admin', 'secretary')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 
@@ -29,7 +30,16 @@ class Tasks extends BaseController
                 if ($action === 'add') {
                     $title        = $this->request->getPost('title');
                     $assignedRole = $this->request->getPost('assigned_role');
-                    $deadline     = $this->request->getPost('deadline');
+                    $deadlineDate = $this->request->getPost('deadline_date');
+                    $deadlineTime = $this->request->getPost('deadline_time') ?: '00:00';
+
+                    if ($deadlineDate < date('Y-m-d')) {
+                        $error = 'Deadline cannot be in the past.';
+
+                        return $isAjax ? $this->ajaxError($error) : redirect()->to('/tasks')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                    }
+
+                    $deadline = $deadlineDate . ' ' . $deadlineTime . ':00';
 
                     $taskId = $taskModel->insert([
                         'title'         => $title,
@@ -45,7 +55,7 @@ class Tasks extends BaseController
                             'user_id'  => $recipient['id'],
                             'type'     => 'task_assigned',
                             'title'    => 'New Task: ' . $title,
-                            'sub'      => 'Due ' . date('M d, Y', strtotime($deadline)),
+                            'sub'      => 'Due ' . date('M d, Y h:i A', strtotime($deadline)),
                             'url'      => base_url('my-tasks'),
                             'ref_type' => 'task_assigned',
                             'ref_id'   => $taskId,
@@ -96,7 +106,7 @@ class Tasks extends BaseController
 
     public function view(int $id)
     {
-        if (! hasRole('admin', 'secretary')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 
@@ -154,10 +164,12 @@ class Tasks extends BaseController
             }
         }
 
+        $fileModel   = new TaskSubmissionFileModel();
         $submissions = $submissionModel->forTask($id);
         foreach ($submissions as &$submission) {
             $submission['feedback'] = $feedbackModel->where('task_submission_id', $submission['id'])
                 ->orderBy('date', 'DESC')->findAll();
+            $submission['files'] = $fileModel->forSubmission($submission['id']);
         }
         unset($submission);
 

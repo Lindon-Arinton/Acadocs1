@@ -49,15 +49,15 @@
       </div>
       <?php endif; ?>
 
-      <form method="POST" action="<?= base_url('login') ?>">
+      <form method="POST" action="<?= base_url('login') ?>" autocomplete="on">
         <div class="login-input-group">
           <input type="email" name="email" value="<?= e($email ?? '') ?>"
-                 placeholder="email@school.edu" required>
+                 placeholder="email@school.edu" autocomplete="username" required>
           <span class="login-input-icon"><i class="bi bi-envelope"></i></span>
         </div>
 
         <div class="login-input-group">
-          <input type="password" name="password" id="pwdField" placeholder="••••••••" required>
+          <input type="password" name="password" id="pwdField" placeholder="••••••••" autocomplete="current-password" required>
           <button type="button" class="login-input-icon" onclick="togglePwd()">
             <i class="bi bi-eye" id="pwdIcon"></i>
           </button>

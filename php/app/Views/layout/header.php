@@ -79,7 +79,7 @@ $chatNavBadge = $unreadChatCount > 0
   <!-- Scrollable nav -->
   <div class="sidebar-scroll">
 
-    <?php if ($role === 'admin' || $role === 'secretary'): ?>
+    <?php if ($role === 'admin'): ?>
 
     <!-- MAIN -->
     <div class="sidebar-section">
@@ -363,7 +363,7 @@ $chatNavBadge = $unreadChatCount > 0
           <a href="<?= base_url('announcements') ?>" class="btn btn-sm btn-outline-maroon w-100" style="font-size:.75rem;">
             View announcements
           </a>
-          <?php if (in_array($role, ['teacher', 'secretary', 'adas'], true)): ?>
+          <?php if (in_array($role, ['teacher', 'adas'], true)): ?>
           <a href="<?= base_url('my-tasks') ?>" class="btn btn-sm btn-outline-maroon w-100" style="font-size:.75rem;">
             View my tasks
           </a>
@@ -372,25 +372,28 @@ $chatNavBadge = $unreadChatCount > 0
       </div>
     </div>
 
-    <!-- User chip -->
-    <a href="<?= base_url('profile') ?>" class="d-flex align-items-center gap-2 ps-2 border-start text-decoration-none" title="My Profile">
-      <?php if ($photoUrl): ?>
-      <img src="<?= e($photoUrl) ?>" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
-      <?php else: ?>
-      <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;">
-        <?= $initials ?>
-      </div>
-      <?php endif; ?>
-      <div class="d-none d-sm-block">
-        <div style="font-size:.78rem;font-weight:600;color:#111;"><?= e($user['name'] ?? '') ?></div>
-        <div style="font-size:.68rem;color:var(--muted);"><?= e(ucfirst($role)) ?></div>
-      </div>
-    </a>
-
-    <!-- Logout -->
-    <a href="<?= base_url('logout') ?>" class="btn btn-ghost btn-sm" title="Logout" onclick="return confirmLogout(event, this)">
-      <i class="bi bi-box-arrow-right"></i>
-    </a>
+    <!-- User chip / Profile dropdown -->
+    <div class="dropdown ps-2 border-start">
+      <button type="button" class="btn d-flex align-items-center gap-2 p-0 border-0 bg-transparent" data-bs-toggle="dropdown" aria-expanded="false">
+        <?php if ($photoUrl): ?>
+        <img src="<?= e($photoUrl) ?>" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        <?php else: ?>
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;">
+          <?= $initials ?>
+        </div>
+        <?php endif; ?>
+        <div class="d-none d-sm-block text-start">
+          <div style="font-size:.78rem;font-weight:600;color:#111;"><?= e($user['name'] ?? '') ?></div>
+          <div style="font-size:.68rem;color:var(--muted);"><?= e(ucfirst($role)) ?></div>
+        </div>
+        <i class="bi bi-chevron-down d-none d-sm-inline text-muted" style="font-size:.65rem;"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="bi bi-person me-2"></i>My Profile</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="<?= base_url('logout') ?>" onclick="return confirmLogout(event, this)"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+      </ul>
+    </div>
   </div>
 </header>
 
