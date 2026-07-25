@@ -256,58 +256,84 @@ function initLiveSearch(inputId, formId, delay = 500) {
     });
 }
 
-/* ── Instant client-side table filter (no server round-trip, no Enter needed) ──
-   Filters the rows already rendered in `tableId` as you type in `inputId`,
-   matching against the row's full text (name, id, remarks, etc. all included).
-   Optional `opts.counterId` + `opts.counterLabel(count)` keep a "N found"
-   label in sync with what's actually visible. */
-function initInstantFilter(inputId, tableId, opts = {}) {
-    const input = document.getElementById(inputId);
-    const table = document.getElementById(tableId);
-    if (!input || !table) return;
+/* ── Maroon date picker (replaces native <input type=date>) ── */
+function initMaroonDatePicker(root) {
+    const display     = root.querySelector('.maroon-dp-display');
+    const hidden       = root.querySelector('input[type="hidden"]');
+    const monthLabel   = root.querySelector('.maroon-dp-month-label');
+    const grid         = root.querySelector('.maroon-dp-grid');
+    const monthNames   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-    const emptyText    = opts.emptyText || 'No matching records.';
-    const counterEl     = opts.counterId ? document.getElementById(opts.counterId) : null;
-    const counterLabel  = opts.counterLabel || (n => `${n} found`);
+    let minDate  = root.dataset.min ? new Date(root.dataset.min + 'T00:00:00') : null;
+    let view     = hidden.value ? new Date(hidden.value + 'T00:00:00') : new Date();
+    let selected = hidden.value ? new Date(hidden.value + 'T00:00:00') : null;
 
-    const tbody = table.tBodies[0];
-    const rows  = Array.from(tbody.querySelectorAll(':scope > tr'));
-    const colCount = (rows[0]?.children.length) || 1;
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function fmt(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function fmtDisplay(d) { return monthNames[d.getMonth()].slice(0, 3) + ' ' + d.getDate() + ', ' + d.getFullYear(); }
+    function sameDay(a, b) {
+        return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
 
-    let emptyRow = null;
-    const ensureEmptyRow = () => {
-        if (emptyRow) return emptyRow;
-        emptyRow = document.createElement('tr');
-        emptyRow.className = 'instant-filter-empty-row';
-        emptyRow.innerHTML = `<td colspan="${colCount}" class="text-center py-5 text-muted">${emptyText}</td>`;
-        return emptyRow;
-    };
-
-    input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        let visible = 0;
-
-        rows.forEach(row => {
-            const match = q === '' || row.textContent.toLowerCase().includes(q);
-            row.style.display = match ? '' : 'none';
-            if (match) visible++;
-        });
-
-        const row = ensureEmptyRow();
-        if (visible === 0) {
-            if (!row.isConnected) tbody.appendChild(row);
-        } else if (row.isConnected) {
-            row.remove();
+    function render() {
+        monthLabel.textContent = monthNames[view.getMonth()] + ' ' + view.getFullYear();
+        const firstDay    = new Date(view.getFullYear(), view.getMonth(), 1).getDay();
+        const daysInMonth = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+        const today       = new Date();
+        let html = '';
+        for (let i = 0; i < firstDay; i++) html += '<span class="is-empty">.</span>';
+        for (let d = 1; d <= daysInMonth; d++) {
+            const cellDate = new Date(view.getFullYear(), view.getMonth(), d);
+            const disabled = minDate && cellDate < minDate;
+            const classes  = [];
+            if (sameDay(cellDate, today)) classes.push('is-today');
+            if (sameDay(cellDate, selected)) classes.push('is-selected');
+            html += '<button type="button" class="' + classes.join(' ') + '" ' + (disabled ? 'disabled' : '')
+                + ' data-date="' + fmt(cellDate) + '">' + d + '</button>';
         }
+        grid.innerHTML = html;
+    }
 
-        if (counterEl) counterEl.textContent = counterLabel(visible);
+    function selectDate(value, { autosubmit = true } = {}) {
+        hidden.value = value;
+        selected = value ? new Date(value + 'T00:00:00') : null;
+        view = selected || new Date();
+        display.value = selected ? fmtDisplay(selected) : '';
+        root.classList.remove('open');
+        render();
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+        if (autosubmit && root.hasAttribute('data-autosubmit')) {
+            root.closest('form')?.requestSubmit();
+        }
+    }
+
+    if (selected) display.value = fmtDisplay(selected);
+    render();
+
+    display.addEventListener('click', (e) => {
+        e.stopPropagation();
+        root.classList.toggle('open');
+    });
+    root.querySelectorAll('.maroon-dp-nav').forEach(btn => {
+        btn.addEventListener('click', () => {
+            view = new Date(view.getFullYear(), view.getMonth() + parseInt(btn.dataset.dir, 10), 1);
+            render();
+        });
+    });
+    grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-date]');
+        if (!btn || btn.disabled) return;
+        selectDate(btn.dataset.date);
+    });
+    document.addEventListener('click', (e) => {
+        if (!root.contains(e.target)) root.classList.remove('open');
     });
 
-    // Enter shouldn't submit/reload — filtering already happens live.
-    input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') e.preventDefault();
-    });
+    /* Exposed so pages can reset/preset the picker (e.g. reopening a "New" modal). */
+    root.maroonDpSetValue = (value) => selectDate(value, { autosubmit: false });
+    root.maroonDpSetMin = (value) => { minDate = value ? new Date(value + 'T00:00:00') : null; render(); };
 }
+document.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
 
 /* ── Chart.js global defaults ─────────────────────────────── */
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";

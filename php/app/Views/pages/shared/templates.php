@@ -34,9 +34,10 @@ $grouped = [];
 foreach ($templates as $t) {
     $grouped[$t['category_id']][] = $t;
 }
-$previewableExt  = ['pdf', 'jpg', 'jpeg', 'png', 'txt'];
+$previewableExt  = ['pdf', 'jpg', 'jpeg', 'png', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'odt', 'ods', 'odp'];
 $hasActiveFilter = $search !== '' || $fileType !== 'all';
 $canManage       = hasRole('adas');
+$formatLabels    = ['pdf' => 'PDF', 'docx' => 'Word'];
 
 include APPPATH . 'Views/layout/header.php';
 ?>
@@ -151,6 +152,7 @@ include APPPATH . 'Views/layout/header.php';
     <div class="row g-3">
       <?php foreach ($items as $t):
         [$icon, $tc, $bg] = $extCfg[$t['file_ext']] ?? ['bi-file-earmark-fill', '#374151', '#f3f4f6'];
+        $conversions      = \App\Controllers\Shared\Templates::conversionTargets($t['file_ext']);
       ?>
       <div class="col-md-6 col-xl-4">
         <div class="doclink-card h-100">
@@ -196,13 +198,32 @@ include APPPATH . 'Views/layout/header.php';
                             'fileName'    => $t['file_name'],
                             'fileSize'    => tplFormatBytes((int) $t['file_size']),
                             'previewable' => in_array($t['file_ext'], $previewableExt, true),
+                            'conversions' => $conversions,
                         ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
                   <i class="bi bi-eye me-1"></i>View
                 </button>
-                <button type="button" class="btn btn-sm flex-fill" style="background:<?= $tc ?>;color:#fff;"
-                        onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id']) ?>', '<?= e(addslashes($t['file_name'])) ?>')">
-                  <i class="bi bi-download me-1"></i>Download
-                </button>
+                <div class="btn-group flex-fill" role="group">
+                  <button type="button" class="btn btn-sm flex-fill" style="background:<?= $tc ?>;color:#fff;"
+                          onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id']) ?>', '<?= e(addslashes($t['file_name'])) ?>')">
+                    <i class="bi bi-download me-1"></i>Download
+                  </button>
+                  <?php if (! empty($conversions)): ?>
+                  <button type="button" class="btn btn-sm dropdown-toggle dropdown-toggle-split" style="background:<?= $tc ?>;color:#fff;"
+                          data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="visually-hidden">Toggle download options</span>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <?php foreach ($conversions as $c): $dlName = pathinfo($t['file_name'], PATHINFO_FILENAME) . '.' . $c; ?>
+                    <li>
+                      <a class="dropdown-item" href="#"
+                         onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id'] . '?as=' . $c) ?>', '<?= e(addslashes($dlName)) ?>'); return false;">
+                        <i class="bi bi-file-earmark-<?= $c === 'pdf' ? 'pdf' : 'word' ?> me-2"></i>Convert to <?= e($formatLabels[$c] ?? strtoupper($c)) ?>
+                      </a>
+                    </li>
+                    <?php endforeach; ?>
+                  </ul>
+                  <?php endif; ?>
+                </div>
               </div>
             </div>
           </div>
@@ -309,9 +330,16 @@ include APPPATH . 'Views/layout/header.php';
       <div class="modal-body" id="previewModalBody"></div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" id="previewModalDownloadBtn">
-          <i class="bi bi-download me-1"></i>Download
-        </button>
+        <div class="btn-group">
+          <button type="button" class="btn btn-primary" id="previewModalDownloadBtn">
+            <i class="bi bi-download me-1"></i>Download
+          </button>
+          <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split d-none" id="previewModalDownloadCaret"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="visually-hidden">Toggle download options</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" id="previewModalDownloadMenu"></ul>
+        </div>
       </div>
     </div>
   </div>
@@ -327,12 +355,15 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+const OFFICE_PREVIEW_EXT = ['doc','docx','xls','xlsx','ppt','pptx','csv','odt','ods','odp'];
+const FORMAT_LABELS = { pdf: 'PDF', docx: 'Word' };
+
 function previewTemplate(t) {
     document.getElementById('previewModalTitle').innerHTML = '<i class=\"bi bi-eye me-2\"></i>' + escapeHtml(t.title);
 
     const previewUrl = TEMPLATES_PREVIEW_BASE + t.id;
     let previewHtml;
-    if (t.ext === 'pdf') {
+    if (t.ext === 'pdf' || OFFICE_PREVIEW_EXT.includes(t.ext)) {
         previewHtml = '<iframe src=\"' + previewUrl + '\" style=\"width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;\"></iframe>';
     } else if (['jpg','jpeg','png'].includes(t.ext)) {
         previewHtml = '<div class=\"text-center\"><img src=\"' + previewUrl + '\" style=\"max-width:100%;max-height:65vh;border-radius:8px;\"></div>';
@@ -355,11 +386,41 @@ function previewTemplate(t) {
       \${previewHtml}
     `;
 
-    document.getElementById('previewModalDownloadBtn').onclick = () => downloadTemplate(
-        '" . base_url('templates/download/') . "' + t.id, t.fileName
-    );
+    const downloadBase = '" . base_url('templates/download/') . "' + t.id;
+    document.getElementById('previewModalDownloadBtn').onclick = () => downloadTemplate(downloadBase, t.fileName);
+
+    const caret = document.getElementById('previewModalDownloadCaret');
+    const menu  = document.getElementById('previewModalDownloadMenu');
+    const conversions = t.conversions || [];
+
+    menu.innerHTML = '';
+    conversions.forEach(c => {
+        const name = t.fileName.includes('.') ? t.fileName.substring(0, t.fileName.lastIndexOf('.')) : t.fileName;
+        const li = document.createElement('li');
+        const a  = document.createElement('a');
+        a.className = 'dropdown-item';
+        a.href = '#';
+        a.innerHTML = '<i class=\"bi bi-file-earmark-' + (c === 'pdf' ? 'pdf' : 'word') + ' me-2\"></i>Convert to ' + (FORMAT_LABELS[c] || c.toUpperCase());
+        a.onclick = (e) => { e.preventDefault(); downloadTemplate(downloadBase + '?as=' + c, name + '.' + c); };
+        li.appendChild(a);
+        menu.appendChild(li);
+    });
+    caret.classList.toggle('d-none', conversions.length === 0);
 
     new bootstrap.Modal(document.getElementById('previewModal')).show();
+}
+
+function notifyDownloadSuccess(fileName) {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Download successful',
+        text: fileName,
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+    });
 }
 
 async function downloadTemplate(url, suggestedName) {
@@ -371,12 +432,14 @@ async function downloadTemplate(url, suggestedName) {
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
+            notifyDownloadSuccess(suggestedName);
             return;
         } catch (err) {
             if (err && err.name === 'AbortError') return;
         }
     }
     window.location.href = url;
+    notifyDownloadSuccess(suggestedName);
 }
 
 function openUploadModal(categoryId) {

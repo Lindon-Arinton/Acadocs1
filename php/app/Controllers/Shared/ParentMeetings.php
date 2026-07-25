@@ -14,7 +14,7 @@ class ParentMeetings extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
-            if (! hasRole('admin', 'secretary')) {
+            if (! hasRole('admin', 'adas')) {
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/parent-meetings');
             }
 

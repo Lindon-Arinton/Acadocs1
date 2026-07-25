@@ -4,8 +4,10 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Models\NotificationModel;
+use App\Models\TaskAssigneeModel;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
+use App\Models\TaskSubmissionFileModel;
 use App\Models\TaskSubmissionModel;
 use App\Models\UserModel;
 
@@ -13,7 +15,7 @@ class MyTasks extends BaseController
 {
     public function index()
     {
-        if (! hasRole('teacher', 'secretary', 'adas')) {
+        if (! hasRole('teacher', 'adas')) {
             return redirect()->to('/dashboard');
         }
 
@@ -21,35 +23,48 @@ class MyTasks extends BaseController
         $taskModel        = new TaskModel();
         $submissionModel  = new TaskSubmissionModel();
         $feedbackModel    = new TaskFeedbackModel();
+        $assigneeModel    = new TaskAssigneeModel();
 
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
             $taskId = (int) $this->request->getPost('task_id');
             $task   = $taskModel->find($taskId);
 
-            if (! $task || $task['assigned_role'] !== $user['role']) {
+            $isEligible = $task && (
+                $task['assigned_role'] === $user['role']
+                || ($task['assigned_role'] === 'specific' && in_array((int) $user['id'], $assigneeModel->userIdsForTask($taskId), true))
+            );
+
+            if (! $isEligible) {
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/my-tasks');
             }
 
-            $file = $this->request->getFile('file');
+            $files = array_filter(
+                $this->request->getFileMultiple('file') ?? [],
+                static fn ($f) => $f && $f->isValid() && ! $f->hasMoved()
+            );
 
-            $rules = [
-                'file' => [
-                    'label' => 'File',
-                    'rules' => 'uploaded[file]|max_size[file,10240]|ext_in[file,pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png]',
-                    'errors' => [
-                        'uploaded' => 'Please choose a file to upload.',
-                        'max_size' => 'File is too large (max 10MB).',
-                        'ext_in'   => 'Unsupported file type.',
-                    ],
-                ],
-            ];
-
-            if (! $this->validate($rules)) {
-                $error = implode(' ', $this->validator->getErrors());
+            if (empty($files)) {
+                $error = 'Please choose at least one file to upload.';
 
                 return $isAjax ? $this->ajaxError($error) : redirect()->to('/my-tasks')->with('flash', ['type' => 'danger', 'msg' => $error]);
             }
+
+            $allowedExt = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'];
+            foreach ($files as $f) {
+                if ($f->getSize() > 10240 * 1024) {
+                    $error = 'Each file must be 10MB or smaller.';
+
+                    return $isAjax ? $this->ajaxError($error) : redirect()->to('/my-tasks')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                }
+                if (! in_array(strtolower($f->getClientExtension()), $allowedExt, true)) {
+                    $error = 'Unsupported file type: ' . $f->getClientName();
+
+                    return $isAjax ? $this->ajaxError($error) : redirect()->to('/my-tasks')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                }
+            }
+
+            $fileModel = new TaskSubmissionFileModel();
 
             try {
                 $existing  = $submissionModel->findForTaskAndUser($taskId, (int) $user['id']);
@@ -59,27 +74,36 @@ class MyTasks extends BaseController
                     mkdir($targetDir, 0755, true);
                 }
 
-                $newName = $file->getRandomName();
-                $file->move($targetDir, $newName);
-
-                if ($existing && is_file($existing['file_path'])) {
-                    unlink($existing['file_path']);
-                }
-
                 $data = [
                     'task_id'      => $taskId,
                     'user_id'      => $user['id'],
-                    'file_path'    => $targetDir . DIRECTORY_SEPARATOR . $newName,
-                    'file_name'    => $file->getClientName(),
                     'notes'        => $this->request->getPost('notes') ?? '',
                     'status'       => 'Submitted',
                     'submitted_at' => date('Y-m-d H:i:s'),
                 ];
 
                 if ($existing) {
+                    foreach ($fileModel->forSubmission($existing['id']) as $oldFile) {
+                        if (is_file($oldFile['file_path'])) {
+                            unlink($oldFile['file_path']);
+                        }
+                        $fileModel->delete($oldFile['id']);
+                    }
                     $submissionModel->update($existing['id'], $data);
+                    $submissionId = $existing['id'];
                 } else {
-                    $submissionModel->insert($data);
+                    $submissionId = $submissionModel->insert($data);
+                }
+
+                foreach ($files as $f) {
+                    $newName = $f->getRandomName();
+                    $f->move($targetDir, $newName);
+
+                    $fileModel->insert([
+                        'task_submission_id' => $submissionId,
+                        'file_path'           => $targetDir . DIRECTORY_SEPARATOR . $newName,
+                        'file_name'           => $f->getClientName(),
+                    ]);
                 }
 
                 $totalSubmitted = $submissionModel->where('task_id', $taskId)->countAllResults();
@@ -113,11 +137,20 @@ class MyTasks extends BaseController
             return redirect()->to('/my-tasks');
         }
 
-        $tasks = $taskModel->where('assigned_role', $user['role'])->orderBy('deadline', 'ASC')->findAll();
+        $specificTaskIds = $assigneeModel->taskIdsForUser((int) $user['id']);
+
+        $taskQuery = $taskModel->groupStart()->where('assigned_role', $user['role']);
+        if ($specificTaskIds) {
+            $taskQuery->orGroupStart()->where('assigned_role', 'specific')->whereIn('id', $specificTaskIds)->groupEnd();
+        }
+        $tasks = $taskQuery->groupEnd()->orderBy('deadline', 'ASC')->findAll();
+
+        $fileModel = new TaskSubmissionFileModel();
 
         foreach ($tasks as &$task) {
             $submission          = $submissionModel->findForTaskAndUser($task['id'], (int) $user['id']);
             $task['submission']  = $submission;
+            $task['files']       = $submission ? $fileModel->forSubmission($submission['id']) : [];
             $task['feedback']    = $submission
                 ? $feedbackModel->where('task_submission_id', $submission['id'])->orderBy('date', 'DESC')->findAll()
                 : [];

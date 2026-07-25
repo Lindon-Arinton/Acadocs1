@@ -63,7 +63,7 @@ class Chat extends BaseController
             static fn (array $a, array $b): int => strtotime($b['last_time']) <=> strtotime($a['last_time'])
         );
 
-        $users = hasRole('admin')
+        $users = hasRole('admin', 'adas')
             ? (new UserModel())->where('id !=', $user['id'])->orderBy('name', 'ASC')->findAll()
             : [];
 
@@ -81,7 +81,7 @@ class Chat extends BaseController
             'pageTitle'     => 'Chat',
             'conversations' => $conversations,
             'users'         => $users,
-            'canCreate'     => hasRole('admin'),
+            'canCreate'     => hasRole('admin', 'adas'),
             'openId'        => $openId,
         ]);
     }
@@ -91,7 +91,7 @@ class Chat extends BaseController
         $isAjax = $this->request->isAJAX();
         $user   = currentUser();
 
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'adas')) {
             return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/chat');
         }
 

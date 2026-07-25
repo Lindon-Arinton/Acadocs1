@@ -18,11 +18,11 @@ $routes->get('api/auth/me', 'Api\AuthController::me');
 $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $routes) {
     $routes->get('dashboard', 'Admin\Dashboard::index');
     $routes->get('teacher-dashboard', 'Teacher\TeacherDashboard::index');
-    $routes->get('secretary-dashboard', 'Secretary\SecretaryDashboard::index');
     $routes->get('adas-dashboard', 'Adas\AdasDashboard::index');
     $routes->match(['get', 'post'], 'submit-documents', 'Teacher\SubmitDocuments::index');
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
     $routes->get('documents/(:num)/file', 'Shared\DocumentFile::show/$1');
+    $routes->get('documents/(:num)/download', 'Shared\DocumentFile::download/$1');
     $routes->get('performance', 'Admin\Performance::index');
     $routes->match(['get', 'post'], 'performance/mps', 'Teacher\PerformanceMps::index');
     $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
@@ -41,6 +41,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'tasks/(:num)', 'Admin\Tasks::view/$1');
     $routes->match(['get', 'post'], 'my-tasks', 'Shared\MyTasks::index');
     $routes->get('task-submissions/(:num)/download', 'Shared\TaskDownload::show/$1');
+    $routes->get('task-submissions/(:num)/preview', 'Shared\TaskDownload::preview/$1');
     $routes->match(['get', 'post'], 'profile', 'Shared\Profile::index');
     $routes->post('notifications/(:num)/read', 'Shared\Notifications::markRead/$1');
     $routes->match(['get', 'post'], 'chat', 'Shared\Chat::index');
@@ -73,11 +74,6 @@ $routes->group('api', ['filter' => 'authGuard'], static function (RouteCollectio
     $routes->post('time-records', 'Api\TimeRecordsController::create');
     $routes->put('time-records', 'Api\TimeRecordsController::update');
     $routes->delete('time-records', 'Api\TimeRecordsController::delete');
-
-    $routes->get('deped-documents', 'Api\DepedDocumentsController::index');
-    $routes->post('deped-documents', 'Api\DepedDocumentsController::create');
-    $routes->put('deped-documents', 'Api\DepedDocumentsController::update');
-    $routes->delete('deped-documents', 'Api\DepedDocumentsController::delete');
 
     $routes->get('properties', 'Api\PropertiesController::index');
     $routes->post('properties', 'Api\PropertiesController::create');

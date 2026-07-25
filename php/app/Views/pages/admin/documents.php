@@ -91,7 +91,7 @@
 
 <!-- View Modal -->
 <div class="modal fade" id="viewModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header" style="background:var(--maroon);color:#fff;">
         <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark me-2"></i>Document Details</h6>
@@ -138,8 +138,11 @@
 $extraScript = "<script>
 const DOC_FILE_BASE = '" . base_url('documents/') . "';
 function viewDoc(doc) {
-    const fileLink = doc.file_path
-        ? `<a href='\${DOC_FILE_BASE}\${doc.id}/file' target='_blank' rel='noopener' class='btn btn-sm btn-outline-secondary mt-2'><i class='bi bi-eye me-1'></i>View File</a>`
+    const fileSection = doc.file_path
+        ? `<div class='d-flex gap-2 mb-2'>
+             <a href='\${DOC_FILE_BASE}\${doc.id}/download' class='btn btn-sm btn-outline-secondary'><i class='bi bi-download me-1'></i>Download</a>
+           </div>
+           <iframe src='\${DOC_FILE_BASE}\${doc.id}/file' style='width:100%;height:420px;border:1px solid #e5e7eb;border-radius:8px;'></iframe>`
         : `<p class='text-muted small mb-0 mt-2'>No file attached.</p>`;
     document.getElementById('viewModalBody').innerHTML = `
       <table class='table table-sm'>
@@ -150,7 +153,7 @@ function viewDoc(doc) {
         <tr><th>Submitted</th><td>\${doc.date_submitted}</td></tr>
         <tr><th>Status</th><td><span class='badge bg-secondary'>\${doc.status}</span></td></tr>
       </table>
-      \${fileLink}`;
+      \${fileSection}`;
     new bootstrap.Modal(document.getElementById('viewModal')).show();
 }
 function feedbackDoc(id, teacher) {

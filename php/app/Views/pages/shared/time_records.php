@@ -24,11 +24,18 @@
   <div class="card-body py-3">
     <div class="d-flex align-items-center gap-3 flex-wrap">
       <form method="GET" action="<?= base_url('time-records') ?>" id="filterForm" class="d-flex align-items-center gap-2 flex-wrap">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-calendar3 text-muted"></i>
-          <input type="date" name="date" value="<?= e($dateFilter) ?>"
-                 class="form-control form-control-sm" style="width:auto;"
-                 onchange="this.form.submit()">
+        <div class="maroon-dp" data-autosubmit style="width:150px;">
+          <input type="text" class="form-control form-control-sm maroon-dp-display" placeholder="Select date" readonly>
+          <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+          <div class="maroon-dp-panel">
+            <div class="maroon-dp-header">
+              <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+              <span class="maroon-dp-month-label"></span>
+              <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+            </div>
+            <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+            <div class="maroon-dp-grid"></div>
+          </div>
         </div>
 
         <div class="input-group input-group-sm" style="max-width:220px;">
@@ -181,7 +188,19 @@
           <div class="row g-3">
             <div class="col-6">
               <label class="form-label">Date</label>
-              <input type="date" name="date" class="form-control" value="<?= e($dateFilter) ?>" required>
+              <div class="maroon-dp">
+                <input type="text" class="form-control maroon-dp-display" placeholder="Select date" readonly required>
+                <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+                <div class="maroon-dp-panel">
+                  <div class="maroon-dp-header">
+                    <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+                    <span class="maroon-dp-month-label"></span>
+                    <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+                  </div>
+                  <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                  <div class="maroon-dp-grid"></div>
+                </div>
+              </div>
             </div>
             <div class="col-6">
               <label class="form-label">Employee ID</label>
@@ -309,7 +328,19 @@
           <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
           <div class="col-5">
             <label class="form-label">Date</label>
-            <input type="date" name="holiday_date" class="form-control form-control-sm" required>
+            <div class="maroon-dp">
+              <input type="text" class="form-control form-control-sm maroon-dp-display" placeholder="Select date" readonly required>
+              <input type="hidden" name="holiday_date">
+              <div class="maroon-dp-panel">
+                <div class="maroon-dp-header">
+                  <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+                  <span class="maroon-dp-month-label"></span>
+                  <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                <div class="maroon-dp-grid"></div>
+              </div>
+            </div>
           </div>
           <div class="col-5">
             <label class="form-label">Label</label>
@@ -369,7 +400,7 @@ function exportTable(tableId, filename) {
         [...r.querySelectorAll('th,td')].map(c => JSON.stringify(c.innerText.trim())).join(',')
     );
     const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv'})),
+        href: URL.createObjectURL(new Blob([rows.join('\\n')], {type:'text/csv'})),
         download: filename + '.csv'
     });
     a.click();

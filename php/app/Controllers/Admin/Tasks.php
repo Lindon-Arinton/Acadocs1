@@ -4,8 +4,10 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\NotificationModel;
+use App\Models\TaskAssigneeModel;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
+use App\Models\TaskSubmissionFileModel;
 use App\Models\TaskSubmissionModel;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -14,7 +16,7 @@ class Tasks extends BaseController
 {
     public function index()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 
@@ -29,7 +31,30 @@ class Tasks extends BaseController
                 if ($action === 'add') {
                     $title        = $this->request->getPost('title');
                     $assignedRole = $this->request->getPost('assigned_role');
-                    $deadline     = $this->request->getPost('deadline');
+                    $deadlineDate = $this->request->getPost('deadline_date');
+                    $deadlineTime = $this->request->getPost('deadline_time') ?: '00:00';
+
+                    if ($deadlineDate < date('Y-m-d')) {
+                        $error = 'Deadline cannot be in the past.';
+
+                        return $isAjax ? $this->ajaxError($error) : redirect()->to('/tasks')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                    }
+
+                    $specificUserIds = [];
+                    if ($assignedRole === 'specific') {
+                        $specificUserIds = array_unique(array_filter(array_map(
+                            'intval',
+                            is_array($this->request->getPost('user_ids')) ? $this->request->getPost('user_ids') : []
+                        )));
+
+                        if (empty($specificUserIds)) {
+                            $error = 'Please choose at least one person.';
+
+                            return $isAjax ? $this->ajaxError($error) : redirect()->to('/tasks')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                        }
+                    }
+
+                    $deadline = $deadlineDate . ' ' . $deadlineTime . ':00';
 
                     $taskId = $taskModel->insert([
                         'title'         => $title,
@@ -39,13 +64,24 @@ class Tasks extends BaseController
                         'created_by'    => currentUser()['name'],
                     ]);
 
+                    $recipients = $assignedRole === 'specific'
+                        ? (new UserModel())->whereIn('id', $specificUserIds)->findAll()
+                        : (new UserModel())->where('role', $assignedRole)->findAll();
+
+                    if ($assignedRole === 'specific') {
+                        $assigneeModel = new TaskAssigneeModel();
+                        foreach ($specificUserIds as $uid) {
+                            $assigneeModel->insert(['task_id' => $taskId, 'user_id' => $uid]);
+                        }
+                    }
+
                     $notifModel = new NotificationModel();
-                    foreach ((new UserModel())->where('role', $assignedRole)->findAll() as $recipient) {
+                    foreach ($recipients as $recipient) {
                         $notifModel->insert([
                             'user_id'  => $recipient['id'],
                             'type'     => 'task_assigned',
                             'title'    => 'New Task: ' . $title,
-                            'sub'      => 'Due ' . date('M d, Y', strtotime($deadline)),
+                            'sub'      => 'Due ' . date('M d, Y h:i A', strtotime($deadline)),
                             'url'      => base_url('my-tasks'),
                             'ref_type' => 'task_assigned',
                             'ref_id'   => $taskId,
@@ -79,24 +115,30 @@ class Tasks extends BaseController
 
         $userModel       = new UserModel();
         $submissionModel = new TaskSubmissionModel();
+        $assigneeModel   = new TaskAssigneeModel();
 
         $tasks = $taskModel->orderBy('deadline', 'ASC')->findAll();
         foreach ($tasks as &$task) {
-            $task['eligible_count']  = $userModel->where('role', $task['assigned_role'])->countAllResults();
+            $task['eligible_count']  = $task['assigned_role'] === 'specific'
+                ? $assigneeModel->where('task_id', $task['id'])->countAllResults()
+                : $userModel->where('role', $task['assigned_role'])->countAllResults();
             $task['submitted_count'] = $submissionModel->where('task_id', $task['id'])->countAllResults();
         }
         unset($task);
 
+        $assignableUsers = $userModel->whereIn('role', ['teacher', 'adas'])->orderBy('name', 'ASC')->findAll();
+
         return view('pages/admin/tasks', [
-            'pageTitle' => 'Tasks & Assignments',
-            'tasks'     => $tasks,
-            'flash'     => session()->getFlashdata('flash'),
+            'pageTitle'       => 'Tasks & Assignments',
+            'tasks'           => $tasks,
+            'assignableUsers' => $assignableUsers,
+            'flash'           => session()->getFlashdata('flash'),
         ]);
     }
 
     public function view(int $id)
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 
@@ -154,16 +196,19 @@ class Tasks extends BaseController
             }
         }
 
+        $fileModel   = new TaskSubmissionFileModel();
         $submissions = $submissionModel->forTask($id);
         foreach ($submissions as &$submission) {
             $submission['feedback'] = $feedbackModel->where('task_submission_id', $submission['id'])
                 ->orderBy('date', 'DESC')->findAll();
+            $submission['files'] = $fileModel->forSubmission($submission['id']);
         }
         unset($submission);
 
         $submittedUserIds = array_column($submissions, 'user_id');
-        $pendingUsers      = (new UserModel())->where('role', $task['assigned_role'])
-            ->orderBy('name')->findAll();
+        $pendingUsers      = $task['assigned_role'] === 'specific'
+            ? (new TaskAssigneeModel())->usersForTask($id)
+            : (new UserModel())->where('role', $task['assigned_role'])->orderBy('name')->findAll();
         $pendingUsers      = array_values(array_filter(
             $pendingUsers,
             static fn (array $u) => ! in_array($u['id'], $submittedUserIds, true)

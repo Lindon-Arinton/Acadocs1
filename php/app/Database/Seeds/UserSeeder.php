@@ -9,7 +9,7 @@ class UserSeeder extends Seeder
     public function run()
     {
         $this->db->table('users')->insertBatch([
-            ['name' => 'Carmen Lopez', 'email' => 'secretary@school.edu', 'password' => '$2y$10$iVemOAuYsrWtDhAe3BmrJe2qYKXSUFiTNFDH851mKd31CMTTxmDYi', 'role' => 'secretary', 'ac_no' => null, 'position' => null],
+            ['name' => 'Carmen Lopez', 'email' => 'secretary@school.edu', 'password' => '$2y$10$iVemOAuYsrWtDhAe3BmrJe2qYKXSUFiTNFDH851mKd31CMTTxmDYi', 'role' => 'adas', 'ac_no' => null, 'position' => null],
 
             // Matabungkay NHS staff roster (real accounts, keyed by biometric AC-No)
             ['name' => 'Jorge Bautista', 'email' => 'jorge.bautista002@deped.gov.ph', 'password' => '$2y$10$mZiXiBtaycSs2DmiVudkq.NT6PlyGsTBSLisKR0G6tH6HQzsVL2Au', 'role' => 'admin', 'ac_no' => '25', 'position' => 'Principal III'],

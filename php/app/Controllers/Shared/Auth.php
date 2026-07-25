@@ -8,9 +8,8 @@ use App\Models\UserModel;
 class Auth extends BaseController
 {
     private const ROLE_DASHBOARDS = [
-        'teacher'   => '/teacher-dashboard',
-        'secretary' => '/secretary-dashboard',
-        'adas'      => '/adas-dashboard',
+        'teacher' => '/teacher-dashboard',
+        'adas'    => '/adas-dashboard',
     ];
 
     public function login()

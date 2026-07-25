@@ -28,7 +28,7 @@
           <option value="attendance_lo" <?= $sort==='attendance_lo' ? 'selected' : '' ?>>Attendance Rate (Low-High)</option>
         </select>
       </form>
-      <?php if (hasRole('admin','secretary')): ?>
+      <?php if (hasRole('admin','adas')): ?>
       <button class="btn btn-maroon btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addMeetingModal">
         <i class="bi bi-plus-lg me-1"></i>Add Meeting
       </button>
@@ -113,8 +113,22 @@
         <div class="row g-3">
           <div class="col-12"><label class="form-label small fw-semibold">Meeting Title</label>
             <input type="text" name="title" class="form-control" required></div>
-          <div class="col-6"><label class="form-label small fw-semibold">Date</label>
-            <input type="date" name="date" class="form-control" min="<?= date('Y-m-d') ?>" required></div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Date</label>
+            <div class="maroon-dp" data-min="<?= date('Y-m-d') ?>">
+              <input type="text" class="form-control maroon-dp-display" placeholder="Select date" readonly required>
+              <input type="hidden" name="date">
+              <div class="maroon-dp-panel">
+                <div class="maroon-dp-header">
+                  <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+                  <span class="maroon-dp-month-label"></span>
+                  <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                <div class="maroon-dp-grid"></div>
+              </div>
+            </div>
+          </div>
           <div class="col-6"><label class="form-label small fw-semibold">Expected Parents</label>
             <input type="number" name="expected_parents" class="form-control" value="450" required></div>
           <div class="col-6"><label class="form-label small fw-semibold">Actual Attendance</label>
