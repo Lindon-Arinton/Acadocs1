@@ -39,11 +39,11 @@
 <div class="card">
   <div class="card-header">
     <div class="card-title">System Users</div>
-    <div class="card-description"><?= count($users) ?> user<?= count($users)!==1?'s':'' ?> found</div>
+    <div class="card-description" id="users-count"><?= count($users) ?> user<?= count($users)!==1?'s':'' ?> found</div>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table mb-0">
+      <table class="table mb-0" id="users-table">
         <thead>
           <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th class="text-center">Actions</th></tr>
         </thead>
@@ -180,13 +180,19 @@
 </div>
 
 <?php
-$extraScript = "<script>
+$extraScript = <<<'HTML'
+<script>
 function resetPw(id, name) {
     document.getElementById('resetUserId').value = id;
     document.getElementById('resetUserName').textContent = name;
     new bootstrap.Modal(document.getElementById('resetPwModal')).show();
 }
-initLiveSearch('userSearchInput', 'filterForm');
-</script>";
+initInstantFilter('userSearchInput', 'users-table', {
+    emptyText: 'No users found matching your search.',
+    counterId: 'users-count',
+    counterLabel: function (n) { return n + ' user' + (n !== 1 ? 's' : '') + ' found'; },
+});
+</script>
+HTML;
 include APPPATH . 'Views/layout/footer.php';
 ?>

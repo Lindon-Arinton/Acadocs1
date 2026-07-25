@@ -230,6 +230,11 @@ $chatNavBadge = $unreadChatCount > 0
           <i class="bi bi-list-task nav-icon"></i>
           <span class="sidebar-label">My Tasks</span>
         </a>
+        <a href="<?= base_url('performance/mps') ?>"
+           class="nav-link <?= str_contains($uri,'performance/mps')?'active':'' ?>">
+          <i class="bi bi-pencil-square nav-icon"></i>
+          <span class="sidebar-label">Enter MPS Scores</span>
+        </a>
         <a href="<?= base_url('announcements') ?>"
            class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i>

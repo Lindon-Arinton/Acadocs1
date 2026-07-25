@@ -11,5 +11,5 @@ class PerformanceBySubjectModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['school_year', 'subject', 'grade_level', 'instructor', 'mps'];
+    protected $allowedFields = ['school_year', 'term', 'subject', 'grade_level', 'instructor', 'mps'];
 }

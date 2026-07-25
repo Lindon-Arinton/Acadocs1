@@ -13,6 +13,12 @@
           <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
         <?php endforeach; ?>
       </select>
+      <label class="text-white small fw-semibold" for="term-filter">Term:</label>
+      <select id="term-filter" class="form-select form-select-sm" style="width:auto;">
+        <?php foreach ($termOptions as $t): ?>
+          <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
   </div>
 </div>
@@ -65,13 +71,15 @@ function renderPerformanceCharts(byLevel, bySubject) {
 }
 
 const yearFilter = document.getElementById("year-filter");
+const termFilter = document.getElementById("term-filter");
 const contentBox = document.getElementById("performance-content");
 
-yearFilter?.addEventListener("change", () => {
+function reloadPerformance() {
   const year = yearFilter.value;
+  const term = termFilter.value;
   contentBox.style.opacity = "0.5";
 
-  fetch(PERFORMANCE_URL + "?year=" + encodeURIComponent(year), {
+  fetch(PERFORMANCE_URL + "?year=" + encodeURIComponent(year) + "&term=" + encodeURIComponent(term), {
     headers: { "X-Requested-With": "XMLHttpRequest" },
   })
     .then(res => {
@@ -81,16 +89,19 @@ yearFilter?.addEventListener("change", () => {
     .then(data => {
       contentBox.innerHTML = data.html;
       renderPerformanceCharts(data.byLevel, data.bySubject);
-      history.replaceState(null, "", "?year=" + encodeURIComponent(year));
+      history.replaceState(null, "", "?year=" + encodeURIComponent(year) + "&term=" + encodeURIComponent(term));
     })
     .catch(err => {
-      console.error("Performance year switch failed:", err);
-      showToast("Could not load performance data for that school year.", "danger");
+      console.error("Performance year/term switch failed:", err);
+      showToast("Could not load performance data for that school year/term.", "danger");
     })
     .finally(() => {
       contentBox.style.opacity = "1";
     });
-});
+}
+
+yearFilter?.addEventListener("change", reloadPerformance);
+termFilter?.addEventListener("change", reloadPerformance);
 
 try {
   renderPerformanceCharts(' . json_encode($byLevel) . ', ' . json_encode($bySubject) . ');
