@@ -6,8 +6,8 @@
       <h4><i class="bi bi-pencil-square me-2"></i>Enter MPS Scores</h4>
       <p>Summative Test 1, Summative Test 2 &amp; Term Examination — per grade level &amp; subject</p>
     </div>
-    <a href="<?= base_url('performance') ?>" class="btn btn-sm btn-outline-light">
-      <i class="bi bi-arrow-left me-1"></i>Back to Performance Analytics
+    <a href="<?= base_url('teacher-dashboard') ?>" class="btn btn-sm btn-outline-light">
+      <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
     </a>
   </div>
 </div>

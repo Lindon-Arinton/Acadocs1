@@ -19,11 +19,6 @@
           <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
         <?php endforeach; ?>
       </select>
-      <?php if (hasRole('admin')): ?>
-      <a href="<?= base_url('performance/mps') ?>" class="btn btn-sm btn-outline-light">
-        <i class="bi bi-pencil-square me-1"></i>Enter MPS Scores
-      </a>
-      <?php endif; ?>
     </div>
   </div>
 </div>

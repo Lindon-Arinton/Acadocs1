@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controllers\Admin;
+namespace App\Controllers\Teacher;
 
 use App\Controllers\BaseController;
 use App\Libraries\MpsCalculator;
@@ -26,7 +26,7 @@ class PerformanceMps extends BaseController
 
     public function index()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('teacher')) {
             return redirect()->to('/dashboard');
         }
 
@@ -87,7 +87,7 @@ class PerformanceMps extends BaseController
             $existing[$shortKey][$row['grade_level']][$row['subject']] = $row['mps'];
         }
 
-        return view('pages/admin/performance_mps', [
+        return view('pages/teacher/performance_mps', [
             'pageTitle'   => 'Enter MPS Scores',
             'year'        => $year,
             'term'        => $term,
