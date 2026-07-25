@@ -18,7 +18,7 @@ class DocumentFile extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'secretary')) {
             $teacher = (new TeacherModel())->resolveForUser(currentUser());
 
             if (! $teacher || (int) $doc['teacher_id'] !== (int) $teacher['id']) {

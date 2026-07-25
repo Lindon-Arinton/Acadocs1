@@ -72,11 +72,6 @@ $routes->group('api', ['filter' => 'authGuard'], static function (RouteCollectio
     $routes->put('time-records', 'Api\TimeRecordsController::update');
     $routes->delete('time-records', 'Api\TimeRecordsController::delete');
 
-    $routes->get('deped-documents', 'Api\DepedDocumentsController::index');
-    $routes->post('deped-documents', 'Api\DepedDocumentsController::create');
-    $routes->put('deped-documents', 'Api\DepedDocumentsController::update');
-    $routes->delete('deped-documents', 'Api\DepedDocumentsController::delete');
-
     $routes->get('properties', 'Api\PropertiesController::index');
     $routes->post('properties', 'Api\PropertiesController::create');
     $routes->put('properties', 'Api\PropertiesController::update');

@@ -16,7 +16,7 @@ class Documents extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
-            if (! hasRole('admin')) {
+            if (! hasRole('admin', 'secretary')) {
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/documents');
             }
 
