@@ -256,6 +256,59 @@ function initLiveSearch(inputId, formId, delay = 500) {
     });
 }
 
+/* ── Instant client-side table filter (no server round-trip, no Enter needed) ──
+   Filters the rows already rendered in `tableId` as you type in `inputId`,
+   matching against the row's full text (name, id, remarks, etc. all included).
+   Optional `opts.counterId` + `opts.counterLabel(count)` keep a "N found"
+   label in sync with what's actually visible. */
+function initInstantFilter(inputId, tableId, opts = {}) {
+    const input = document.getElementById(inputId);
+    const table = document.getElementById(tableId);
+    if (!input || !table) return;
+
+    const emptyText    = opts.emptyText || 'No matching records.';
+    const counterEl     = opts.counterId ? document.getElementById(opts.counterId) : null;
+    const counterLabel  = opts.counterLabel || (n => `${n} found`);
+
+    const tbody = table.tBodies[0];
+    const rows  = Array.from(tbody.querySelectorAll(':scope > tr'));
+    const colCount = (rows[0]?.children.length) || 1;
+
+    let emptyRow = null;
+    const ensureEmptyRow = () => {
+        if (emptyRow) return emptyRow;
+        emptyRow = document.createElement('tr');
+        emptyRow.className = 'instant-filter-empty-row';
+        emptyRow.innerHTML = `<td colspan="${colCount}" class="text-center py-5 text-muted">${emptyText}</td>`;
+        return emptyRow;
+    };
+
+    input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        let visible = 0;
+
+        rows.forEach(row => {
+            const match = q === '' || row.textContent.toLowerCase().includes(q);
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+
+        const row = ensureEmptyRow();
+        if (visible === 0) {
+            if (!row.isConnected) tbody.appendChild(row);
+        } else if (row.isConnected) {
+            row.remove();
+        }
+
+        if (counterEl) counterEl.textContent = counterLabel(visible);
+    });
+
+    // Enter shouldn't submit/reload — filtering already happens live.
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') e.preventDefault();
+    });
+}
+
 /* ── Chart.js global defaults ─────────────────────────────── */
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size   = 12;

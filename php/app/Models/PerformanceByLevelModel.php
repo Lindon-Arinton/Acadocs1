@@ -11,5 +11,5 @@ class PerformanceByLevelModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['school_year', 'grade_level', 'mps', 'nds'];
+    protected $allowedFields = ['school_year', 'term', 'grade_level', 'mps', 'nds'];
 }

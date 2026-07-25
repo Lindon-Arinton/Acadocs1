@@ -90,7 +90,7 @@
     <div class="card-title">Attendance Records</div>
     <div class="card-description">
       <?= date('l, F d, Y', strtotime($dateFilter)) ?> ·
-      <?= array_sum($summary) ?> total employees
+      <span id="time-records-count"><?= array_sum($summary) ?></span> total employees
     </div>
   </div>
   <div class="card-body p-0">
@@ -353,7 +353,8 @@
 <?php endif; ?>
 
 <?php
-$extraScript = "<script>
+$extraScript = <<<'HTML'
+<script>
 function editRecord(r) {
     document.getElementById('editId').value      = r.id;
     document.getElementById('editName').textContent = r.employee_name;
@@ -373,7 +374,12 @@ function exportTable(tableId, filename) {
     });
     a.click();
 }
-initLiveSearch('timeSearchInput', 'filterForm');
-</script>";
+initInstantFilter('timeSearchInput', 'time-table', {
+    emptyText: 'No matching records.',
+    counterId: 'time-records-count',
+    counterLabel: function (n) { return n; },
+});
+</script>
+HTML;
 include APPPATH . 'Views/layout/footer.php';
 ?>

@@ -207,7 +207,8 @@ include APPPATH . 'Views/layout/header.php';
 </div>
 
 <?php
-$extraScript = "<script>
+$extraScript = <<<'HTML'
+<script>
 function exportTable(tableId, filename) {
     const rows = [...document.getElementById(tableId).querySelectorAll('tr')].map(r =>
         [...r.querySelectorAll('th,td')].map(c => JSON.stringify(c.innerText.trim())).join(',')
@@ -219,6 +220,7 @@ function exportTable(tableId, filename) {
     a.click();
 }
 initLiveSearch('propSearchInput', 'filterForm');
-</script>";
+</script>
+HTML;
 include APPPATH . 'Views/layout/footer.php';
 ?>
