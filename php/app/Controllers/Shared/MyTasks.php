@@ -13,7 +13,7 @@ class MyTasks extends BaseController
 {
     public function index()
     {
-        if (! hasRole('teacher', 'secretary', 'adas')) {
+        if (! hasRole('teacher', 'adas')) {
             return redirect()->to('/dashboard');
         }
 

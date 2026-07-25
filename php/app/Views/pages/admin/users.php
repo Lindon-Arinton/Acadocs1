@@ -52,7 +52,6 @@
           $roleCfg = [
             'admin'      => ['#fff0f0','#800000'],
             'teacher'    => ['#dbeafe','#1e40af'],
-            'secretary'  => ['#eff6ff','#3730a3'],
             'adas'       => ['#f3f4f6','#374151'],
           ];
           foreach ($users as $i => $u):
@@ -133,7 +132,6 @@
               <label class="form-label">Role</label>
               <select name="role" class="form-select">
                 <option value="teacher">Teacher</option>
-                <option value="secretary">Secretary</option>
                 <option value="adas">ADAS</option>
                 <option value="admin">Admin</option>
               </select>

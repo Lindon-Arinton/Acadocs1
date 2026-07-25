@@ -120,7 +120,6 @@
               <label class="form-label">Assign To</label>
               <select name="assigned_role" class="form-select" required>
                 <option value="teacher">Teacher</option>
-                <option value="secretary">Secretary</option>
                 <option value="adas">ADAS</option>
               </select>
             </div>

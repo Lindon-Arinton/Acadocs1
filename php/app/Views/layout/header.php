@@ -248,32 +248,6 @@ $chatNavBadge = $unreadChatCount > 0
       </div>
     </div>
 
-    <?php elseif ($role === 'secretary'): ?>
-    <div class="sidebar-section">
-      <button class="sidebar-section-btn open" onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Secretary</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items open">
-        <a href="<?= base_url('secretary-dashboard') ?>" class="nav-link <?= str_contains($uri,'secretary-dashboard')?'active':'' ?>">
-          <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
-        </a>
-        <a href="<?= base_url('chat') ?>" class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
-          <i class="bi bi-chat-dots-fill nav-icon"></i><span class="sidebar-label">Chat</span>
-          <?= $chatNavBadge ?>
-        </a>
-        <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
-          <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
-        </a>
-        <a href="<?= base_url('document-links') ?>" class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
-          <i class="bi bi-link-45deg nav-icon"></i><span class="sidebar-label">Document Links</span>
-        </a>
-        <a href="<?= base_url('announcements') ?>" class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
-          <i class="bi bi-megaphone-fill nav-icon"></i><span class="sidebar-label">Announcements</span>
-        </a>
-      </div>
-    </div>
-
     <?php elseif ($role === 'adas'): ?>
     <div class="sidebar-section">
       <button class="sidebar-section-btn open" onclick="toggleSection(this)">
@@ -290,6 +264,15 @@ $chatNavBadge = $unreadChatCount > 0
         </a>
         <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
+        </a>
+        <a href="<?= base_url('announcements') ?>" class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
+          <i class="bi bi-megaphone-fill nav-icon"></i><span class="sidebar-label">Announcements</span>
+        </a>
+        <a href="<?= base_url('parent-meetings') ?>" class="nav-link <?= str_contains($uri,'parent')?'active':'' ?>">
+          <i class="bi bi-calendar3 nav-icon"></i><span class="sidebar-label">Parent Meetings</span>
+        </a>
+        <a href="<?= base_url('document-links') ?>" class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
+          <i class="bi bi-link-45deg nav-icon"></i><span class="sidebar-label">Document Links</span>
         </a>
         <a href="<?= base_url('time-records') ?>" class="nav-link <?= str_contains($uri,'time-records')?'active':'' ?>">
           <i class="bi bi-clock nav-icon"></i><span class="sidebar-label">Time Records</span>

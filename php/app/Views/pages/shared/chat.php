@@ -1,9 +1,8 @@
 <?php
 $roleCfg = [
-    'admin'     => ['#fff0f0', '#800000'],
-    'teacher'   => ['#dbeafe', '#1e40af'],
-    'secretary' => ['#eff6ff', '#3730a3'],
-    'adas'      => ['#f3f4f6', '#374151'],
+    'admin'   => ['#fff0f0', '#800000'],
+    'teacher' => ['#dbeafe', '#1e40af'],
+    'adas'    => ['#f3f4f6', '#374151'],
 ];
 
 if (! function_exists('chatInitials')) {
@@ -47,7 +46,6 @@ include APPPATH . 'Views/layout/header.php';
           <button type="button" class="chat-filter-pill active" data-role="all">All</button>
           <button type="button" class="chat-filter-pill" data-role="admin">Admin</button>
           <button type="button" class="chat-filter-pill" data-role="teacher">Teacher</button>
-          <button type="button" class="chat-filter-pill" data-role="secretary">Secretary</button>
           <button type="button" class="chat-filter-pill" data-role="adas">ADAS</button>
         </div>
         <?php endif; ?>
@@ -192,8 +190,7 @@ include APPPATH . 'Views/layout/header.php';
             <button type="button" class="chat-filter-pill active" data-role="all">All</button>
             <button type="button" class="chat-filter-pill" data-role="admin">Admin</button>
             <button type="button" class="chat-filter-pill" data-role="teacher">Teacher</button>
-            <button type="button" class="chat-filter-pill" data-role="secretary">Secretary</button>
-            <button type="button" class="chat-filter-pill" data-role="adas">ADAS</button>
+              <button type="button" class="chat-filter-pill" data-role="adas">ADAS</button>
           </div>
 
           <div style="max-height:260px;overflow-y:auto;" id="groupMemberList">
@@ -232,10 +229,9 @@ let lastMessageId = 0;
 let pollTimer = null;
 
 const CHAT_ROLE_COLORS = {
-    admin:     ['#fff0f0', '#800000'],
-    teacher:   ['#dbeafe', '#1e40af'],
-    secretary: ['#eff6ff', '#3730a3'],
-    adas:      ['#f3f4f6', '#374151'],
+    admin:   ['#fff0f0', '#800000'],
+    teacher: ['#dbeafe', '#1e40af'],
+    adas:    ['#f3f4f6', '#374151'],
 };
 
 function chatEscapeHtml(str) {

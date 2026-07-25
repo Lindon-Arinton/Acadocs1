@@ -18,7 +18,6 @@ $routes->get('api/auth/me', 'Api\AuthController::me');
 $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $routes) {
     $routes->get('dashboard', 'Admin\Dashboard::index');
     $routes->get('teacher-dashboard', 'Teacher\TeacherDashboard::index');
-    $routes->get('secretary-dashboard', 'Secretary\SecretaryDashboard::index');
     $routes->get('adas-dashboard', 'Adas\AdasDashboard::index');
     $routes->match(['get', 'post'], 'submit-documents', 'Teacher\SubmitDocuments::index');
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
