@@ -260,12 +260,11 @@ function initLiveSearch(inputId, formId, delay = 500) {
 function initMaroonDatePicker(root) {
     const display     = root.querySelector('.maroon-dp-display');
     const hidden       = root.querySelector('input[type="hidden"]');
-    const panel        = root.querySelector('.maroon-dp-panel');
     const monthLabel   = root.querySelector('.maroon-dp-month-label');
     const grid         = root.querySelector('.maroon-dp-grid');
-    const minDate      = root.dataset.min ? new Date(root.dataset.min + 'T00:00:00') : null;
     const monthNames   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+    let minDate  = root.dataset.min ? new Date(root.dataset.min + 'T00:00:00') : null;
     let view     = hidden.value ? new Date(hidden.value + 'T00:00:00') : new Date();
     let selected = hidden.value ? new Date(hidden.value + 'T00:00:00') : null;
 
@@ -294,6 +293,21 @@ function initMaroonDatePicker(root) {
         }
         grid.innerHTML = html;
     }
+
+    function selectDate(value, { autosubmit = true } = {}) {
+        hidden.value = value;
+        selected = value ? new Date(value + 'T00:00:00') : null;
+        view = selected || new Date();
+        display.value = selected ? fmtDisplay(selected) : '';
+        root.classList.remove('open');
+        render();
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+        if (autosubmit && root.hasAttribute('data-autosubmit')) {
+            root.closest('form')?.requestSubmit();
+        }
+    }
+
+    if (selected) display.value = fmtDisplay(selected);
     render();
 
     display.addEventListener('click', (e) => {
@@ -309,17 +323,15 @@ function initMaroonDatePicker(root) {
     grid.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-date]');
         if (!btn || btn.disabled) return;
-        hidden.value = btn.dataset.date;
-        selected = new Date(btn.dataset.date + 'T00:00:00');
-        view = selected;
-        display.value = fmtDisplay(selected);
-        root.classList.remove('open');
-        hidden.dispatchEvent(new Event('change', { bubbles: true }));
-        render();
+        selectDate(btn.dataset.date);
     });
     document.addEventListener('click', (e) => {
         if (!root.contains(e.target)) root.classList.remove('open');
     });
+
+    /* Exposed so pages can reset/preset the picker (e.g. reopening a "New" modal). */
+    root.maroonDpSetValue = (value) => selectDate(value, { autosubmit: false });
+    root.maroonDpSetMin = (value) => { minDate = value ? new Date(value + 'T00:00:00') : null; render(); };
 }
 document.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
 

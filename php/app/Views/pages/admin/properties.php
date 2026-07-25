@@ -189,7 +189,19 @@ include APPPATH . 'Views/layout/header.php';
             </div>
             <div class="col-6">
               <label class="form-label">Last Inspection</label>
-              <input type="date" name="last_inspection" class="form-control" value="<?= date('Y-m-d') ?>">
+              <div class="maroon-dp">
+                <input type="text" class="form-control maroon-dp-display" placeholder="Select date" readonly>
+                <input type="hidden" name="last_inspection" value="<?= date('Y-m-d') ?>">
+                <div class="maroon-dp-panel">
+                  <div class="maroon-dp-header">
+                    <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+                    <span class="maroon-dp-month-label"></span>
+                    <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+                  </div>
+                  <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                  <div class="maroon-dp-grid"></div>
+                </div>
+              </div>
             </div>
             <div class="col-12">
               <label class="form-label">Remarks</label>

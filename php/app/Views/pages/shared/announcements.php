@@ -130,7 +130,19 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Date</label>
-            <input type="date" name="date" class="form-control" value="<?= date('Y-m-d') ?>" min="<?= date('Y-m-d') ?>" required>
+            <div class="maroon-dp" data-min="<?= date('Y-m-d') ?>">
+              <input type="text" class="form-control maroon-dp-display" placeholder="Select date" readonly required>
+              <input type="hidden" name="date" value="<?= date('Y-m-d') ?>">
+              <div class="maroon-dp-panel">
+                <div class="maroon-dp-header">
+                  <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+                  <span class="maroon-dp-month-label"></span>
+                  <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                <div class="maroon-dp-grid"></div>
+              </div>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary w-100">
             <i class="bi bi-send me-2"></i>Post Announcement
