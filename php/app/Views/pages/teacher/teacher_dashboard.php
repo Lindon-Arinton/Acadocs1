@@ -2,7 +2,7 @@
 
 <div class="page-header">
   <h4><i class="bi bi-house-fill me-2"></i>Welcome, <?= e($user['name']) ?>!</h4>
-  <p><?= $teacher ? e($teacher['grade_level']) . ' · ' . e(implode(', ', json_decode($teacher['subjects'] ?? '[]', true) ?: [])) : 'Teacher Dashboard' ?></p>
+  <p><?= $teacher ? e($teacher['grade_level'] ?: 'Not set') . ' · ' . e(implode(', ', json_decode($teacher['subjects'] ?? '[]', true) ?: [])) : 'Teacher Dashboard' ?></p>
 </div>
 
 <!-- Stats -->

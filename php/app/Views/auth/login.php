@@ -51,13 +51,13 @@
 
       <form method="POST" action="<?= base_url('login') ?>">
         <div class="login-input-group">
-          <input type="email" name="email" value="<?= e($email ?? 'principal@school.edu') ?>"
+          <input type="email" name="email" value="<?= e($email ?? '') ?>"
                  placeholder="email@school.edu" required>
           <span class="login-input-icon"><i class="bi bi-envelope"></i></span>
         </div>
 
         <div class="login-input-group">
-          <input type="password" name="password" id="pwdField" value="admin123" placeholder="••••••••" required>
+          <input type="password" name="password" id="pwdField" placeholder="••••••••" required>
           <button type="button" class="login-input-icon" onclick="togglePwd()">
             <i class="bi bi-eye" id="pwdIcon"></i>
           </button>
@@ -67,41 +67,12 @@
           <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
         </button>
       </form>
-
-      <!-- Quick credentials -->
-      <div class="login-demo-creds">
-        <p class="fw-semibold mb-2 text-muted" style="font-size:.75rem;">
-          <i class="bi bi-info-circle me-1"></i>Demo Credentials
-        </p>
-        <div class="row g-2">
-          <?php foreach ([
-            ['Admin',      'principal@school.edu',  'admin123'],
-            ['Teacher',    'maria.santos@school.edu','teacher123'],
-            ['Secretary',  'secretary@school.edu',   'sec123'],
-            ['ADAS',       'adas@school.edu',         'adas123'],
-          ] as [$role,$email,$pass]): ?>
-          <div class="col-6">
-            <button type="button"
-                    class="btn btn-outline-secondary btn-sm w-100 text-start py-1 px-2"
-                    style="font-size:.7rem;"
-                    onclick="fillCreds('<?= $email ?>','<?= $pass ?>')">
-              <strong class="d-block"><?= $role ?></strong>
-              <span class="text-muted" style="font-size:.65rem;"><?= $email ?></span>
-            </button>
-          </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function fillCreds(email, pass) {
-    document.querySelector('input[name=email]').value = email;
-    document.getElementById('pwdField').value = pass;
-}
 function togglePwd() {
     const f = document.getElementById('pwdField');
     const i = document.getElementById('pwdIcon');

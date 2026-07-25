@@ -28,6 +28,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
     $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
+    $routes->post('time-records/import', 'Shared\TimeRecords::import');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
     $routes->match(['get', 'post'], 'document-links', 'Shared\DocumentLinks::index');
     $routes->match(['get', 'post'], 'templates', 'Shared\Templates::index');

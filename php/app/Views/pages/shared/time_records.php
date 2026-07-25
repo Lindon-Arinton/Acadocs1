@@ -48,6 +48,12 @@
           <i class="bi bi-download me-1"></i>Export
         </button>
         <?php if (hasRole('admin','adas')): ?>
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#holidaysModal">
+          <i class="bi bi-calendar-x me-1"></i>Manage Holidays
+        </button>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+          <i class="bi bi-upload me-1"></i>Import
+        </button>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
           <i class="bi bi-plus-lg me-1"></i>Add Record
         </button>
@@ -259,6 +265,92 @@
     </div>
   </div>
 </div>
+
+<?php if (hasRole('admin','adas')): ?>
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-upload me-2"></i>Import Time Records</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="<?= base_url('time-records/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this file?" data-confirm-text="Existing records for the same employee &amp; date will be overwritten.">
+        <div class="modal-body">
+          <p class="text-muted" style="font-size:.82rem;">
+            Upload the biometric scanner export (columns: AC-No, Name, Department, Date, Time). Blank Time on a school day is marked <strong>Absent</strong>; a single punch is marked <strong>Present (incomplete)</strong>; two or more punches use the earliest as Time In and latest as Time Out. Weekends and dates listed under Manage Holidays are skipped, not counted as absences.
+          </p>
+          <div class="mb-3">
+            <label class="form-label">Excel file (.xlsx, .xls)</label>
+            <input type="file" name="import_file" class="form-control" accept=".xlsx,.xls" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Holidays Modal -->
+<div class="modal fade" id="holidaysModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-calendar-x me-2"></i>Manage Holidays</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:.82rem;">Dates listed here (plus every Saturday &amp; Sunday) are excluded from absence detection during import.</p>
+        <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form row g-2 align-items-end mb-3">
+          <input type="hidden" name="action" value="holiday_add">
+          <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+          <div class="col-5">
+            <label class="form-label">Date</label>
+            <input type="date" name="holiday_date" class="form-control form-control-sm" required>
+          </div>
+          <div class="col-5">
+            <label class="form-label">Label</label>
+            <input type="text" name="holiday_label" class="form-control form-control-sm" placeholder="e.g. Independence Day">
+          </div>
+          <div class="col-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Add</button>
+          </div>
+        </form>
+        <div class="table-responsive" style="max-height:260px;overflow-y:auto;">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Date</th><th>Label</th><th></th></tr></thead>
+            <tbody>
+              <?php foreach ($holidays as $h): ?>
+              <tr>
+                <td><?= date('M d, Y', strtotime($h['date'])) ?></td>
+                <td class="text-muted"><?= e($h['label'] ?? '') ?></td>
+                <td class="text-end">
+                  <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form d-inline" data-confirm-title="Remove this holiday?" data-confirm-icon="warning">
+                    <input type="hidden" name="action" value="holiday_delete">
+                    <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+                    <input type="hidden" name="holiday_id" value="<?= (int) $h['id'] ?>">
+                    <button type="submit" class="btn btn-ghost btn-sm text-danger" title="Remove"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              <?php if (empty($holidays)): ?>
+              <tr><td colspan="3" class="text-center text-muted py-3">No holidays added yet.</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php
 $extraScript = "<script>

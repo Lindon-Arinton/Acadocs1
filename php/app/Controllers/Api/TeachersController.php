@@ -53,7 +53,7 @@ class TeachersController extends BaseApiController
             'employee_id'     => $b['employee_id'],
             'name'            => $b['name'],
             'email'           => $b['email'],
-            'grade_level'     => $b['grade_level'],
+            'grade_level'     => $b['grade_level'] ?? null,
             'submission_rate' => $b['submission_rate'],
         ]);
 

@@ -50,6 +50,23 @@ CREATE TABLE IF NOT EXISTS `announcements` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `biometric_employees`
+--
+
+CREATE TABLE IF NOT EXISTS `biometric_employees` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ac_no` varchar(20) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `department` varchar(150) DEFAULT NULL,
+  `is_placeholder` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ac_no` (`ac_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `conversations`
 --
 
@@ -173,6 +190,21 @@ CREATE TABLE IF NOT EXISTS `enrollment_by_level` (
   `students` int(10) UNSIGNED NOT NULL,
   `sections` int(10) UNSIGNED NOT NULL,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `holidays`
+--
+
+CREATE TABLE IF NOT EXISTS `holidays` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `label` varchar(150) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -375,7 +407,7 @@ CREATE TABLE IF NOT EXISTS `teachers` (
   `employee_id` varchar(20) NOT NULL,
   `name` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
-  `grade_level` varchar(50) NOT NULL,
+  `grade_level` varchar(50) DEFAULT NULL,
   `submission_rate` decimal(5,2) DEFAULT 0.00,
   `user_id` int(10) UNSIGNED DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -469,7 +501,8 @@ CREATE TABLE IF NOT EXISTS `time_records` (
   `status` enum('Present','Late','Absent','On Leave') NOT NULL,
   `remarks` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `time_records_employee_id_date` (`employee_id`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -484,24 +517,59 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` varchar(150) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('admin','teacher','secretary','adas') NOT NULL,
+  `ac_no` varchar(20) DEFAULT NULL,
+  `position` varchar(50) DEFAULT NULL,
   `photo` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=8;
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `ac_no` (`ac_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 -- (INSERT IGNORE so re-running this file on a database that already has
--- these rows does not error out on the duplicate `email` key)
+-- these rows does not error out on the duplicate `email` key). Real
+-- Matabungkay NHS staff roster, keyed by biometric AC-No; secretary is
+-- the only remaining non-roster (manually managed) account.
 --
 
-INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password`, `role`, `created_at`) VALUES
-(1, 'Principal', 'principal@school.edu', '$2y$10$mZiXiBtaycSs2DmiVudkq.NT6PlyGsTBSLisKR0G6tH6HQzsVL2Au', 'admin', '2026-07-17 08:27:53'),
-(2, 'Maria Santos', 'maria.santos@school.edu', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '2026-07-17 08:27:53'),
-(3, 'Juan dela Cruz', 'juan.delacruz@school.edu', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '2026-07-17 08:27:53'),
-(4, 'Carmen Lopez', 'secretary@school.edu', '$2y$10$iVemOAuYsrWtDhAe3BmrJe2qYKXSUFiTNFDH851mKd31CMTTxmDYi', 'secretary', '2026-07-17 08:27:53'),
-(7, 'Jose Ramirez', 'adas@school.edu', '$2y$10$EoWuuEchqWy.jPRi50J/8e1ucyvKvJFL6xcq3YJAshBThctyEzOz.', 'adas', '2026-07-17 08:27:53');
+INSERT IGNORE INTO `users` (`name`, `email`, `password`, `role`, `ac_no`, `position`) VALUES
+('Carmen Lopez', 'secretary@school.edu', '$2y$10$iVemOAuYsrWtDhAe3BmrJe2qYKXSUFiTNFDH851mKd31CMTTxmDYi', 'secretary', NULL, NULL),
+('Jorge Bautista', 'jorge.bautista002@deped.gov.ph', '$2y$10$mZiXiBtaycSs2DmiVudkq.NT6PlyGsTBSLisKR0G6tH6HQzsVL2Au', 'admin', '25', 'Principal III'),
+('Rhonnel Magyaya', 'rhonnel.magyaya@deped.gov.ph', '$2y$10$EoWuuEchqWy.jPRi50J/8e1ucyvKvJFL6xcq3YJAshBThctyEzOz.', 'adas', '26', 'ADAS II'),
+('Judith Abitong', 'judith.abitong@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '5', 'Teacher I'),
+('Elizabeth Badillo', 'elizabeth.amado@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '6', 'Teacher I'),
+('Mark Clinton Borja', 'mark.borja@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '12', 'Teacher I'),
+('Judith De Villa', 'judith.devilla001@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '14', 'Teacher III'),
+('Porferia Dela Guerra', 'porferia.delaguerra002@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '18', 'Teacher III'),
+('Maureen Layca Delos Reyes', 'maureenlayca.delosreyes@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '10', 'Teacher I'),
+('Remelyn Diaz', 'remelyn.labajo@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '33', 'Teacher III'),
+('Jimmilyn Fameronag', 'jimmilyn.fameronag@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '23', 'Teacher III'),
+('Jerico Fameronag', 'jerico.fameronag@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '24', 'Teacher III'),
+('Merian Gonzales', 'merian.gonzales@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '16', 'Teacher III'),
+('John Carlo Hernandez', 'johncarlo.hernandez@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '45', 'Teacher III'),
+('Abegail Incilan', 'abegail.incilan@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '38', 'Teacher I'),
+('Agnes Javier', 'agnes.javier004@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '36', 'Master Teacher II'),
+('Danica Roma Javier', 'danica.javier@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '44', 'Teacher I'),
+('Nancy Maano', 'maano.nancy.noceda@gmail.com', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '11', 'Teacher I'),
+('Michael Macalindong', 'michael.macalindong@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '22', 'Teacher III'),
+('Rhea Magyaya', 'rhea.magyaya@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '15', 'Master Teacher II'),
+('Beverly Iodine Mapa', 'beverlyiodine.mapa001@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '8', 'Teacher III'),
+('Evangeline Mendoza', 'evangeline.mendoza011@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '7', 'Teacher III'),
+('Ruelito Mendoza', 'ruelito.mendoza002@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '17', 'Teacher III'),
+('Robelyn Ordonia', 'robelyn.ordonia@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '29', 'Teacher III'),
+('Angelique Piscal', 'angelique.piscal@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '1', 'Teacher I'),
+('Rechelle Ramos', 'rechelle.ramos001@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '20', 'Teacher III'),
+('Joanne Ricalde', 'joanne.ricalde@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '21', 'Teacher III'),
+('Gil Robles', 'gil.robles001@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '4', 'Teacher II'),
+('Annie Rollon', 'annie.delavega001@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '31', 'Teacher II'),
+('Edmarie Sagala', 'edmarie.sagala001@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '9', 'Teacher III'),
+('Julius Salviejo', 'julius.salviejo@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '19', 'Teacher I'),
+('Shiela Mae Sanchez', 'shielamae.sanchez002@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '27', 'Teacher I'),
+('Geryl Sandoval', 'geryl.aguila@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '13', 'Teacher III'),
+('Jorge Taguibao', 'jorge.taguibao@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '2', 'Teacher III'),
+('Joy Valdez', 'joy.valdez003@deped.gov.ph', '$2y$10$ssBWXqjz0SdbD5AOnxxSwONXi5u.hzyvhTC/VPnB.33yGIH1zS0fG', 'teacher', '3', 'Master Teacher I');
 
 COMMIT;
 SET FOREIGN_KEY_CHECKS = 1;

@@ -44,7 +44,7 @@
           <div class="mb-3">
             <label class="form-label small fw-semibold">Grade Level</label>
             <input type="text" name="grade_level" class="form-control form-control-sm"
-                   value="<?= e($teacher['grade_level']) ?>" required>
+                   value="<?= e($teacher['grade_level'] ?? '') ?>" required>
           </div>
           <div class="mb-3">
             <label class="form-label small fw-semibold">Add Document</label>
