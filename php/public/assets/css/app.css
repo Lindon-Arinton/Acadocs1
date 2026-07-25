@@ -273,6 +273,45 @@ body.sidebar-collapsed #topbar { left: 64px; }
 .notif-item.notif-unread .notif-item-title { font-weight: 700; }
 .notif-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); margin-left: 5px; vertical-align: middle; }
 
+/* ── Maroon date picker (replaces native <input type=date>) ── */
+.maroon-dp { position: relative; }
+.maroon-dp-display { cursor: pointer; background: #fff; }
+.maroon-dp-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1060;
+  width: 260px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgba(0,0,0,.15);
+  padding: .85rem;
+}
+.maroon-dp.open .maroon-dp-panel { display: block; }
+.maroon-dp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
+.maroon-dp-month-label { font-weight: 700; font-size: .82rem; color: #111; }
+.maroon-dp-nav {
+  border: none; background: var(--bg); color: var(--primary);
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: .72rem; padding: 0;
+}
+.maroon-dp-nav:hover:not(:disabled) { background: #fff0f0; }
+.maroon-dp-nav:disabled { opacity: .3; cursor: not-allowed; }
+.maroon-dp-dow, .maroon-dp-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
+.maroon-dp-dow span { font-size: .6rem; font-weight: 700; color: var(--muted); padding-bottom: .35rem; }
+.maroon-dp-grid button {
+  border: none; background: transparent; font-size: .74rem; color: #111;
+  padding: .4rem 0; border-radius: 6px; cursor: pointer;
+}
+.maroon-dp-grid button:hover:not(:disabled) { background: #fff0f0; color: var(--primary); }
+.maroon-dp-grid button.is-today { color: var(--primary); font-weight: 700; }
+.maroon-dp-grid button.is-selected { background: var(--primary); color: #fff; font-weight: 700; }
+.maroon-dp-grid button:disabled { color: #d1d5db; cursor: not-allowed; }
+.maroon-dp-grid span.is-empty { visibility: hidden; }
+
 /* ── Main content ─────────────────────────────────────────── */
 #main-content {
   margin-left: var(--sidebar-w);

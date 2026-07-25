@@ -63,12 +63,6 @@ $monthEnd   = date('Y-m-t');
         <span class="text-muted small">
           <i class="bi bi-send me-1"></i>Posted <?= date('M d, Y', strtotime($t['created_at'])) ?>
         </span>
-        <br>
-        <span class="text-muted small <?= $overdue ? 'text-danger fw-semibold' : '' ?>">
-          <i class="bi bi-calendar3 me-1"></i>Deadline <?= date('M d, Y h:i A', strtotime($t['deadline'])) ?>
-          <?= $overdue ? ' · Overdue' : '' ?>
-          <?= $t['status'] === 'Closed' ? ' · Closed' : '' ?>
-        </span>
       </div>
       <?php if ($submission): ?>
       <span class="status-pill <?= $submission['status'] === 'Reviewed' ? 'badge-reviewed' : 'badge-submitted' ?>">
@@ -81,23 +75,39 @@ $monthEnd   = date('Y-m-t');
       <?php endif; ?>
     </div>
 
+    <hr class="my-2">
+
+    <span class="text-muted small d-block mb-2 <?= $overdue ? 'text-danger fw-semibold' : '' ?>">
+      <i class="bi bi-calendar3 me-1"></i>Deadline <?= date('M d, Y h:i A', strtotime($t['deadline'])) ?>
+      <?= $overdue ? ' · Overdue' : '' ?>
+      <?= $t['status'] === 'Closed' ? ' · Closed' : '' ?>
+    </span>
+
     <?php if ($t['description']): ?>
-    <p class="small text-muted mb-3"><?= nl2br(e($t['description'])) ?></p>
+    <hr class="my-2">
+    <p class="small text-muted mb-0 mt-2"><?= nl2br(e($t['description'])) ?></p>
     <?php endif; ?>
 
     <?php if ($submission): ?>
-    <div class="p-3 rounded-3 mb-3" style="background:#f8f9fa;">
-      <div class="d-flex justify-content-between align-items-center">
-        <span class="small"><i class="bi bi-paperclip me-1"></i><?= e($submission['file_name']) ?></span>
-        <a href="<?= base_url('task-submissions/' . $submission['id'] . '/download') ?>" class="btn btn-sm btn-outline-secondary">
+    <hr class="my-2">
+    <div class="p-3 rounded-3 mb-3 mt-2" style="background:#f8f9fa;">
+      <div class="small fw-semibold text-muted mb-2">
+        <i class="bi bi-paperclip me-1"></i><?= count($t['files']) ?> file<?= count($t['files']) !== 1 ? 's' : '' ?> submitted
+      </div>
+      <?php foreach ($t['files'] as $f): ?>
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small text-truncate me-2"><?= e($f['file_name']) ?></span>
+        <a href="<?= base_url('task-submissions/' . $f['id'] . '/download') ?>" class="btn btn-sm btn-outline-secondary flex-shrink-0">
           <i class="bi bi-download"></i>
         </a>
       </div>
-      <div class="text-muted small mt-1">Submitted <?= date('M d, Y h:i A', strtotime($submission['submitted_at'])) ?></div>
+      <?php endforeach; ?>
+      <div class="text-muted small mt-2">Submitted <?= date('M d, Y h:i A', strtotime($submission['submitted_at'])) ?></div>
     </div>
     <?php endif; ?>
 
     <?php if (! empty($t['feedback'])): ?>
+    <hr class="my-2">
     <div class="p-3 rounded-3 mb-3" style="background:#fff5f5;border-left:3px solid var(--maroon);">
       <p class="small fw-semibold mb-2 text-muted"><i class="bi bi-chat-dots me-1"></i>Principal Feedback (private)</p>
       <?php foreach ($t['feedback'] as $fb): ?>
@@ -136,10 +146,10 @@ $monthEnd   = date('Y-m-t');
         <div class="modal-body">
           <p class="text-muted mb-3 small">Submitting for: <strong id="submitTaskTitle"></strong></p>
           <div class="mb-3">
-            <label class="form-label">File</label>
-            <input type="file" name="file" class="form-control" required
+            <label class="form-label">File(s)</label>
+            <input type="file" name="file[]" class="form-control" required multiple
                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
-            <div class="form-text">PDF, Word, Excel, PowerPoint, or image. Max 10MB.</div>
+            <div class="form-text">PDF, Word, Excel, PowerPoint, or image. Max 10MB each. You can select multiple files.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Notes (optional)</label>

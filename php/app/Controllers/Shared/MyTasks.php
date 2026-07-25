@@ -4,6 +4,7 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Models\NotificationModel;
+use App\Models\TaskAssigneeModel;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
 use App\Models\TaskSubmissionFileModel;
@@ -22,13 +23,19 @@ class MyTasks extends BaseController
         $taskModel        = new TaskModel();
         $submissionModel  = new TaskSubmissionModel();
         $feedbackModel    = new TaskFeedbackModel();
+        $assigneeModel    = new TaskAssigneeModel();
 
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
             $taskId = (int) $this->request->getPost('task_id');
             $task   = $taskModel->find($taskId);
 
-            if (! $task || $task['assigned_role'] !== $user['role']) {
+            $isEligible = $task && (
+                $task['assigned_role'] === $user['role']
+                || ($task['assigned_role'] === 'specific' && in_array((int) $user['id'], $assigneeModel->userIdsForTask($taskId), true))
+            );
+
+            if (! $isEligible) {
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/my-tasks');
             }
 
@@ -130,7 +137,14 @@ class MyTasks extends BaseController
             return redirect()->to('/my-tasks');
         }
 
-        $tasks     = $taskModel->where('assigned_role', $user['role'])->orderBy('deadline', 'ASC')->findAll();
+        $specificTaskIds = $assigneeModel->taskIdsForUser((int) $user['id']);
+
+        $taskQuery = $taskModel->groupStart()->where('assigned_role', $user['role']);
+        if ($specificTaskIds) {
+            $taskQuery->orGroupStart()->where('assigned_role', 'specific')->whereIn('id', $specificTaskIds)->groupEnd();
+        }
+        $tasks = $taskQuery->groupEnd()->orderBy('deadline', 'ASC')->findAll();
+
         $fileModel = new TaskSubmissionFileModel();
 
         foreach ($tasks as &$task) {

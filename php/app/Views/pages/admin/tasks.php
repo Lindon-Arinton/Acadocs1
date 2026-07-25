@@ -6,7 +6,7 @@
       <h4><i class="bi bi-list-task me-2"></i>Tasks &amp; Assignments</h4>
       <p>Assign document requirements to a role, set a deadline, and review submissions</p>
     </div>
-    <button class="btn btn-light" style="position:relative;z-index:1;" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+    <button class="btn btn-light" style="position:relative;z-index:1;" onclick="openNewTaskModal()">
       <i class="bi bi-plus-lg me-1"></i>New Task
     </button>
   </div>
@@ -42,7 +42,11 @@
               <?= e($t['title']) ?>
               <div class="text-muted fw-normal" style="font-size:.7rem;">Posted <?= date('M d, Y', strtotime($t['created_at'])) ?></div>
             </td>
-            <td><span class="badge badge-outline text-capitalize"><?= e($t['assigned_role']) ?></span></td>
+            <td>
+              <span class="badge badge-outline text-capitalize">
+                <?= $t['assigned_role'] === 'specific' ? 'Specific (' . $t['eligible_count'] . ')' : e($t['assigned_role']) ?>
+              </span>
+            </td>
             <td class="small <?= $overdue ? 'text-danger fw-semibold' : 'text-muted' ?>">
               <?= date('M d, Y h:i A', strtotime($t['deadline'])) ?>
               <?php if ($overdue): ?><br><span class="small">Overdue</span><?php endif; ?>
@@ -121,15 +125,23 @@
           <div class="row g-3">
             <div class="col-6">
               <label class="form-label">Assign To</label>
-              <select name="assigned_role" class="form-select" required>
+              <select name="assigned_role" id="taskAssignedRole" class="form-select" required onchange="onAssignedRoleChange()">
                 <option value="teacher">Teacher</option>
                 <option value="adas">ADAS</option>
+                <option value="specific">Specific People</option>
               </select>
             </div>
             <div class="col-6">
               <label class="form-label">Deadline Date</label>
               <input type="date" name="deadline_date" class="form-control"
                      value="<?= date('Y-m-d') ?>" min="<?= date('Y-m-d') ?>" required>
+            </div>
+            <div class="col-12 d-none" id="taskSpecificPickerWrap">
+              <button type="button" class="btn btn-outline-maroon btn-sm" onclick="openPeoplePicker()">
+                <i class="bi bi-people me-1"></i><span id="taskSpecificSummary">Choose People</span>
+              </button>
+              <div id="taskSpecificChips" class="d-flex flex-wrap gap-1 mt-2"></div>
+              <div id="taskSpecificHiddenInputs"></div>
             </div>
             <div class="col-6">
               <label class="form-label">Deadline Time</label>
@@ -147,4 +159,170 @@
   </div>
 </div>
 
-<?php include APPPATH . 'Views/layout/footer.php'; ?>
+<!-- People Picker Modal (for "Specific People" assignment) -->
+<div class="modal fade" id="taskPeoplePickerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-people me-2"></i>Choose People</h6>
+        <button type="button" class="btn-close btn-close-white" onclick="cancelPeoplePicker()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0">Select recipients</label>
+          <label class="d-flex align-items-center gap-1 mb-0" style="font-size:.75rem;cursor:pointer;">
+            <input type="checkbox" id="taskPeopleSelectAll"> Select All
+          </label>
+        </div>
+        <div class="input-group input-group-sm mb-2">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="taskPeopleSearchInput" class="form-control border-start-0 ps-0"
+                 placeholder="Search people..." autocomplete="off">
+        </div>
+        <div class="d-flex gap-1 flex-wrap mb-2" id="taskPeopleRoleFilter">
+          <button type="button" class="chat-filter-pill active" data-role="all">All</button>
+          <button type="button" class="chat-filter-pill" data-role="teacher">Teacher</button>
+          <button type="button" class="chat-filter-pill" data-role="adas">ADAS</button>
+        </div>
+        <div style="max-height:300px;overflow-y:auto;" id="taskPeopleList">
+          <?php foreach ($assignableUsers as $u): ?>
+          <label class="align-items-center gap-2 p-2 rounded-3 task-people-row" style="display:flex;cursor:pointer;"
+                 data-role="<?= e($u['role']) ?>" data-search="<?= e(mb_strtolower($u['name'])) ?>"
+                 data-id="<?= $u['id'] ?>" data-name="<?= e($u['name']) ?>">
+            <input type="checkbox" class="task-people-checkbox">
+            <div style="width:30px;height:30px;border-radius:50%;background:#f3f4f6;color:#374151;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <?= e(strtoupper(substr($u['name'], 0, 1))) ?>
+            </div>
+            <div>
+              <div class="fw-semibold" style="font-size:.82rem;"><?= e($u['name']) ?></div>
+              <div class="text-muted" style="font-size:.7rem;"><?= e(ucfirst($u['role'])) ?></div>
+            </div>
+          </label>
+          <?php endforeach; ?>
+          <p class="text-muted text-center small p-3 mb-0 d-none" id="taskPeopleNoResults">No matches found.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="cancelPeoplePicker()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="confirmPeoplePicker()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php
+$extraScript = "<script>
+let taskSelectedPeople = new Map();
+
+function taskEscapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function openNewTaskModal() {
+    taskSelectedPeople = new Map();
+    document.getElementById('taskAssignedRole').value = 'teacher';
+    document.getElementById('taskSpecificPickerWrap').classList.add('d-none');
+    renderTaskSpecificSummary();
+    new bootstrap.Modal(document.getElementById('addTaskModal')).show();
+}
+
+function onAssignedRoleChange() {
+    const val = document.getElementById('taskAssignedRole').value;
+    document.getElementById('taskSpecificPickerWrap').classList.toggle('d-none', val !== 'specific');
+}
+
+function switchTaskModal(fromId, toId) {
+    const fromEl = document.getElementById(fromId);
+    const toEl = document.getElementById(toId);
+    const fromModal = bootstrap.Modal.getInstance(fromEl);
+    fromEl.addEventListener('hidden.bs.modal', function handler() {
+        fromEl.removeEventListener('hidden.bs.modal', handler);
+        new bootstrap.Modal(toEl).show();
+    });
+    fromModal?.hide();
+}
+
+function openPeoplePicker() {
+    document.querySelectorAll('.task-people-row').forEach(row => {
+        row.querySelector('.task-people-checkbox').checked = taskSelectedPeople.has(row.dataset.id);
+    });
+    syncTaskPeopleSelectAllState();
+    switchTaskModal('addTaskModal', 'taskPeoplePickerModal');
+}
+
+function cancelPeoplePicker() {
+    switchTaskModal('taskPeoplePickerModal', 'addTaskModal');
+}
+
+function confirmPeoplePicker() {
+    taskSelectedPeople = new Map();
+    document.querySelectorAll('.task-people-row').forEach(row => {
+        if (row.querySelector('.task-people-checkbox').checked) {
+            taskSelectedPeople.set(row.dataset.id, row.dataset.name);
+        }
+    });
+    renderTaskSpecificSummary();
+    switchTaskModal('taskPeoplePickerModal', 'addTaskModal');
+}
+
+function renderTaskSpecificSummary() {
+    const count = taskSelectedPeople.size;
+    document.getElementById('taskSpecificSummary').textContent = count > 0 ? ('Choose People (' + count + ' selected)') : 'Choose People';
+
+    document.getElementById('taskSpecificChips').innerHTML = [...taskSelectedPeople.values()]
+        .map(name => '<span class=\"badge bg-light text-dark border\">' + taskEscapeHtml(name) + '</span>')
+        .join('');
+
+    document.getElementById('taskSpecificHiddenInputs').innerHTML = [...taskSelectedPeople.keys()]
+        .map(id => '<input type=\"hidden\" name=\"user_ids[]\" value=\"' + id + '\">')
+        .join('');
+}
+
+function syncTaskPeopleSelectAllState() {
+    const selectAll = document.getElementById('taskPeopleSelectAll');
+    if (!selectAll) return;
+    const visibleBoxes = [...document.querySelectorAll('.task-people-row')]
+        .filter(row => row.style.display !== 'none')
+        .map(row => row.querySelector('.task-people-checkbox'));
+    selectAll.checked = visibleBoxes.length > 0 && visibleBoxes.every(cb => cb.checked);
+}
+
+function applyTaskPeopleFilter() {
+    const q = (document.getElementById('taskPeopleSearchInput')?.value || '').trim().toLowerCase();
+    const activeRoleBtn = document.querySelector('#taskPeopleRoleFilter .chat-filter-pill.active');
+    const role = activeRoleBtn ? activeRoleBtn.dataset.role : 'all';
+    let anyVisible = false;
+
+    document.querySelectorAll('.task-people-row').forEach(row => {
+        const matchSearch = !q || row.dataset.search.includes(q);
+        const matchRole = role === 'all' || row.dataset.role === role;
+        const match = matchSearch && matchRole;
+        row.style.display = match ? 'flex' : 'none';
+        if (match) anyVisible = true;
+    });
+
+    document.getElementById('taskPeopleNoResults')?.classList.toggle('d-none', anyVisible);
+    syncTaskPeopleSelectAllState();
+}
+
+document.getElementById('taskPeopleSearchInput')?.addEventListener('input', applyTaskPeopleFilter);
+document.querySelectorAll('#taskPeopleRoleFilter .chat-filter-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#taskPeopleRoleFilter .chat-filter-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyTaskPeopleFilter();
+    });
+});
+document.getElementById('taskPeopleSelectAll')?.addEventListener('change', function () {
+    const checked = this.checked;
+    document.querySelectorAll('.task-people-row').forEach(row => {
+        if (row.style.display !== 'none') {
+            row.querySelector('.task-people-checkbox').checked = checked;
+        }
+    });
+});
+</script>";
+include APPPATH . 'Views/layout/footer.php';
+?>

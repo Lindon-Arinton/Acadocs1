@@ -329,12 +329,29 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `title` varchar(150) NOT NULL,
   `description` text DEFAULT NULL,
-  `assigned_role` enum('teacher','adas') NOT NULL,
+  `assigned_role` enum('teacher','adas','specific') NOT NULL,
   `deadline` datetime NOT NULL,
   `status` enum('Open','Closed') DEFAULT 'Open',
   `created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_assignees`
+--
+
+CREATE TABLE IF NOT EXISTS `task_assignees` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `task_id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `task_user_unique` (`task_id`,`user_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `task_assignees_task_fk` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `task_assignees_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

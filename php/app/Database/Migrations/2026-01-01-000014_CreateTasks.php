@@ -13,7 +13,7 @@ class CreateTasks extends Migration
             'id' => ['type' => 'INT', 'unsigned' => true, 'auto_increment' => true],
             'title' => ['type' => 'VARCHAR', 'constraint' => 150],
             'description' => ['type' => 'TEXT', 'null' => true],
-            'assigned_role' => ['type' => 'ENUM', 'constraint' => ['teacher', 'adas']],
+            'assigned_role' => ['type' => 'ENUM', 'constraint' => ['teacher', 'adas', 'specific']],
             'deadline' => ['type' => 'DATETIME'],
             'status' => ['type' => 'ENUM', 'constraint' => ['Open', 'Closed'], 'default' => 'Open'],
             'created_by' => ['type' => 'VARCHAR', 'constraint' => 100],

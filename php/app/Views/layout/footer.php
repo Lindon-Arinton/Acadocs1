@@ -256,6 +256,73 @@ function initLiveSearch(inputId, formId, delay = 500) {
     });
 }
 
+/* ── Maroon date picker (replaces native <input type=date>) ── */
+function initMaroonDatePicker(root) {
+    const display     = root.querySelector('.maroon-dp-display');
+    const hidden       = root.querySelector('input[type="hidden"]');
+    const panel        = root.querySelector('.maroon-dp-panel');
+    const monthLabel   = root.querySelector('.maroon-dp-month-label');
+    const grid         = root.querySelector('.maroon-dp-grid');
+    const minDate      = root.dataset.min ? new Date(root.dataset.min + 'T00:00:00') : null;
+    const monthNames   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    let view     = hidden.value ? new Date(hidden.value + 'T00:00:00') : new Date();
+    let selected = hidden.value ? new Date(hidden.value + 'T00:00:00') : null;
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function fmt(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function fmtDisplay(d) { return monthNames[d.getMonth()].slice(0, 3) + ' ' + d.getDate() + ', ' + d.getFullYear(); }
+    function sameDay(a, b) {
+        return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    }
+
+    function render() {
+        monthLabel.textContent = monthNames[view.getMonth()] + ' ' + view.getFullYear();
+        const firstDay    = new Date(view.getFullYear(), view.getMonth(), 1).getDay();
+        const daysInMonth = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+        const today       = new Date();
+        let html = '';
+        for (let i = 0; i < firstDay; i++) html += '<span class="is-empty">.</span>';
+        for (let d = 1; d <= daysInMonth; d++) {
+            const cellDate = new Date(view.getFullYear(), view.getMonth(), d);
+            const disabled = minDate && cellDate < minDate;
+            const classes  = [];
+            if (sameDay(cellDate, today)) classes.push('is-today');
+            if (sameDay(cellDate, selected)) classes.push('is-selected');
+            html += '<button type="button" class="' + classes.join(' ') + '" ' + (disabled ? 'disabled' : '')
+                + ' data-date="' + fmt(cellDate) + '">' + d + '</button>';
+        }
+        grid.innerHTML = html;
+    }
+    render();
+
+    display.addEventListener('click', (e) => {
+        e.stopPropagation();
+        root.classList.toggle('open');
+    });
+    root.querySelectorAll('.maroon-dp-nav').forEach(btn => {
+        btn.addEventListener('click', () => {
+            view = new Date(view.getFullYear(), view.getMonth() + parseInt(btn.dataset.dir, 10), 1);
+            render();
+        });
+    });
+    grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-date]');
+        if (!btn || btn.disabled) return;
+        hidden.value = btn.dataset.date;
+        selected = new Date(btn.dataset.date + 'T00:00:00');
+        view = selected;
+        display.value = fmtDisplay(selected);
+        root.classList.remove('open');
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+        render();
+    });
+    document.addEventListener('click', (e) => {
+        if (!root.contains(e.target)) root.classList.remove('open');
+    });
+}
+document.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
+
 /* ── Chart.js global defaults ─────────────────────────────── */
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size   = 12;

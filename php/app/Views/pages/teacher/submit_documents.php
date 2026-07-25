@@ -93,6 +93,10 @@
            class="btn btn-sm btn-outline-secondary">
           <i class="bi bi-eye me-1"></i>View File
         </a>
+        <a href="<?= base_url('documents/' . $doc['id'] . '/download') ?>"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-download me-1"></i>Download
+        </a>
         <?php endif; ?>
         <?php if ($doc['feedback_comments']): ?>
         <div class="mt-3 p-3 rounded-3" style="background:#f8f9fa;border-left:3px solid var(--maroon);">
