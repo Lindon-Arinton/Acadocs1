@@ -26,6 +26,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('document-files/(:num)/download', 'Shared\DocumentFileDownload::show/$1');
     $routes->get('document-files/(:num)/preview', 'Shared\DocumentFileDownload::preview/$1');
     $routes->get('performance', 'Admin\Performance::index');
+    $routes->match(['get', 'post'], 'performance/mps', 'Teacher\PerformanceMps::index');
     $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
     $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');

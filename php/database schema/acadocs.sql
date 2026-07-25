@@ -248,6 +248,25 @@ CREATE TABLE IF NOT EXISTS `messages` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `mps_test_scores`
+--
+
+CREATE TABLE IF NOT EXISTS `mps_test_scores` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `school_year` varchar(20) NOT NULL,
+  `term` tinyint(3) UNSIGNED NOT NULL,
+  `grade_level` varchar(50) NOT NULL,
+  `subject` varchar(100) NOT NULL,
+  `test_period` enum('Summative Test 1','Summative Test 2','Term Examination') NOT NULL,
+  `mps` decimal(5,2) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `mps_test_scores_school_year_term_grade_level_subject_test_period` (`school_year`,`term`,`grade_level`,`subject`,`test_period`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `notifications`
 --
 
@@ -295,10 +314,12 @@ CREATE TABLE IF NOT EXISTS `parent_meetings` (
 CREATE TABLE IF NOT EXISTS `performance_by_level` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `school_year` varchar(20) NOT NULL,
+  `term` tinyint(3) UNSIGNED DEFAULT NULL,
   `grade_level` varchar(50) NOT NULL,
   `mps` decimal(5,2) NOT NULL,
-  `nds` decimal(5,2) NOT NULL,
-  PRIMARY KEY (`id`)
+  `nds` decimal(5,2) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `perf_level_year_term_grade` (`school_year`,`term`,`grade_level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -310,11 +331,13 @@ CREATE TABLE IF NOT EXISTS `performance_by_level` (
 CREATE TABLE IF NOT EXISTS `performance_by_subject` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `school_year` varchar(20) NOT NULL,
+  `term` tinyint(3) UNSIGNED DEFAULT NULL,
   `subject` varchar(100) NOT NULL,
   `grade_level` varchar(50) NOT NULL,
   `instructor` varchar(100) NOT NULL,
   `mps` decimal(5,2) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `perf_subject_year_term_subject_grade` (`school_year`,`term`,`subject`,`grade_level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
