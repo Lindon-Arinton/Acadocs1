@@ -44,11 +44,15 @@ include APPPATH . 'Views/layout/header.php';
       <input type="text" name="q" id="linkSearchInput" value="<?= e($search) ?>"
              class="form-control border-start-0 ps-0" placeholder="Search title, description...">
     </div>
-    <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-      <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Newest First</option>
-      <option value="oldest"   <?= $sort==='oldest'   ? 'selected' : '' ?>>Oldest First</option>
-      <option value="title_az" <?= $sort==='title_az' ? 'selected' : '' ?>>Title A-Z</option>
-    </select>
+    <div class="maroon-select maroon-select-sm" style="width:auto;">
+      <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
+        <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Newest First</option>
+        <option value="oldest"   <?= $sort==='oldest'   ? 'selected' : '' ?>>Oldest First</option>
+        <option value="title_az" <?= $sort==='title_az' ? 'selected' : '' ?>>Title A-Z</option>
+      </select>
+      <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+      <div class="maroon-select-panel"></div>
+    </div>
   </div>
 </form>
 
@@ -116,16 +120,24 @@ include APPPATH . 'Views/layout/header.php';
           <div class="row g-3">
             <div class="col-6">
               <label class="form-label">Category</label>
-              <select name="category" class="form-select">
-                <option>Forms</option><option>Questionnaires</option>
-                <option>Templates</option><option>Guidelines</option>
-              </select>
+              <div class="maroon-select" style="width:100%;">
+                <select name="category" class="maroon-select-native">
+                  <option>Forms</option><option>Questionnaires</option>
+                  <option>Templates</option><option>Guidelines</option>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-6">
               <label class="form-label">Access Level</label>
-              <select name="access_level" class="form-select">
-                <option>All Users</option><option>Teachers</option><option>Admin</option>
-              </select>
+              <div class="maroon-select" style="width:100%;">
+                <select name="access_level" class="maroon-select-native">
+                  <option>All Users</option><option>Teachers</option><option>Admin</option>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-12">
               <label class="form-label">Title</label>

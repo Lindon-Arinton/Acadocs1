@@ -21,12 +21,16 @@
           <input type="text" name="q" id="meetingSearchInput" value="<?= e($search) ?>"
                  class="form-control border-start-0 ps-0" placeholder="Search meeting title...">
         </div>
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-          <option value="newest"        <?= $sort==='newest'        ? 'selected' : '' ?>>Newest First</option>
-          <option value="oldest"        <?= $sort==='oldest'        ? 'selected' : '' ?>>Oldest First</option>
-          <option value="attendance_hi" <?= $sort==='attendance_hi' ? 'selected' : '' ?>>Attendance Rate (High-Low)</option>
-          <option value="attendance_lo" <?= $sort==='attendance_lo' ? 'selected' : '' ?>>Attendance Rate (Low-High)</option>
-        </select>
+        <div class="maroon-select maroon-select-sm" style="width:auto;">
+          <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <option value="newest"        <?= $sort==='newest'        ? 'selected' : '' ?>>Newest First</option>
+            <option value="oldest"        <?= $sort==='oldest'        ? 'selected' : '' ?>>Oldest First</option>
+            <option value="attendance_hi" <?= $sort==='attendance_hi' ? 'selected' : '' ?>>Attendance Rate (High-Low)</option>
+            <option value="attendance_lo" <?= $sort==='attendance_lo' ? 'selected' : '' ?>>Attendance Rate (Low-High)</option>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
       </form>
       <?php if (hasRole('admin','adas')): ?>
       <button class="btn btn-maroon btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addMeetingModal">

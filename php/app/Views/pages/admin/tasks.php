@@ -125,11 +125,15 @@
           <div class="row g-3">
             <div class="col-6">
               <label class="form-label">Assign To</label>
-              <select name="assigned_role" id="taskAssignedRole" class="form-select" required onchange="onAssignedRoleChange()">
-                <option value="teacher">Teacher</option>
-                <option value="adas">ADAS</option>
-                <option value="specific">Specific People</option>
-              </select>
+              <div class="maroon-select" style="width:100%;">
+                <select name="assigned_role" id="taskAssignedRole" class="maroon-select-native" required onchange="onAssignedRoleChange()">
+                  <option value="teacher">Teacher</option>
+                  <option value="adas">ADAS</option>
+                  <option value="specific">Specific People</option>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-6">
               <label class="form-label">Deadline Date</label>
@@ -233,7 +237,11 @@ function taskEscapeHtml(s) {
 
 function openNewTaskModal() {
     taskSelectedPeople = new Map();
-    document.getElementById('taskAssignedRole').value = 'teacher';
+    const assignedRoleSelect = document.getElementById('taskAssignedRole');
+    assignedRoleSelect.value = 'teacher';
+    // Setting .value directly doesn't fire 'change', so tell the custom
+    // dropdown widget to refresh its own displayed label to match.
+    assignedRoleSelect.dispatchEvent(new Event('change'));
     document.getElementById('taskSpecificPickerWrap').classList.add('d-none');
     renderTaskSpecificSummary();
     const todayIso = new Date().toISOString().slice(0, 10);

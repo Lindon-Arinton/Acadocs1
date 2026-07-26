@@ -17,12 +17,16 @@
     <div class="kpi-card text-center d-flex flex-column align-items-center justify-content-center">
       <i class="bi bi-funnel fs-2 mb-2" style="color:#6b0000"></i>
       <label for="gradeFilter" class="text-muted small mb-2">Filter by Grade</label>
-      <select id="gradeFilter" class="form-select form-select-sm" style="width:auto;" <?= empty($bySubject) ? 'disabled' : '' ?>>
-        <option value="all">All Levels</option>
-        <?php foreach (['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'] as $g): ?>
-        <option value="<?= e($g) ?>"><?= e($g) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select id="gradeFilter" class="maroon-select-native" <?= empty($bySubject) ? 'disabled' : '' ?>>
+          <option value="all">All Levels</option>
+          <?php foreach (['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'] as $g): ?>
+          <option value="<?= e($g) ?>"><?= e($g) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
     </div>
   </div>
 </div>
