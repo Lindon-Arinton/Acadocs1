@@ -31,6 +31,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('performance/mps/template', 'Teacher\PerformanceMps::template');
     $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
     $routes->post('enrollment-kpis/import', 'Admin\EnrollmentKpis::import');
+    $routes->get('enrollment-kpis/template', 'Admin\EnrollmentKpis::template');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
     $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');
     $routes->get('parent-meetings/(:num)/attendance-file', 'Shared\ParentMeetings::downloadAttendance/$1');
