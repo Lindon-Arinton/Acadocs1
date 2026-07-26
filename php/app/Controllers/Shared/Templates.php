@@ -3,6 +3,7 @@
 namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
+use App\Libraries\CertificateGenerator;
 use App\Libraries\OfficeConverter;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
@@ -201,16 +202,32 @@ class Templates extends BaseController
         }
         unset($c);
 
+        // For every Word template, detect its ${Field} merge placeholders up
+        // front so the "Generate Certificates" modal can show them without a
+        // separate round trip. A template with none simply can't be bulk-filled.
+        $certificateFields = [];
+        $generator         = new CertificateGenerator();
+        foreach ($templates as $t) {
+            if ($t['file_ext'] === 'docx' && is_file($t['file_path'])) {
+                try {
+                    $certificateFields[$t['id']] = $generator->detectFields($t['file_path']);
+                } catch (\Throwable $e) {
+                    $certificateFields[$t['id']] = [];
+                }
+            }
+        }
+
         return view('pages/shared/templates', [
-            'pageTitle'  => 'Templates',
-            'templates'  => $templates,
-            'categories' => $categories,
-            'search'     => $search,
-            'catId'      => $catId,
-            'fileType'   => $fileType,
-            'sort'       => $sort,
-            'fileTypes'  => $templateModel->distinctExtensions(),
-            'flash'      => session()->getFlashdata('flash'),
+            'pageTitle'         => 'Templates',
+            'templates'         => $templates,
+            'categories'        => $categories,
+            'search'            => $search,
+            'catId'             => $catId,
+            'fileType'          => $fileType,
+            'sort'              => $sort,
+            'fileTypes'         => $templateModel->distinctExtensions(),
+            'flash'             => session()->getFlashdata('flash'),
+            'certificateFields' => $certificateFields,
         ]);
     }
 
@@ -323,5 +340,91 @@ class Templates extends BaseController
         }
 
         return $cached;
+    }
+
+    /**
+     * Fills a docx template's ${Field} placeholders once per row of an
+     * uploaded Excel recipient list and returns the results zipped together.
+     * Not an "ajax-form" action: the response body is the zip file itself
+     * (or a JSON error), not a JSON success message, so the page's JS talks
+     * to this endpoint with a plain fetch() instead of the generic handler.
+     */
+    public function generateCertificates()
+    {
+        if (! hasRole('adas')) {
+            return $this->ajaxError('You are not authorized to do this.', 403);
+        }
+
+        $template = (new TemplateModel())->find((int) $this->request->getPost('template_id'));
+
+        if (! $template || $template['file_ext'] !== 'docx' || ! is_file($template['file_path'])) {
+            return $this->ajaxError('Please choose a valid Word template.');
+        }
+
+        $file = $this->request->getFile('import_file');
+
+        if (! $file || ! $file->isValid() || $file->hasMoved()) {
+            return $this->ajaxError('Please choose a valid Excel file to upload.');
+        }
+
+        if (! in_array(strtolower($file->getExtension() ?: ''), ['xlsx', 'xls'], true)) {
+            return $this->ajaxError('Only .xlsx or .xls files are supported.');
+        }
+
+        // Bulk-converting many rows to PDF one at a time can take a while
+        // (each is a separate LibreOffice headless invocation) — don't let
+        // the default execution-time limit cut a large batch off midway.
+        set_time_limit(300);
+
+        $workDir = WRITEPATH . 'uploads/certificate_generations/' . uniqid('cg_', true);
+        mkdir($workDir, 0755, true);
+
+        $excelName = 'recipients.' . strtolower($file->getExtension());
+        $file->move($workDir, $excelName);
+
+        try {
+            $result = (new CertificateGenerator())->generateZip(
+                $template['file_path'],
+                $workDir . DIRECTORY_SEPARATOR . $excelName,
+                $workDir,
+                new OfficeConverter(),
+            );
+
+            $zipData = file_get_contents($result['zipPath']);
+        } catch (\Throwable $e) {
+            $this->deleteDir($workDir);
+
+            return $this->ajaxError($e->getMessage());
+        }
+
+        $this->deleteDir($workDir);
+
+        $zipName = preg_replace('/[^A-Za-z0-9._-]/', '_', $template['title']) . '_Certificates_' . date('Ymd_His') . '.zip';
+
+        $response = $this->response->download($zipName, $zipData);
+        $response->setHeader('X-Certificate-Count', (string) $result['count']);
+        if ($result['unmatchedFields'] !== []) {
+            $response->setHeader('X-Certificate-Unmatched-Fields', implode(', ', $result['unmatchedFields']));
+        }
+
+        return $response;
+    }
+
+    private function deleteDir(string $dir): void
+    {
+        if (! is_dir($dir)) {
+            return;
+        }
+
+        foreach (scandir($dir) as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $path = $dir . DIRECTORY_SEPARATOR . $entry;
+            is_dir($path) ? $this->deleteDir($path) : unlink($path);
+        }
+
+        rmdir($dir);
     }
 }
