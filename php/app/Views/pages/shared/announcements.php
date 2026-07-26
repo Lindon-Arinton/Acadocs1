@@ -11,6 +11,12 @@
 </div>
 <?php endif; ?>
 
+<?php if (! empty($deletedNotice)): ?>
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+  <i class="bi bi-exclamation-triangle-fill"></i><?= e($deletedNotice) ?>
+</div>
+<?php endif; ?>
+
 <div class="row g-4">
   <!-- Left: list -->
   <div class="col-lg-<?= hasRole('admin','adas') ? '8' : '12' ?>">

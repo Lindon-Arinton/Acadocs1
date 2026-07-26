@@ -7,6 +7,11 @@
       <p>Student enrollment statistics by grade level</p>
     </div>
     <div class="d-flex gap-2 align-items-center" style="position:relative;z-index:1;">
+      <?php if (hasRole('admin')): ?>
+      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importKpiModal">
+        <i class="bi bi-upload me-1"></i>Import KPI Report (Word)
+      </button>
+      <?php endif; ?>
       <label class="text-white small fw-semibold" for="year-filter">School Year:</label>
       <select id="year-filter" class="form-select form-select-sm" style="width:auto;">
         <?php foreach ($years as $y): ?>

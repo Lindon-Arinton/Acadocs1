@@ -35,7 +35,7 @@ class Announcements extends BaseController
                         return $isAjax ? $this->ajaxError($error) : redirect()->to('/announcements')->with('flash', ['type' => 'danger', 'msg' => $error]);
                     }
 
-                    $model->insert([
+                    $announcementId = $model->insert([
                         'type'    => $type,
                         'title'   => $title,
                         'content' => $this->request->getPost('content'),
@@ -51,7 +51,7 @@ class Announcements extends BaseController
                             'type'    => 'announcement',
                             'title'   => $title,
                             'sub'     => $type . ' · ' . date('M d', strtotime($date)),
-                            'url'     => base_url('announcements'),
+                            'url'     => base_url('announcements') . '?id=' . $announcementId,
                             'is_read' => 0,
                         ]);
                     }
@@ -72,6 +72,12 @@ class Announcements extends BaseController
             session()->setFlashdata('flash', ['type' => 'success', 'msg' => $message ?? '']);
 
             return redirect()->to('/announcements');
+        }
+
+        $deletedNotice = null;
+        $requestedId   = $this->request->getGet('id');
+        if ($requestedId && ! $model->find((int) $requestedId)) {
+            $deletedNotice = 'This announcement has already been deleted.';
         }
 
         $filter = $this->request->getGet('type') ?? 'all';
@@ -96,12 +102,13 @@ class Announcements extends BaseController
         };
 
         return view('pages/shared/announcements', [
-            'pageTitle'     => 'Announcements',
-            'announcements' => $builder->findAll(),
-            'filter'        => $filter,
-            'search'        => $search,
-            'sort'          => $sort,
-            'flash'         => session()->getFlashdata('flash'),
+            'pageTitle'      => 'Announcements',
+            'announcements'  => $builder->findAll(),
+            'filter'         => $filter,
+            'search'         => $search,
+            'sort'           => $sort,
+            'flash'          => session()->getFlashdata('flash'),
+            'deletedNotice'  => $deletedNotice,
         ]);
     }
 }
