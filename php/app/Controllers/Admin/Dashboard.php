@@ -33,6 +33,21 @@ class Dashboard extends BaseController
         $lowest           = $perfSubjectAsc[0] ?? null;
         $allPerf          = $perfSubjectModel->where('school_year', self::CURRENT_YEAR)->where('term', self::CURRENT_TERM)->orderBy('mps', 'DESC')->findAll();
 
+        // General average per subject across all grade levels — the default, uncluttered
+        // view; $allPerf (per grade+instructor) is only shown when the user clicks "View All".
+        $scoresBySubject = [];
+        foreach ($allPerf as $p) {
+            $scoresBySubject[$p['subject']][] = (float) $p['mps'];
+        }
+        $avgPerf = [];
+        foreach ($scoresBySubject as $subject => $scores) {
+            $avgPerf[] = [
+                'subject' => $subject,
+                'mps'     => round(array_sum($scores) / count($scores), 2),
+            ];
+        }
+        usort($avgPerf, static fn ($a, $b) => $b['mps'] <=> $a['mps']);
+
         $docSummary    = $documentModel->statusCounts();
         $recentDocs    = $documentModel->allWithTeacher(null, 5);
 
@@ -43,6 +58,7 @@ class Dashboard extends BaseController
             'perfLevel'   => $perfLevel,
             'lowest'      => $lowest,
             'allPerf'     => $allPerf,
+            'avgPerf'     => $avgPerf,
             'docSummary'  => $docSummary,
             'recentDocs'  => $recentDocs,
         ]);

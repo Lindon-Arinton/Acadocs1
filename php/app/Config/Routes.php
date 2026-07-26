@@ -30,6 +30,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
     $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');
+    $routes->get('parent-meetings/(:num)/attendance-file', 'Shared\ParentMeetings::downloadAttendance/$1');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');

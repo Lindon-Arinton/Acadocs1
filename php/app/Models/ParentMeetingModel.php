@@ -11,5 +11,5 @@ class ParentMeetingModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['title', 'date', 'expected_parents', 'actual_attendance', 'attendance_rate'];
+    protected $allowedFields = ['title', 'date', 'expected_parents', 'actual_attendance', 'attendance_rate', 'attendance_file_path', 'attendance_file_name'];
 }

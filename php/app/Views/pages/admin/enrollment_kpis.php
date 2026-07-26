@@ -41,8 +41,10 @@
     <div class="kpi-card kpi-card-clickable kpi-card-compact d-flex align-items-center gap-2" data-metric="mps" onclick="selectKpiMetric('mps')">
       <i class="bi bi-graph-up fs-5" style="color:#560000"></i>
       <div>
-        <div class="fw-bold" id="kpiCardValue-mps" style="font-size:1.1rem;color:#560000;line-height:1.1;">—</div>
-        <div class="text-muted" style="font-size:.72rem;">Average MPS</div>
+        <div class="fw-bold" id="kpiCardValue-mps" style="font-size:1.1rem;color:#560000;line-height:1.1;">
+          <?= $mpsOverallAvg !== null ? number_format($mpsOverallAvg, 2) . '%' : 'No data' ?>
+        </div>
+        <div class="text-muted" style="font-size:.72rem;">Average MPS (SY <?= e($mpsSourceYear) ?>)</div>
       </div>
     </div>
   </div>
@@ -110,7 +112,6 @@
             <th class="text-end">Completion</th>
             <th class="text-end">Transition</th>
             <th class="text-end">Drop Out</th>
-            <th class="text-end">Enrolment (M / F)</th>
           </tr>
         </thead>
         <tbody>
@@ -127,11 +128,6 @@
             <td class="text-end"><?= $k['completion_rate'] !== null ? number_format((float) $k['completion_rate'], 2) . '%' : '—' ?></td>
             <td class="text-end"><?= $k['transition_rate'] !== null ? number_format((float) $k['transition_rate'], 2) . '%' : '—' ?></td>
             <td class="text-end <?= (float) $k['dropout_rate'] > 1.5 ? 'text-danger fw-semibold' : '' ?>"><?= $k['dropout_rate'] !== null ? number_format((float) $k['dropout_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end text-muted">
-              <?= $k['enrolment_total'] !== null
-                    ? number_format((int) $k['enrolment_total']) . ' (' . (int) $k['enrolment_male'] . ' / ' . (int) $k['enrolment_female'] . ')'
-                    : '—' ?>
-            </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
@@ -148,15 +144,17 @@
 $extraScript = '<script>
 const ENROLLMENT_URL = ' . json_encode(current_url()) . ';
 const DEPED_KPI_DATA = ' . json_encode($depedKpis) . ';
-let enrollChart = null;
+const MPS_TREND_DATA = ' . json_encode($mpsTrend) . ';
+const MPS_OVERALL_AVG = ' . json_encode($mpsOverallAvg) . ';
+const MPS_SOURCE_YEAR = ' . json_encode($mpsSourceYear) . ';
 let kpiChartBar = null;
 let kpiChartLine = null;
 let kpiChartPie = null;
 
 const KPI_METRIC_CONFIG = {
-  enrollees: { name: "Enrollees",  label: "Gross Enrolment Rate", field: "gross_enrolment_rate", color: "#800000" },
-  dropout:   { name: "Drop-Out",   label: "Drop-Out Rate",        field: "dropout_rate",        color: "#a52a2a" },
-  mps:       { name: "Average MPS", label: "Average MPS",          field: null,                  color: "#560000" },
+  enrollees: { name: "Enrollees",  label: "Gross Enrolment Rate", field: "gross_enrolment_rate", color: "#800000", axisNoun: "school years" },
+  dropout:   { name: "Drop-Out",   label: "Drop-Out Rate",        field: "dropout_rate",        color: "#a52a2a", axisNoun: "school years" },
+  mps:       { name: "Average MPS", label: "Average MPS",          field: "avg_mps",             color: "#560000", axisNoun: "grading periods" },
 };
 
 function findDepedKpiForYear(year) {
@@ -172,20 +170,22 @@ function renderKpiCards(year) {
   const row = findDepedKpiForYear(year);
   document.getElementById("kpiCardValue-enrollees").textContent = formatKpiValue(row, "gross_enrolment_rate");
   document.getElementById("kpiCardValue-dropout").textContent = formatKpiValue(row, "dropout_rate");
-  document.getElementById("kpiCardValue-mps").textContent = "No data";
+  // Average MPS is not tied to the year filter above — it comes from Performance
+  // Analytics data for the only year with real scores.
+  document.getElementById("kpiCardValue-mps").textContent = MPS_OVERALL_AVG !== null ? MPS_OVERALL_AVG.toFixed(2) + "%" : "No data";
 }
 
 const YEAR_PALETTE = ["#800000", "#a52a2a", "#c2410c", "#560000"];
 
-function buildOneKpiChart(kind, canvasId, emptyId, emptyTextId, cfg, years, values) {
+function buildOneKpiChart(kind, canvasId, emptyId, emptyTextId, cfg, labels, values) {
   const canvas = document.getElementById(canvasId);
   const empty  = document.getElementById(emptyId);
-  const hasAny = cfg.field && values.some(v => v !== null);
+  const hasAny = values.length > 0 && values.some(v => v !== null);
 
   if (!hasAny) {
     canvas.classList.add("d-none");
     empty.classList.remove("d-none");
-    document.getElementById(emptyTextId).textContent = "No " + cfg.label + " data available for these school years.";
+    document.getElementById(emptyTextId).textContent = "No " + cfg.label + " data available for these " + cfg.axisNoun + ".";
     return null;
   }
 
@@ -197,7 +197,7 @@ function buildOneKpiChart(kind, canvasId, emptyId, emptyTextId, cfg, years, valu
   return new Chart(canvas, {
     type: type,
     data: {
-      labels: years.map(r => r.school_year),
+      labels: labels,
       datasets: [{
         label: cfg.label,
         data: values,
@@ -230,40 +230,24 @@ function renderKpiChart(metric) {
   if (kpiChartLine) { kpiChartLine.destroy(); kpiChartLine = null; }
   if (kpiChartPie)  { kpiChartPie.destroy();  kpiChartPie = null; }
 
-  const years  = [...DEPED_KPI_DATA].sort((a, b) => a.school_year.localeCompare(b.school_year));
-  const values = cfg.field ? years.map(r => (r[cfg.field] !== null ? parseFloat(r[cfg.field]) : null)) : [];
+  let labels, values;
+  if (metric === "mps") {
+    const terms = [...MPS_TREND_DATA].sort((a, b) => a.term - b.term);
+    labels = terms.map(t => "Term " + t.term + " (SY " + MPS_SOURCE_YEAR + ")");
+    values = terms.map(t => t.avg_mps);
+  } else {
+    const years = [...DEPED_KPI_DATA].sort((a, b) => a.school_year.localeCompare(b.school_year));
+    labels = years.map(r => r.school_year);
+    values = years.map(r => (r[cfg.field] !== null ? parseFloat(r[cfg.field]) : null));
+  }
 
-  kpiChartBar  = buildOneKpiChart("bar",  "kpiChartBar",  "kpiChartBarEmpty",  "kpiChartBarEmptyText",  cfg, years, values);
-  kpiChartLine = buildOneKpiChart("line", "kpiChartLine", "kpiChartLineEmpty", "kpiChartLineEmptyText", cfg, years, values);
-  kpiChartPie  = buildOneKpiChart("pie",  "kpiChartPie",  "kpiChartPieEmpty",  "kpiChartPieEmptyText",  cfg, years, values);
+  kpiChartBar  = buildOneKpiChart("bar",  "kpiChartBar",  "kpiChartBarEmpty",  "kpiChartBarEmptyText",  cfg, labels, values);
+  kpiChartLine = buildOneKpiChart("line", "kpiChartLine", "kpiChartLineEmpty", "kpiChartLineEmptyText", cfg, labels, values);
+  kpiChartPie  = buildOneKpiChart("pie",  "kpiChartPie",  "kpiChartPieEmpty",  "kpiChartPieEmptyText",  cfg, labels, values);
 }
 
 function selectKpiMetric(metric) {
   renderKpiChart(metric);
-}
-
-function renderEnrollmentChart(enrollment) {
-  if (enrollChart) { enrollChart.destroy(); enrollChart = null; }
-  const enrollCanvas = document.getElementById("enrollChart");
-  if (!enrollCanvas) return;
-
-  enrollChart = new Chart(enrollCanvas, {
-    type: "bar",
-    data: {
-      labels: enrollment.map(e => e.grade_level),
-      datasets: [{
-        label: "Students",
-        data: enrollment.map(e => e.students),
-        backgroundColor: ["#800000","#a52a2a","#8b0000","#560000"],
-        borderRadius: 10
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: false, min: 290, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } }
-    }
-  });
 }
 
 const yearFilter = document.getElementById("year-filter");
@@ -284,7 +268,6 @@ yearFilter?.addEventListener("change", () => {
     })
     .then(data => {
       contentBox.innerHTML = data.html;
-      renderEnrollmentChart(data.enrollment);
       history.replaceState(null, "", "?year=" + encodeURIComponent(year));
     })
     .catch(err => {
@@ -295,12 +278,6 @@ yearFilter?.addEventListener("change", () => {
       contentBox.style.opacity = "1";
     });
 });
-
-try {
-  renderEnrollmentChart(' . json_encode($enrollment) . ');
-} catch (err) {
-  console.error("Initial chart render failed:", err);
-}
 
 renderKpiCards(' . json_encode($year) . ');
 selectKpiMetric("enrollees");

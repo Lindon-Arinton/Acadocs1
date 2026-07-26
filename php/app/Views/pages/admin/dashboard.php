@@ -18,12 +18,11 @@
   <?php
   $kpis = [
     ['icon'=>'bi-people-fill','color'=>'#fff0f0','icolor'=>'#800000','label'=>'Total Enrollment','value'=>number_format($kpi['total_enrollment']??0),'sub'=>'+2.6% from last year'],
-    ['icon'=>'bi-file-earmark-check-fill','color'=>'#fff0f0','icolor'=>'#800000','label'=>'Submission Compliance','value'=>($kpi['submission_compliance']??0).'%','sub'=>'Documents submitted on time'],
     ['icon'=>'bi-graph-up-arrow','color'=>'#fff0f0','icolor'=>'#560000','label'=>'Average MPS','value'=>($kpi['average_mps']??0).'%','sub'=>'School-wide performance'],
     ['icon'=>'bi-exclamation-triangle-fill','color'=>'#ffe0e0','icolor'=>'#800000','label'=>'Dropout Count','value'=>$kpi['dropout_count']??0,'sub'=>'Students this year'],
   ];
   foreach ($kpis as $k): ?>
-  <div class="col-sm-6 col-xl-3">
+  <div class="col-sm-6 col-xl-4">
     <div class="kpi-card">
       <div class="d-flex align-items-start justify-content-between mb-3">
         <div class="kpi-icon" style="background:<?= $k['color'] ?>">
@@ -66,7 +65,7 @@
         <a href="<?= base_url('enrollment-kpis') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem;">View All</a>
       </div>
       <div class="card-body">
-        <canvas id="enrollChart" height="150"></canvas>
+        <canvas id="enrollChart" height="190"></canvas>
       </div>
     </div>
   </div>
@@ -79,7 +78,7 @@
         <a href="<?= base_url('performance') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem;">View All</a>
       </div>
       <div class="card-body">
-        <canvas id="perfChart" height="150"></canvas>
+        <canvas id="perfChart" height="190"></canvas>
       </div>
     </div>
   </div>
@@ -91,7 +90,7 @@
         <span class="fw-semibold small"><i class="bi bi-pie-chart me-2 text-muted"></i>Document Status</span>
       </div>
       <div class="card-body d-flex align-items-center gap-3">
-        <canvas id="docChart" height="110" style="max-width:110px;flex-shrink:0;"></canvas>
+        <canvas id="docChart" height="130" style="max-width:130px;flex-shrink:0;"></canvas>
         <div class="w-100">
           <?php foreach (['Submitted'=>'primary','Reviewed'=>'success','Pending'=>'warning','Returned'=>'danger'] as $status=>$color): ?>
           <div class="d-flex justify-content-between small mb-1">
@@ -132,8 +131,11 @@
 
 <!-- Performance by Subject Table -->
 <div class="card">
-  <div class="card-header py-3 text-white" style="background:linear-gradient(135deg,#9d174d,#800000,#c2410c);">
+  <div class="card-header py-3 text-white d-flex align-items-center justify-content-between flex-wrap gap-2" style="background:linear-gradient(135deg,#9d174d,#800000,#c2410c);">
     <span class="fw-bold"><i class="bi bi-table me-2"></i>Performance by Learning Area</span>
+    <button type="button" id="perfViewAllBtn" class="btn btn-sm btn-outline-light" onclick="togglePerfBreakdown()">
+      <i class="bi bi-list-ul me-1"></i>View All
+    </button>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -144,7 +146,20 @@
             <th class="text-end">MPS</th><th class="text-center">Status</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="perfSummaryBody">
+          <?php foreach ($avgPerf as $p):
+            $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
+          ?>
+          <tr>
+            <td class="fw-semibold"><?= e($p['subject']) ?></td>
+            <td class="text-muted">All Grades</td>
+            <td class="text-muted">—</td>
+            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
+            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+        <tbody id="perfFullBody" class="d-none">
           <?php foreach ($allPerf as $p):
             $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
           ?>
@@ -165,6 +180,18 @@
 <?php
 $extraScript = '<script>
 const maroon = "#800000", maroonLight = "#a52a2a", maroonDark = "#560000", crimson = "#dc143c";
+
+function togglePerfBreakdown() {
+  const summary = document.getElementById("perfSummaryBody");
+  const full = document.getElementById("perfFullBody");
+  const btn = document.getElementById("perfViewAllBtn");
+  const showingFull = !full.classList.contains("d-none");
+  full.classList.toggle("d-none", showingFull);
+  summary.classList.toggle("d-none", !showingFull);
+  btn.innerHTML = showingFull
+    ? "<i class=\\"bi bi-list-ul me-1\\"></i>View All"
+    : "<i class=\\"bi bi-collection me-1\\"></i>Collapse";
+}
 
 // Enrollment Chart
 new Chart(document.getElementById("enrollChart"), {

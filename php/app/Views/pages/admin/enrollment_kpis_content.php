@@ -1,29 +1,6 @@
 <div class="row g-4">
-  <!-- Bar Chart -->
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-header bg-white py-3 fw-semibold">
-        <button type="button" class="btn section-toggle-btn <?= empty($enrollment) ? 'collapsed' : '' ?> d-flex align-items-center text-start p-0 border-0 bg-transparent w-100"
-                data-bs-toggle="collapse" data-bs-target="#enrollChartBody"
-                aria-expanded="<?= empty($enrollment) ? 'false' : 'true' ?>" aria-controls="enrollChartBody">
-          <i class="bi bi-chevron-down section-toggle-arrow me-2 text-muted"></i>
-          <i class="bi bi-bar-chart me-2 text-muted"></i>Students per Grade Level
-        </button>
-      </div>
-      <div class="collapse <?= empty($enrollment) ? '' : 'show' ?>" id="enrollChartBody">
-        <div class="card-body">
-          <?php if (empty($enrollment)): ?>
-          <p class="text-muted text-center py-4 mb-0"><i class="bi bi-bar-chart fs-4 d-block mb-2"></i>No enrollment data available for <?= e(str_replace('-', '–', $year)) ?>.</p>
-          <?php else: ?>
-          <canvas id="enrollChart" height="250"></canvas>
-          <?php endif; ?>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Breakdown Table -->
-  <div class="col-lg-5">
+  <div class="col-lg-12">
     <div class="card h-100">
       <div class="card-header bg-white py-3 fw-semibold">
         <i class="bi bi-table me-2 text-muted"></i>Enrollment Breakdown
