@@ -88,6 +88,11 @@ class Templates extends BaseController
                         $error = 'Please choose a valid category.';
                     } elseif ($title === '') {
                         $error = 'Please enter a title.';
+                    } elseif ($templateModel->where('title', $title)->first()) {
+                        // Duplicate template names are confusing (which "Certificate" is
+                        // the real one?) and this app's title-based lookups elsewhere
+                        // (e.g. the certificate generator) assume titles are unique.
+                        $error = 'A template named "' . $title . '" already exists. Please use a different name.';
                     } else {
                         // ext_in also requires PHP's fileinfo mime-sniff to match the
                         // extension, which misidentifies some genuine, valid .docx/.xlsx

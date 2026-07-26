@@ -427,6 +427,10 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 .kpi-card-clickable.active { border-color: var(--primary); background: #fff8f8; box-shadow: 0 6px 20px rgba(128,0,0,.12); }
 .kpi-card-compact { padding: .6rem .9rem; text-align: left; }
 
+.status-filter-card { cursor: pointer; user-select: none; border-width: 2px; transition: transform .2s, box-shadow .2s, border-color .2s; }
+.status-filter-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+.status-filter-card.active { border-color: var(--primary); background: #fff8f8; box-shadow: 0 6px 20px rgba(128,0,0,.12); }
+
 /* ── Compact side-by-side chart cards ────────────────────────── */
 .chart-card-sm { border-width: 2px; transition: box-shadow .2s, border-color .2s; }
 .chart-card-sm .card-body { padding: .85rem 1rem; }
