@@ -3,13 +3,13 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\DepedKpiReportModel;
 use App\Models\EnrollmentByLevelModel;
-use App\Models\KpiSnapshotModel;
 
 class EnrollmentKpis extends BaseController
 {
-    // Hardcoded: current school year plus the 3 preceding ones.
-    private const YEAR_OPTIONS = ['2025-2026', '2024-2025', '2023-2024', '2022-2023'];
+    // Hardcoded: the school years covered by the client's provided DepEd KPI reports.
+    private const YEAR_OPTIONS = ['2023-2024', '2022-2023', '2021-2022', '2020-2021'];
 
     public function index()
     {
@@ -22,7 +22,6 @@ class EnrollmentKpis extends BaseController
 
         $data = [
             'year'       => $year,
-            'kpi'        => (new KpiSnapshotModel())->forYear($year) ?? [],
             'enrollment' => $enrollment,
             'total'      => array_sum(array_column($enrollment, 'students')),
         ];
@@ -37,6 +36,7 @@ class EnrollmentKpis extends BaseController
         return view('pages/admin/enrollment_kpis', array_merge($data, [
             'pageTitle' => 'Enrollment KPIs',
             'years'     => self::YEAR_OPTIONS,
+            'depedKpis' => (new DepedKpiReportModel())->allByYear(),
         ]));
     }
 }

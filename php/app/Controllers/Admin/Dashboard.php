@@ -11,18 +11,28 @@ use App\Models\PerformanceBySubjectModel;
 
 class Dashboard extends BaseController
 {
+    // Hardcoded: most recent school year with reported KPI/performance data.
+    private const CURRENT_YEAR = '2024-2025';
+    // Most recent grading period for that year — used as the dashboard's single "current" snapshot.
+    private const CURRENT_TERM = 3;
+
     public function index()
     {
-        $kpi        = (new KpiSnapshotModel())->latest();
-        $enrollment = (new EnrollmentByLevelModel())->where('school_year', '2025-2026')->orderBy('grade_level')->findAll();
-        $perfLevel  = (new PerformanceByLevelModel())->where('school_year', '2025-2026')->orderBy('grade_level')->findAll();
+        $documentModel = new DocumentModel();
+
+        $kpi = (new KpiSnapshotModel())->latest();
+        if ($kpi) {
+            $kpi['submission_compliance'] = $documentModel->submissionComplianceRate() ?? $kpi['submission_compliance'];
+        }
+
+        $enrollment = (new EnrollmentByLevelModel())->where('school_year', self::CURRENT_YEAR)->orderBy('grade_level')->findAll();
+        $perfLevel  = (new PerformanceByLevelModel())->where('school_year', self::CURRENT_YEAR)->where('term', self::CURRENT_TERM)->orderBy('grade_level')->findAll();
 
         $perfSubjectModel = new PerformanceBySubjectModel();
-        $perfSubjectAsc   = $perfSubjectModel->where('school_year', '2025-2026')->orderBy('mps', 'ASC')->findAll();
+        $perfSubjectAsc   = $perfSubjectModel->where('school_year', self::CURRENT_YEAR)->where('term', self::CURRENT_TERM)->orderBy('mps', 'ASC')->findAll();
         $lowest           = $perfSubjectAsc[0] ?? null;
-        $allPerf          = $perfSubjectModel->where('school_year', '2025-2026')->orderBy('mps', 'DESC')->findAll();
+        $allPerf          = $perfSubjectModel->where('school_year', self::CURRENT_YEAR)->where('term', self::CURRENT_TERM)->orderBy('mps', 'DESC')->findAll();
 
-        $documentModel = new DocumentModel();
         $docSummary    = $documentModel->statusCounts();
         $recentDocs    = $documentModel->allWithTeacher(null, 5);
 

@@ -1,22 +1,3 @@
-<!-- KPI Cards -->
-<div class="row g-3 mb-4">
-  <?php foreach ([
-    ['Total Enrollment',     number_format($kpi['total_enrollment']??0),   'bi-people-fill',           '#800000'],
-    ['Submission Compliance',($kpi['submission_compliance']??0).'%',        'bi-file-earmark-check',    '#560000'],
-    ['Average MPS',          ($kpi['average_mps']??0).'%',                 'bi-graph-up',              '#a52a2a'],
-    ['Dropout Count',        $kpi['dropout_count']??0,                     'bi-exclamation-triangle',  '#6b0000'],
-    ['Parent Attendance',    ($kpi['parent_attendance']??0).'%',            'bi-people',                '#800000'],
-  ] as [$l,$v,$i,$c]): ?>
-  <div class="col-6 col-xl">
-    <div class="kpi-card text-center">
-      <i class="bi <?= $i ?> fs-2 mb-2" style="color:<?= $c ?>"></i>
-      <div class="fw-bold" style="font-size:1.6rem;color:<?= $c ?>"><?= $v ?></div>
-      <div class="text-muted small mt-1"><?= $l ?></div>
-    </div>
-  </div>
-  <?php endforeach; ?>
-</div>
-
 <div class="row g-4">
   <!-- Bar Chart -->
   <div class="col-lg-7">

@@ -52,6 +52,25 @@ class DocumentModel extends Model
         return $counts;
     }
 
+    /**
+     * Live compliance rate: the share of all submitted documents that were
+     * actually reviewed (Submitted counts too — it means the teacher met
+     * the deadline; only Pending/Returned drag the rate down).
+     */
+    public function submissionComplianceRate(): ?float
+    {
+        $counts = $this->statusCounts();
+        $total  = array_sum($counts);
+
+        if ($total === 0) {
+            return null;
+        }
+
+        $onTrack = ($counts['Submitted'] ?? 0) + ($counts['Reviewed'] ?? 0);
+
+        return round($onTrack / $total * 100, 2);
+    }
+
     public function findWithTeacher(int $id): ?array
     {
         return $this->select('documents.*, teachers.name AS teacher_name')
