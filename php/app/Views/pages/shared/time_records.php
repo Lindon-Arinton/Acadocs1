@@ -49,6 +49,14 @@
           <option value="status"  <?= $sort==='status'  ? 'selected' : '' ?>>Status</option>
           <option value="time_in" <?= $sort==='time_in' ? 'selected' : '' ?>>Time In</option>
         </select>
+
+        <select name="status" id="statusFilterSelect" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
+          <option value="all"      <?= $statusFilter==='all'      ? 'selected' : '' ?>>All</option>
+          <option value="Present"  <?= $statusFilter==='Present'  ? 'selected' : '' ?>>Present</option>
+          <option value="Late"     <?= $statusFilter==='Late'     ? 'selected' : '' ?>>Late</option>
+          <option value="Absent"   <?= $statusFilter==='Absent'   ? 'selected' : '' ?>>Absent</option>
+          <option value="On Leave" <?= $statusFilter==='On Leave' ? 'selected' : '' ?>>On Leave</option>
+        </select>
       </form>
       <div class="ms-auto d-flex gap-2">
         <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('time-table','time_records')">
@@ -67,16 +75,19 @@
   </div>
 </div>
 
-<!-- Summary stats -->
+<!-- Summary stats: click a card to filter the table by that status; click it again to go back to All -->
 <div class="row g-3 mb-4">
   <?php foreach ([
     ['Present',  'present',  'bi-check-circle-fill', $summary['Present']],
     ['Late',     'late',     'bi-alarm-fill',        $summary['Late']],
     ['Absent',   'absent',   'bi-x-circle-fill',     $summary['Absent']],
     ['On Leave', 'on-leave', 'bi-calendar-check',    $summary['On Leave']],
-  ] as [$label,$cls,$icon,$cnt]): ?>
+  ] as [$label,$cls,$icon,$cnt]):
+    $isActive = $statusFilter === $label;
+  ?>
   <div class="col-6 col-sm-3">
-    <div class="card text-center py-3">
+    <div class="card text-center py-3 status-filter-card <?= $isActive ? 'active' : '' ?>" role="button"
+         onclick="filterByStatus('<?= e($label) ?>')">
       <div class="mb-2">
         <span class="badge badge-<?= $cls ?>" style="font-size:.8rem;padding:.4rem .8rem;">
           <i class="bi <?= $icon ?> me-1"></i><?= $label ?>
@@ -94,7 +105,7 @@
     <div class="card-title">Attendance Records</div>
     <div class="card-description">
       <?= date('l, F d, Y', strtotime($dateFilter)) ?> ·
-      <span id="time-records-count"><?= array_sum($summary) ?></span> total employees
+      <span id="time-records-count"><?= count($records) ?></span> total employees
     </div>
   </div>
   <div class="card-body p-0">
@@ -355,6 +366,13 @@ function maybeShowHolidayAlert() {
     });
 }
 maybeShowHolidayAlert();
+
+function filterByStatus(status) {
+    var select = document.getElementById('statusFilterSelect');
+    if (!select) return;
+    select.value = (select.value === status) ? 'all' : status;
+    select.form.requestSubmit();
+}
 
 function editRecord(r) {
     document.getElementById('editId').value      = r.id;

@@ -56,9 +56,34 @@ class TimeRecords extends BaseController
             return redirect()->to($redirect);
         }
 
-        $dateFilter = $this->request->getGet('date') ?? date('Y-m-d');
-        $search     = trim($this->request->getGet('q') ?? '');
-        $sort       = $this->request->getGet('sort') ?? 'name_az';
+        $dateFilter   = $this->request->getGet('date') ?? date('Y-m-d');
+        $search       = trim($this->request->getGet('q') ?? '');
+        $sort         = $this->request->getGet('sort') ?? 'name_az';
+        $statusFilter = $this->request->getGet('status') ?? 'all';
+
+        if (! in_array($statusFilter, ['all', 'Present', 'Late', 'Absent', 'On Leave'], true)) {
+            $statusFilter = 'all';
+        }
+
+        // Summary counts always reflect every status for the date (still
+        // respecting search), so every card stays visible/clickable no
+        // matter which status is currently selected in the filter.
+        $model->where('date', $dateFilter)->where('employee_name NOT LIKE', 'Unmapped (%');
+        if ($search !== '') {
+            $model->groupStart()
+                ->like('employee_name', $search)
+                ->orLike('employee_id', $search)
+                ->orLike('remarks', $search)
+                ->groupEnd();
+        }
+        $summaryRows = $model->findAll();
+
+        $summary = ['Present' => 0, 'Late' => 0, 'Absent' => 0, 'On Leave' => 0];
+        foreach ($summaryRows as $r) {
+            if (isset($summary[$r['status']])) {
+                $summary[$r['status']]++;
+            }
+        }
 
         $builder = $model->where('date', $dateFilter)
             ->where('employee_name NOT LIKE', 'Unmapped (%');
@@ -71,6 +96,10 @@ class TimeRecords extends BaseController
                 ->groupEnd();
         }
 
+        if ($statusFilter !== 'all') {
+            $builder->where('status', $statusFilter);
+        }
+
         match ($sort) {
             'status'  => $builder->orderBy('status', 'ASC')->orderBy('employee_name', 'ASC'),
             'time_in' => $builder->orderBy('time_in', 'ASC'),
@@ -79,22 +108,16 @@ class TimeRecords extends BaseController
 
         $records = $builder->findAll();
 
-        $summary = ['Present' => 0, 'Late' => 0, 'Absent' => 0, 'On Leave' => 0];
-        foreach ($records as $r) {
-            if (isset($summary[$r['status']])) {
-                $summary[$r['status']]++;
-            }
-        }
-
         return view('pages/shared/time_records', [
-            'pageTitle'  => 'Time Records',
-            'records'    => $records,
-            'summary'    => $summary,
-            'dateFilter' => $dateFilter,
-            'search'     => $search,
-            'sort'       => $sort,
-            'flash'      => session()->getFlashdata('flash'),
-            'holidays'   => (new HolidayModel())->orderBy('date', 'ASC')->findAll(),
+            'pageTitle'    => 'Time Records',
+            'records'      => $records,
+            'summary'      => $summary,
+            'dateFilter'   => $dateFilter,
+            'search'       => $search,
+            'sort'         => $sort,
+            'statusFilter' => $statusFilter,
+            'flash'        => session()->getFlashdata('flash'),
+            'holidays'     => (new HolidayModel())->orderBy('date', 'ASC')->findAll(),
         ]);
     }
 
