@@ -314,17 +314,6 @@ $chatNavBadge = $unreadChatCount > 0
     <i class="bi bi-list fs-5"></i>
   </button>
 
-  <!-- Breadcrumb -->
-  <nav aria-label="breadcrumb" class="flex-grow-1">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <a href="<?= base_url('dashboard') ?>"><i class="bi bi-house me-1"></i>Home</a>
-      </li>
-      <li class="breadcrumb-sep"><i class="bi bi-chevron-right"></i></li>
-      <li class="breadcrumb-item active"><?= e($pageTitle) ?></li>
-    </ol>
-  </nav>
-
   <!-- Actions -->
   <div class="d-flex align-items-center gap-2 ms-auto">
     <!-- Chat Shortcut -->
@@ -405,6 +394,19 @@ $chatNavBadge = $unreadChatCount > 0
     </div>
   </div>
 </header>
+
+<!-- ══════════════ BREADCRUMB BAR ══════════════ -->
+<div id="breadcrumb-bar">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="<?= base_url('dashboard') ?>"><i class="bi bi-house me-1"></i>Home</a>
+      </li>
+      <li class="breadcrumb-sep"><i class="bi bi-chevron-right"></i></li>
+      <li class="breadcrumb-item active"><?= e($pageTitle) ?></li>
+    </ol>
+  </nav>
+</div>
 
 <!-- ══════════════ MAIN CONTENT ══════════════ -->
 <main id="main-content" class="animate-in">

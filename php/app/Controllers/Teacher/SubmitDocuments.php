@@ -5,6 +5,8 @@ namespace App\Controllers\Teacher;
 use App\Controllers\BaseController;
 use App\Models\DocumentFileModel;
 use App\Models\DocumentModel;
+use App\Models\TaskAssigneeModel;
+use App\Models\TaskModel;
 use App\Models\TeacherModel;
 
 class SubmitDocuments extends BaseController
@@ -19,11 +21,37 @@ class SubmitDocuments extends BaseController
         $teacherModel = new TeacherModel();
         $teacher = $teacherModel->resolveForUser($user);
 
+        // A submission must fulfill a task the principal actually assigned —
+        // teachers no longer pick an arbitrary document type on their own.
+        $assigneeModel   = new TaskAssigneeModel();
+        $specificTaskIds = $assigneeModel->taskIdsForUser((int) $user['id']);
+
+        $taskQuery = (new TaskModel())->groupStart()->where('assigned_role', 'teacher')->where('status', 'Open');
+        if ($specificTaskIds) {
+            $taskQuery->orGroupStart()->where('assigned_role', 'specific')->where('status', 'Open')->whereIn('id', $specificTaskIds)->groupEnd();
+        }
+        $openTasks = $taskQuery->groupEnd()->orderBy('deadline', 'ASC')->findAll();
+
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
             if (! $teacher) {
                 return $isAjax ? $this->ajaxError('Your account is not linked to a teacher profile.') : redirect()->to('/submit-documents');
+            }
+
+            $taskId = (int) $this->request->getPost('task_id');
+            $task   = null;
+            foreach ($openTasks as $t) {
+                if ((int) $t['id'] === $taskId) {
+                    $task = $t;
+                    break;
+                }
+            }
+
+            if (! $task) {
+                $error = 'Please select a valid task assigned to you.';
+
+                return $isAjax ? $this->ajaxError($error) : redirect()->to('/submit-documents')->with('flash', ['type' => 'danger', 'msg' => $error]);
             }
 
             $files = array_filter(
@@ -40,7 +68,7 @@ class SubmitDocuments extends BaseController
             try {
                 $documentId = (new DocumentModel())->insert([
                     'teacher_id'     => $teacher['id'],
-                    'type'           => $this->request->getPost('type'),
+                    'type'           => $task['title'],
                     'subject'        => $this->request->getPost('subject'),
                     'grade_level'    => $this->request->getPost('grade_level'),
                     'date_submitted' => date('Y-m-d H:i:s'),
@@ -91,6 +119,7 @@ class SubmitDocuments extends BaseController
             'pageTitle' => 'Submit Documents',
             'teacher'   => $teacher,
             'myDocs'    => $myDocs,
+            'openTasks' => $openTasks,
         ]);
     }
 }
