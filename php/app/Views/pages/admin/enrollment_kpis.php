@@ -7,6 +7,11 @@
       <p>Student enrollment statistics by grade level</p>
     </div>
     <div class="d-flex gap-2 align-items-center" style="position:relative;z-index:1;">
+      <?php if (hasRole('admin')): ?>
+      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importKpiModal">
+        <i class="bi bi-upload me-1"></i>Import KPI Report (Word)
+      </button>
+      <?php endif; ?>
       <label class="text-white small fw-semibold" for="year-filter">School Year:</label>
       <select id="year-filter" class="form-select form-select-sm" style="width:auto;">
         <?php foreach ($years as $y): ?>
@@ -20,6 +25,45 @@
 <div id="enrollment-content">
   <?php include APPPATH . 'Views/pages/admin/enrollment_kpis_content.php'; ?>
 </div>
+
+<?php if (hasRole('admin')): ?>
+<!-- Import KPI Report Modal -->
+<div class="modal fade" id="importKpiModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-upload me-2"></i>Import KPI Report</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="<?= base_url('enrollment-kpis/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this file?" data-confirm-text="Existing KPI indicators for the selected school year will be overwritten.">
+        <div class="modal-body">
+          <p class="text-muted" style="font-size:.82rem;">
+            Upload the DepEd "Key Performance Indicator" Word report (the table with Gross/Net Enrolment Rate,
+            Cohort Survival, Repetition, Promotion, Retention, Graduation, Completion, Transition, Drop Out Rate,
+            and Enrolment). The document doesn't state its own school year, so choose it below.
+          </p>
+          <div class="mb-3">
+            <label class="form-label">School Year</label>
+            <select name="school_year" class="form-select form-select-sm" required>
+              <?php foreach ($years as $y): ?>
+              <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Word file (.docx)</label>
+            <input type="file" name="import_file" class="form-control" accept=".docx" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php
 $extraScript = '<script>

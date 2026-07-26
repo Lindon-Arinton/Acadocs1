@@ -17,6 +17,55 @@
   <?php endforeach; ?>
 </div>
 
+<!-- DepEd KPI Report Indicators -->
+<div class="card mb-4">
+  <div class="card-header bg-white py-3 fw-semibold d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-clipboard-data me-2 text-muted"></i>DepEd KPI Report</span>
+  </div>
+  <div class="card-body p-0">
+    <?php if (empty($kpiReport)): ?>
+    <p class="text-muted text-center py-4 mb-0">No KPI report imported for <?= e(str_replace('-', '–', $year)) ?> yet.</p>
+    <?php else: ?>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <tbody>
+          <?php foreach ([
+            ['Gross Enrolment Rate',  $kpiReport['gross_enrollment_rate'] ?? null],
+            ['Net Enrolment Rate',    $kpiReport['net_enrollment_rate'] ?? null],
+            ['Cohort Survival Rate',  $kpiReport['cohort_survival_rate'] ?? null],
+            ['Repetition Rate',       $kpiReport['repetition_rate'] ?? null],
+            ['Promotion Rate',        $kpiReport['promotion_rate'] ?? null],
+            ['Retention Rate',        $kpiReport['retention_rate'] ?? null],
+            ['Graduation Rate',       $kpiReport['graduation_rate'] ?? null],
+            ['Completion Rate',       $kpiReport['completion_rate'] ?? null],
+            ['Transition Rate',       $kpiReport['transition_rate'] ?? null],
+            ['Drop Out Rate',         $kpiReport['dropout_rate'] ?? null],
+          ] as [$label, $value]): ?>
+          <tr>
+            <td><?= e($label) ?></td>
+            <td class="text-end fw-bold"><?= $value === null ? '—' : e($value) . '%' ?></td>
+          </tr>
+          <?php endforeach; ?>
+          <tr class="table-light">
+            <td class="fw-semibold">Enrolment</td>
+            <td class="text-end fw-bold">
+              <?php if (($kpiReport['enrollment_total'] ?? null) === null): ?>
+              —
+              <?php else: ?>
+              <?= number_format($kpiReport['enrollment_total']) ?>
+              <?php if (($kpiReport['enrollment_male'] ?? null) !== null || ($kpiReport['enrollment_female'] ?? null) !== null): ?>
+              <span class="text-muted fw-normal">(male <?= (int) ($kpiReport['enrollment_male'] ?? 0) ?>, female <?= (int) ($kpiReport['enrollment_female'] ?? 0) ?>)</span>
+              <?php endif; ?>
+              <?php endif; ?>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <?php endif; ?>
+  </div>
+</div>
+
 <div class="row g-4">
   <!-- Bar Chart -->
   <div class="col-lg-7">

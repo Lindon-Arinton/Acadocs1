@@ -191,6 +191,33 @@ CREATE TABLE IF NOT EXISTS `holidays` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `kpi_report_indicators`
+--
+
+CREATE TABLE IF NOT EXISTS `kpi_report_indicators` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `school_year` varchar(20) NOT NULL,
+  `gross_enrollment_rate` decimal(5,2) DEFAULT NULL,
+  `net_enrollment_rate` decimal(5,2) DEFAULT NULL,
+  `cohort_survival_rate` decimal(5,2) DEFAULT NULL,
+  `repetition_rate` decimal(5,2) DEFAULT NULL,
+  `promotion_rate` decimal(5,2) DEFAULT NULL,
+  `retention_rate` decimal(5,2) DEFAULT NULL,
+  `graduation_rate` decimal(5,2) DEFAULT NULL,
+  `completion_rate` decimal(5,2) DEFAULT NULL,
+  `transition_rate` decimal(5,2) DEFAULT NULL,
+  `dropout_rate` decimal(5,2) DEFAULT NULL,
+  `enrollment_total` int(10) UNSIGNED DEFAULT NULL,
+  `enrollment_male` int(10) UNSIGNED DEFAULT NULL,
+  `enrollment_female` int(10) UNSIGNED DEFAULT NULL,
+  `imported_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `school_year` (`school_year`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `kpi_snapshots`
 --
 
