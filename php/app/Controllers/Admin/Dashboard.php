@@ -25,13 +25,31 @@ class Dashboard extends BaseController
             $kpi['submission_compliance'] = $documentModel->submissionComplianceRate() ?? $kpi['submission_compliance'];
         }
 
-        $enrollment = (new EnrollmentByLevelModel())->where('school_year', self::CURRENT_YEAR)->orderBy('grade_level')->findAll();
-        $perfLevel  = (new PerformanceByLevelModel())->where('school_year', self::CURRENT_YEAR)->where('term', self::CURRENT_TERM)->orderBy('grade_level')->findAll();
+        $years = $this->availableYears();
+
+        $requestedYear = $this->request->getGet('year');
+        $currentYear   = in_array($requestedYear, $years, true) ? $requestedYear : ($years[0] ?? self::CURRENT_YEAR);
+
+        // kpi_snapshots (and the constant above) can go stale — nothing in the app
+        // ever writes to that table, so use whichever term actually has the most
+        // recent MPS data reported for the selected year.
+        $latestPeriod = (new PerformanceByLevelModel())
+            ->select('term')
+            ->where('school_year', $currentYear)
+            ->orderBy('term', 'DESC')
+            ->first();
+
+        $currentTerm = $latestPeriod['term'] ?? self::CURRENT_TERM;
+
+        $enrollment = (new EnrollmentByLevelModel())->where('school_year', $currentYear)->orderBy('grade_level')->findAll();
+        $perfLevel  = (new PerformanceByLevelModel())->where('school_year', $currentYear)->where('term', $currentTerm)->orderBy('grade_level')->findAll();
+
+        $avgMps = $perfLevel !== [] ? round(array_sum(array_column($perfLevel, 'mps')) / count($perfLevel), 2) : null;
 
         $perfSubjectModel = new PerformanceBySubjectModel();
-        $perfSubjectAsc   = $perfSubjectModel->where('school_year', self::CURRENT_YEAR)->where('term', self::CURRENT_TERM)->orderBy('mps', 'ASC')->findAll();
+        $perfSubjectAsc   = $perfSubjectModel->where('school_year', $currentYear)->where('term', $currentTerm)->orderBy('mps', 'ASC')->findAll();
         $lowest           = $perfSubjectAsc[0] ?? null;
-        $allPerf          = $perfSubjectModel->where('school_year', self::CURRENT_YEAR)->where('term', self::CURRENT_TERM)->orderBy('mps', 'DESC')->findAll();
+        $allPerf          = $perfSubjectModel->where('school_year', $currentYear)->where('term', $currentTerm)->orderBy('mps', 'DESC')->findAll();
 
         // General average per subject across all grade levels — the default, uncluttered
         // view; $allPerf (per grade+instructor) is only shown when the user clicks "View All".
@@ -54,6 +72,10 @@ class Dashboard extends BaseController
         return view('pages/admin/dashboard', [
             'pageTitle'   => 'Admin Dashboard',
             'kpi'         => $kpi,
+            'avgMps'      => $avgMps,
+            'years'       => $years,
+            'currentYear' => $currentYear,
+            'currentTerm' => $currentTerm,
             'enrollment'  => $enrollment,
             'perfLevel'   => $perfLevel,
             'lowest'      => $lowest,
@@ -62,5 +84,27 @@ class Dashboard extends BaseController
             'docSummary'  => $docSummary,
             'recentDocs'  => $recentDocs,
         ]);
+    }
+
+    /**
+     * School years with reported performance or enrollment data, newest
+     * first. Replaces the old hardcoded CURRENT_YEAR so the dashboard keeps
+     * working as new years get data without a code change.
+     */
+    private function availableYears(): array
+    {
+        $fromPerf = array_column(
+            (new PerformanceByLevelModel())->select('school_year')->distinct()->findAll(),
+            'school_year'
+        );
+        $fromEnrollment = array_column(
+            (new EnrollmentByLevelModel())->select('school_year')->distinct()->findAll(),
+            'school_year'
+        );
+
+        $years = array_unique(array_merge($fromPerf, $fromEnrollment, [self::CURRENT_YEAR]));
+        rsort($years);
+
+        return array_values($years);
     }
 }

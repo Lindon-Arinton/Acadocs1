@@ -88,20 +88,29 @@ class Templates extends BaseController
                     } elseif ($title === '') {
                         $error = 'Please enter a title.';
                     } else {
+                        // ext_in also requires PHP's fileinfo mime-sniff to match the
+                        // extension, which misidentifies some genuine, valid .docx/.xlsx
+                        // files as application/octet-stream on this server and falsely
+                        // rejects them. This upload is already gated to admins/ADAS, so
+                        // trusting the client-reported extension here is an acceptable
+                        // trade-off — checked manually below instead of via ext_in.
                         $rules = [
                             'file' => [
                                 'label'  => 'File',
-                                'rules'  => 'uploaded[file]|max_size[file,10240]|ext_in[file,' . implode(',', self::ALLOWED_EXT) . ']',
+                                'rules'  => 'uploaded[file]|max_size[file,10240]',
                                 'errors' => [
                                     'uploaded' => 'Please choose a file to upload.',
                                     'max_size' => 'File is too large (max 10MB).',
-                                    'ext_in'   => 'Unsupported file type.',
                                 ],
                             ],
                         ];
 
+                        $uploadedExt = strtolower(pathinfo($this->request->getFile('file')?->getClientName() ?? '', PATHINFO_EXTENSION));
+
                         if (! $this->validate($rules)) {
                             $error = implode(' ', $this->validator->getErrors());
+                        } elseif (! in_array($uploadedExt, self::ALLOWED_EXT, true)) {
+                            $error = 'Unsupported file type.';
                         } else {
                             $file      = $this->request->getFile('file');
                             $targetDir = WRITEPATH . 'uploads/templates/' . $categoryId;

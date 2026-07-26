@@ -22,4 +22,9 @@ class DepedKpiReportModel extends Model
     {
         return $this->orderBy('school_year', 'ASC')->findAll();
     }
+
+    public function forYear(string $schoolYear): ?array
+    {
+        return $this->where('school_year', $schoolYear)->first();
+    }
 }

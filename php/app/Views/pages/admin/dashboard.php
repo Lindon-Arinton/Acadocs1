@@ -7,9 +7,18 @@
       <h4><i class="bi bi-speedometer2 me-2"></i>School-Wide Dashboard</h4>
       <p>Real-time overview of academic performance, enrollment metrics & key indicators</p>
     </div>
-    <span class="badge rounded-pill px-3 py-2" style="background:rgba(255,255,255,.2);font-size:.8rem;">
-      <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;vertical-align:middle;"></i>Live Data
-    </span>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-white small fw-semibold mb-0" for="dashboard-year-filter">School Year:</label>
+      <select id="dashboard-year-filter" class="form-select form-select-sm" style="width:auto;"
+              onchange="location.href='<?= base_url('dashboard') ?>?year=' + encodeURIComponent(this.value)">
+        <?php foreach ($years as $y): ?>
+        <option value="<?= e($y) ?>" <?= $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <span class="badge rounded-pill px-3 py-2" style="background:rgba(255,255,255,.2);font-size:.8rem;">
+        <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;vertical-align:middle;"></i>Live Data
+      </span>
+    </div>
   </div>
 </div>
 
@@ -18,7 +27,7 @@
   <?php
   $kpis = [
     ['icon'=>'bi-people-fill','color'=>'#fff0f0','icolor'=>'#800000','label'=>'Total Enrollment','value'=>number_format($kpi['total_enrollment']??0),'sub'=>'+2.6% from last year'],
-    ['icon'=>'bi-graph-up-arrow','color'=>'#fff0f0','icolor'=>'#560000','label'=>'Average MPS','value'=>($kpi['average_mps']??0).'%','sub'=>'School-wide performance'],
+    ['icon'=>'bi-graph-up-arrow','color'=>'#fff0f0','icolor'=>'#560000','label'=>'Average MPS','value'=>$avgMps !== null ? $avgMps.'%' : 'No data','sub'=>'School-wide performance'],
     ['icon'=>'bi-exclamation-triangle-fill','color'=>'#ffe0e0','icolor'=>'#800000','label'=>'Dropout Count','value'=>$kpi['dropout_count']??0,'sub'=>'Students this year'],
   ];
   foreach ($kpis as $k): ?>

@@ -29,7 +29,7 @@
       <i class="bi bi-people-fill fs-5" style="color:#800000"></i>
       <div>
         <div class="fw-bold" id="kpiCardValue-enrollees" style="font-size:1.1rem;color:#800000;line-height:1.1;">—</div>
-        <div class="text-muted" style="font-size:.72rem;">Enrollees (Gross Enrolment Rate)</div>
+        <div class="text-muted" style="font-size:.72rem;">Total Enrollees (all grade levels)</div>
       </div>
     </div>
   </div>
@@ -145,10 +145,54 @@
 </div>
 <?php endif; ?>
 
+<?php if (hasRole('admin')): ?>
+<!-- Import KPI Report Modal -->
+<div class="modal fade" id="importKpiModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-upload me-2"></i>Import KPI Report</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="<?= base_url('enrollment-kpis/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this file?" data-confirm-text="Existing KPI data for the selected school year will be overwritten.">
+        <div class="modal-body">
+          <p class="text-muted" style="font-size:.82rem;">
+            Upload the DepEd "Key Performance Indicator" Word report (Indicator table plus the
+            "Enrolment per Grade Level" table). The document doesn't state its own school year, so
+            enter it below. Not sure of the format?
+            <a href="<?= base_url('enrollment-kpis/template') ?>">Download the template</a>.
+          </p>
+          <div class="mb-3">
+            <label class="form-label">School Year</label>
+            <input type="text" name="school_year" class="form-control form-control-sm" list="kpiYearOptions"
+                   value="<?= e($year) ?>" placeholder="e.g. 2025-2026" pattern="\d{4}-\d{4}" required>
+            <datalist id="kpiYearOptions">
+              <?php foreach ($years as $y): ?>
+              <option value="<?= e($y) ?>"></option>
+              <?php endforeach; ?>
+            </datalist>
+            <div class="form-text">Type a new school year (YYYY-YYYY) or pick an existing one.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Word file (.docx)</label>
+            <input type="file" name="import_file" class="form-control" accept=".docx" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php
 $extraScript = '<script>
 const ENROLLMENT_URL = ' . json_encode(current_url()) . ';
 const DEPED_KPI_DATA = ' . json_encode($depedKpis) . ';
+const ENROLLMENT_TOTALS_DATA = ' . json_encode($enrollmentTotals) . ';
 const MPS_TREND_DATA = ' . json_encode($mpsTrend) . ';
 const MPS_OVERALL_AVG = ' . json_encode($mpsOverallAvg) . ';
 const MPS_SOURCE_YEAR = ' . json_encode($mpsSourceYear) . ';
@@ -156,25 +200,32 @@ let kpiChartBar = null;
 let kpiChartLine = null;
 let kpiChartPie = null;
 
+// "enrollees" is sourced from the actual per-grade-level headcounts (Enrolment per
+// Grade Level table), not gross_enrolment_rate — that\'s a computed rate the KPI
+// report often leaves blank, while the headcount table is what schools reliably fill in.
 const KPI_METRIC_CONFIG = {
-  enrollees: { name: "Enrollees",  label: "Gross Enrolment Rate", field: "gross_enrolment_rate", color: "#800000", axisNoun: "school years" },
-  dropout:   { name: "Drop-Out",   label: "Drop-Out Rate",        field: "dropout_rate",        color: "#a52a2a", axisNoun: "school years" },
-  mps:       { name: "Average MPS", label: "Average MPS",          field: "avg_mps",             color: "#560000", axisNoun: "grading periods" },
+  enrollees: { name: "Enrollees",  label: "Total Enrollees",  field: "total",         unit: "",  color: "#800000", axisNoun: "school years" },
+  dropout:   { name: "Drop-Out",   label: "Drop-Out Rate",    field: "dropout_rate",  unit: "%", color: "#a52a2a", axisNoun: "school years" },
+  mps:       { name: "Average MPS", label: "Average MPS",     field: "avg_mps",       unit: "%", color: "#560000", axisNoun: "grading periods" },
 };
 
 function findDepedKpiForYear(year) {
   return DEPED_KPI_DATA.find(r => r.school_year === year) || null;
 }
 
-function formatKpiValue(row, field) {
+function findEnrollmentTotalForYear(year) {
+  return ENROLLMENT_TOTALS_DATA.find(r => r.school_year === year) || null;
+}
+
+function formatKpiValue(row, field, unit) {
   if (!row || row[field] === null || row[field] === undefined) return "No data";
-  return parseFloat(row[field]).toFixed(2) + "%";
+  const num = parseFloat(row[field]);
+  return unit === "%" ? num.toFixed(2) + "%" : num.toLocaleString();
 }
 
 function renderKpiCards(year) {
-  const row = findDepedKpiForYear(year);
-  document.getElementById("kpiCardValue-enrollees").textContent = formatKpiValue(row, "gross_enrolment_rate");
-  document.getElementById("kpiCardValue-dropout").textContent = formatKpiValue(row, "dropout_rate");
+  document.getElementById("kpiCardValue-enrollees").textContent = formatKpiValue(findEnrollmentTotalForYear(year), "total", "");
+  document.getElementById("kpiCardValue-dropout").textContent = formatKpiValue(findDepedKpiForYear(year), "dropout_rate", "%");
   // Average MPS is not tied to the year filter above — it comes from Performance
   // Analytics data for the only year with real scores.
   document.getElementById("kpiCardValue-mps").textContent = MPS_OVERALL_AVG !== null ? MPS_OVERALL_AVG.toFixed(2) + "%" : "No data";
@@ -240,6 +291,10 @@ function renderKpiChart(metric) {
     const terms = [...MPS_TREND_DATA].sort((a, b) => a.term - b.term);
     labels = terms.map(t => "Term " + t.term + " (SY " + MPS_SOURCE_YEAR + ")");
     values = terms.map(t => t.avg_mps);
+  } else if (metric === "enrollees") {
+    const years = [...ENROLLMENT_TOTALS_DATA].sort((a, b) => a.school_year.localeCompare(b.school_year));
+    labels = years.map(r => r.school_year);
+    values = years.map(r => r.total);
   } else {
     const years = [...DEPED_KPI_DATA].sort((a, b) => a.school_year.localeCompare(b.school_year));
     labels = years.map(r => r.school_year);

@@ -2,29 +2,32 @@
 
 namespace App\Libraries;
 
-use App\Models\KpiReportIndicatorModel;
+use App\Models\DepedKpiReportModel;
+use App\Models\EnrollmentByLevelModel;
 use PhpOffice\PhpWord\Element\AbstractContainer;
 use PhpOffice\PhpWord\Element\Cell;
 use PhpOffice\PhpWord\Element\Table;
 use PhpOffice\PhpWord\IOFactory;
 
 /**
- * Parses a DepEd-style "Key Performance Indicator" Word report — a table of
- * Indicator/Percentage rows (Gross/Net Enrolment Rate, Cohort Survival,
- * Repetition, Promotion, Retention, Graduation, Completion, Transition,
- * Drop Out Rate, and an "Enrolment" row like "698 = male 367 female 331")
- * — and upserts the matched values into `kpi_report_indicators` for a
- * given school year (the document doesn't reliably state its own year, so
- * the caller supplies it, same as the MPS Excel importer).
+ * Parses a DepEd-style "Key Performance Indicator" Word report:
+ *  - an Indicator table (Gross/Net Enrolment Rate, Cohort Survival,
+ *    Repetition, Promotion, Retention, Graduation, Completion, Transition,
+ *    Drop Out Rate, and sometimes a combined "Enrolment" row like
+ *    "698 = male 367 female 331") — upserted into `deped_kpi_reports`.
+ *  - an optional "Enrolment per Grade Level" table (Grade Level / Total
+ *    rows) — upserted into `enrollment_by_level`.
+ * The document doesn't reliably state its own school year, so the caller
+ * supplies it, same as the MPS Excel importer.
  */
 class EnrollmentKpiDocxImporter
 {
     /** Normalized (uppercase, spelling-tolerant) indicator title => DB column. */
     private const INDICATOR_COLUMNS = [
-        'GROSS ENROLMENT RATE'  => 'gross_enrollment_rate',
-        'GROSS ENROLLMENT RATE' => 'gross_enrollment_rate',
-        'NET ENROLMENT RATE'    => 'net_enrollment_rate',
-        'NET ENROLLMENT RATE'   => 'net_enrollment_rate',
+        'GROSS ENROLMENT RATE'  => 'gross_enrolment_rate',
+        'GROSS ENROLLMENT RATE' => 'gross_enrolment_rate',
+        'NET ENROLMENT RATE'    => 'net_enrolment_rate',
+        'NET ENROLLMENT RATE'   => 'net_enrolment_rate',
         'COHORT SURVIVAL RATE'  => 'cohort_survival_rate',
         'REPETITION RATE'       => 'repetition_rate',
         'PROMOTION RATE'        => 'promotion_rate',
@@ -37,6 +40,8 @@ class EnrollmentKpiDocxImporter
     ];
 
     private const ENROLLMENT_TITLES = ['ENROLMENT', 'ENROLLMENT'];
+
+    private const GRADE_LEVELS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
 
     /**
      * @return array{matched: string[], warnings: string[], errors: string[]}
@@ -51,10 +56,17 @@ class EnrollmentKpiDocxImporter
 
         $phpWord = IOFactory::load($filePath);
 
-        $data = [];
+        $data              = [];
+        $enrollmentByGrade = [];
 
         foreach ($phpWord->getSections() as $section) {
             foreach ($this->findTables($section) as $table) {
+                $gradeData = $this->tryParseGradeLevelTable($table);
+                if ($gradeData !== null) {
+                    $enrollmentByGrade = array_merge($enrollmentByGrade, $gradeData);
+                    continue;
+                }
+
                 foreach ($table->getRows() as $row) {
                     $cells = $row->getCells();
                     if (count($cells) < 2) {
@@ -84,26 +96,33 @@ class EnrollmentKpiDocxImporter
                         continue;
                     }
 
-                    $data[$column]       = $numeric;
+                    $data[$column]        = $numeric;
                     $summary['matched'][] = $label;
                 }
             }
         }
 
-        if ($data === []) {
+        if ($data === [] && $enrollmentByGrade === []) {
             $summary['errors'][] = 'No recognizable KPI indicators were found in the uploaded document.';
 
             return $summary;
         }
 
-        $model    = new KpiReportIndicatorModel();
-        $existing = $model->forYear($schoolYear);
-        $data['school_year'] = $schoolYear;
+        if ($data !== []) {
+            $model    = new DepedKpiReportModel();
+            $existing = $model->forYear($schoolYear);
+            $data['school_year'] = $schoolYear;
+            $data['source_file'] = basename($filePath);
 
-        if ($existing !== null) {
-            $model->update($existing['id'], $data);
-        } else {
-            $model->insert($data);
+            if ($existing !== null) {
+                $model->update($existing['id'], $data);
+            } else {
+                $model->insert($data);
+            }
+        }
+
+        if ($enrollmentByGrade !== []) {
+            $this->saveEnrollmentByGrade($schoolYear, $enrollmentByGrade, $summary);
         }
 
         $summary['matched'] = array_values(array_unique($summary['matched']));
@@ -149,24 +168,118 @@ class EnrollmentKpiDocxImporter
         return round((float) $clean, 2);
     }
 
+    private function parseInt(string $value): ?int
+    {
+        $clean = trim($value);
+        if ($clean === '' || ! is_numeric($clean)) {
+            return null;
+        }
+
+        return (int) $clean;
+    }
+
     /** @param array<string,mixed> $data */
     private function parseEnrollment(string $value, array &$data, array &$summary): void
     {
-        // e.g. "698 = male 367 female 331"
+        // e.g. "698" or "698 = male 367 female 331" (older document format)
         if (preg_match('/(\d+)/', $value, $totalMatch) !== 1) {
             $summary['warnings'][] = "Could not parse enrolment total from '{$value}'.";
 
             return;
         }
-        $data['enrollment_total'] = (int) $totalMatch[1];
-
-        if (preg_match('/\bmale\s+(\d+)/i', $value, $maleMatch) === 1) {
-            $data['enrollment_male'] = (int) $maleMatch[1];
-        }
-        if (preg_match('/\bfemale\s+(\d+)/i', $value, $femaleMatch) === 1) {
-            $data['enrollment_female'] = (int) $femaleMatch[1];
-        }
+        $data['enrolment_total'] = (int) $totalMatch[1];
 
         $summary['matched'][] = 'ENROLMENT';
+    }
+
+    /**
+     * Detects a "Grade Level / Total" grid and parses its data rows.
+     * Returns null if the table doesn't look like this grid.
+     *
+     * @return array<string,int>|null grade level => total students
+     */
+    private function tryParseGradeLevelTable(Table $table): ?array
+    {
+        $rows        = $table->getRows();
+        $headerIndex = null;
+        $columnRoles = [];
+
+        foreach ($rows as $i => $row) {
+            $roles = [];
+            foreach ($row->getCells() as $col => $cell) {
+                $normalized = strtoupper(trim($this->cellText($cell)));
+                if (in_array($normalized, ['GRADE LEVEL', 'GRADE'], true)) {
+                    $roles[$col] = 'grade';
+                } elseif ($normalized === 'TOTAL') {
+                    $roles[$col] = 'total';
+                }
+            }
+
+            $found = array_values($roles);
+            if (in_array('grade', $found, true) && in_array('total', $found, true)) {
+                $headerIndex = $i;
+                $columnRoles = $roles;
+                break;
+            }
+        }
+
+        if ($headerIndex === null) {
+            return null;
+        }
+
+        $gradeByTitle = [];
+        foreach (self::GRADE_LEVELS as $grade) {
+            $gradeByTitle[strtoupper($grade)] = $grade;
+        }
+
+        $gradeCol = array_search('grade', $columnRoles, true);
+        $totalCol = array_search('total', $columnRoles, true);
+
+        $result = [];
+
+        for ($k = $headerIndex + 1, $rowCount = count($rows); $k < $rowCount; $k++) {
+            $cells      = $rows[$k]->getCells();
+            $gradeText  = isset($cells[$gradeCol]) ? strtoupper(trim($this->cellText($cells[$gradeCol]))) : '';
+            $gradeLevel = $gradeByTitle[$gradeText] ?? null;
+
+            if ($gradeLevel === null) {
+                break; // end of the grid
+            }
+
+            $total = isset($cells[$totalCol]) ? $this->parseInt($this->cellText($cells[$totalCol])) : null;
+
+            if ($total === null) {
+                continue; // blank row — not filled in yet
+            }
+
+            $result[$gradeLevel] = $total;
+        }
+
+        return $result;
+    }
+
+    /** @param array<string,int> $enrollmentByGrade grade level => total students */
+    private function saveEnrollmentByGrade(string $schoolYear, array $enrollmentByGrade, array &$summary): void
+    {
+        $model = new EnrollmentByLevelModel();
+
+        foreach ($enrollmentByGrade as $gradeLevel => $total) {
+            $existing = $model->where('school_year', $schoolYear)->where('grade_level', $gradeLevel)->first();
+
+            $rowData = [
+                'school_year' => $schoolYear,
+                'grade_level' => $gradeLevel,
+                'students'    => $total,
+            ];
+
+            if ($existing !== null) {
+                $model->update($existing['id'], $rowData);
+            } else {
+                $rowData['sections'] = 0; // not reported by this document
+                $model->insert($rowData);
+            }
+
+            $summary['matched'][] = strtoupper($gradeLevel) . ' ENROLLMENT';
+        }
     }
 }

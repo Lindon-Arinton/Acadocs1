@@ -11,5 +11,5 @@ class EnrollmentByLevelModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['school_year', 'grade_level', 'students', 'sections'];
+    protected $allowedFields = ['school_year', 'grade_level', 'students', 'male', 'female', 'sections'];
 }

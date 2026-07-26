@@ -16,9 +16,11 @@ class Performance extends BaseController
 
     public function index()
     {
-        $year = $this->request->getGet('year') ?? self::YEAR_OPTIONS[0];
-        if (!in_array($year, self::YEAR_OPTIONS, true)) {
-            $year = self::YEAR_OPTIONS[0];
+        $years = $this->availableYears();
+
+        $year = $this->request->getGet('year') ?? $years[0];
+        if (!in_array($year, $years, true)) {
+            $year = $years[0];
         }
 
         $term = (int) ($this->request->getGet('term') ?? self::TERM_OPTIONS[0]);
@@ -49,8 +51,31 @@ class Performance extends BaseController
 
         return view('pages/admin/performance', array_merge($data, [
             'pageTitle'   => 'Performance Analytics',
-            'years'       => self::YEAR_OPTIONS,
+            'years'       => $years,
             'termOptions' => self::TERM_OPTIONS,
         ]));
+    }
+
+    /**
+     * School years available to filter on: the hardcoded starting list plus
+     * whatever years already have MPS data reported, newest first — so a
+     * newly entered school year (like a fresh school year's Term 1 scores)
+     * shows up without a code change.
+     */
+    private function availableYears(): array
+    {
+        $fromLevel = array_column(
+            (new PerformanceByLevelModel())->select('school_year')->distinct()->findAll(),
+            'school_year'
+        );
+        $fromSubject = array_column(
+            (new PerformanceBySubjectModel())->select('school_year')->distinct()->findAll(),
+            'school_year'
+        );
+
+        $years = array_unique(array_merge(self::YEAR_OPTIONS, $fromLevel, $fromSubject));
+        rsort($years);
+
+        return array_values($years);
     }
 }
