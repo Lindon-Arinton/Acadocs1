@@ -557,6 +557,51 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 .btn-ghost { background: transparent; border: none; color: #6b7280; }
 .btn-ghost:hover { background: #f3f4f6; color: #374151; }
 
+/* ── Dropdowns (Bootstrap override — brand red instead of default gray) ── */
+.dropdown-menu {
+  border: 1px solid rgba(128,0,0,.15);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(128,0,0,.15);
+  padding: .4rem;
+}
+.dropdown-item {
+  border-radius: 6px;
+  font-size: .85rem;
+  padding: .5rem .75rem;
+  transition: background .15s, color .15s;
+}
+.dropdown-item:hover, .dropdown-item:focus {
+  background: var(--primary);
+  color: #fff;
+}
+.dropdown-item.text-danger:hover, .dropdown-item.text-danger:focus {
+  background: #dc2626;
+  color: #fff;
+}
+.dropdown-item:active { background: var(--primary-dark); color: #fff; }
+.dropdown-divider { border-color: rgba(128,0,0,.12); }
+
+/* Plain (no inline color of their own) dropdown toggles, e.g. the header
+   profile menu — file-type-coded toggles on Templates set their own inline
+   background per file type and are left alone so that coding stays intact. */
+.dropdown-toggle {
+  border-radius: 8px;
+  transition: background .15s, color .15s;
+}
+.dropdown-toggle:hover, .dropdown-toggle:focus, .dropdown-toggle[aria-expanded="true"] {
+  background: #fff0f0;
+  color: var(--primary);
+}
+
+.profile-dropdown-toggle {
+  padding: .35rem .5rem;
+  border: none;
+  background: transparent;
+}
+.profile-dropdown-toggle:hover, .profile-dropdown-toggle:focus, .profile-dropdown-toggle[aria-expanded="true"] {
+  background: #fff0f0;
+}
+
 /* ── Form controls ────────────────────────────────────────── */
 .form-control, .form-select {
   font-size: .82rem;
