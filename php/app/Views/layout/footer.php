@@ -338,6 +338,99 @@ function initMaroonDatePicker(root) {
 }
 document.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
 
+/* ── Maroon select (replaces native <select> with a custom rounded,
+   maroon-highlighted dropdown) ── */
+function initMaroonSelect(root) {
+    // Guards against double-init: some pages (e.g. Performance Analytics'
+    // grade filter) explicitly re-run this after their own partial AJAX
+    // refresh, on top of the page-wide pass this already got at load time.
+    if (root.dataset.maroonSelectInit) return;
+    root.dataset.maroonSelectInit = '1';
+
+    const select  = root.querySelector('select');
+    const display = root.querySelector('.maroon-select-display');
+    const label   = root.querySelector('.maroon-select-label');
+    const panel   = root.querySelector('.maroon-select-panel');
+    if (!select || !display || !panel) return;
+
+    select.classList.add('maroon-select-native');
+
+    // Moved to <body> (see the CSS comment on .maroon-select-panel for why)
+    // and positioned in the viewport via getBoundingClientRect(), so no
+    // ancestor's stacking context or overflow can ever clip it or swallow
+    // clicks meant for it. Tagged with its wrapper so a later cleanup pass
+    // can tell whether this panel is still owned by a live widget (see
+    // removeOrphanedMaroonSelectPanels()) instead of removing all of them.
+    panel._maroonSelectRoot = root;
+    document.body.appendChild(panel);
+
+    function renderOptions() {
+        panel.innerHTML = '';
+        [...select.options].forEach((opt, i) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'maroon-select-option' + (i === select.selectedIndex ? ' is-selected' : '');
+            item.textContent = opt.textContent;
+            item.disabled = opt.disabled;
+            item.addEventListener('click', () => {
+                if (select.selectedIndex !== i) {
+                    select.selectedIndex = i;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                closePanel();
+                sync();
+            });
+            panel.appendChild(item);
+        });
+    }
+
+    function sync() {
+        const opt = select.options[select.selectedIndex];
+        label.textContent = opt ? opt.textContent : '';
+        renderOptions();
+    }
+
+    function positionPanel() {
+        const r = display.getBoundingClientRect();
+        panel.style.top = (r.bottom + 6) + 'px';
+        panel.style.left = r.left + 'px';
+        panel.style.minWidth = r.width + 'px';
+    }
+
+    function openPanel() {
+        positionPanel();
+        panel.style.display = 'block';
+        root.classList.add('open');
+    }
+
+    function closePanel() {
+        panel.style.display = 'none';
+        root.classList.remove('open');
+    }
+
+    display.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (select.disabled) return;
+        panel.style.display === 'block' ? closePanel() : openPanel();
+    });
+    document.addEventListener('click', (e) => {
+        if (!root.contains(e.target) && !panel.contains(e.target)) closePanel();
+    });
+    // A "fixed" panel doesn't track the trigger button while the page
+    // scrolls underneath it, so just close it instead of drifting out of
+    // place; a resize can shift the button too, so reposition for that.
+    window.addEventListener('scroll', () => { if (panel.style.display === 'block') closePanel(); }, true);
+    window.addEventListener('resize', () => { if (panel.style.display === 'block') positionPanel(); });
+    select.addEventListener('change', sync);
+
+    sync();
+
+    /* Exposed in case a page ever needs to force a re-render (e.g. after
+       toggling which options are disabled). */
+    root.maroonSelectSync = sync;
+}
+document.querySelectorAll('.maroon-select').forEach(initMaroonSelect);
+
 /* ── AJAX page navigation (no full reload / no white flash) ──
    Intercepts internal links + GET filter forms, fetches the target
    page, swaps #main-content in place, and re-runs that page's own
@@ -365,6 +458,7 @@ function finishAjaxProgress() {
 
 function reinitPageWidgets(scope) {
     scope.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
+    scope.querySelectorAll('.maroon-select').forEach(initMaroonSelect);
     scope.querySelectorAll('[data-counter]').forEach(el => animateCounter(el, parseInt(el.dataset.counter, 10)));
 }
 
@@ -424,6 +518,23 @@ function closeAnyOpenModals() {
     document.body.style.removeProperty('padding-right');
 }
 
+/*
+ * initMaroonSelect() (see above) detaches each dropdown's panel to <body>
+ * so it can't be clipped by an ancestor's stacking context — which means an
+ * innerHTML swap (full page nav, or a page's own partial AJAX refresh) can
+ * leave panels behind, orphaned, if their wrapper was inside the replaced
+ * subtree. Only removes panels whose wrapper is actually gone — a partial
+ * refresh (e.g. Performance Analytics' grade filter) replaces just one
+ * widget's markup, and the other widgets' panels are still very much in use.
+ */
+function removeOrphanedMaroonSelectPanels() {
+    document.querySelectorAll('body > .maroon-select-panel').forEach(el => {
+        if (!el._maroonSelectRoot || !document.contains(el._maroonSelectRoot)) {
+            el.remove();
+        }
+    });
+}
+
 function loadPage(url, { push = true, scroll = true } = {}) {
     const target = new URL(url, window.location.href);
     if (target.origin !== window.location.origin || isAjaxNavExempt(target)) {
@@ -449,6 +560,10 @@ function loadPage(url, { push = true, scroll = true } = {}) {
 
             closeAnyOpenModals();
             main.innerHTML = newMain.innerHTML;
+            // Only after the swap: this is what actually detaches the old
+            // wrappers from the document, which is what tells the cleanup
+            // which body-level panels are truly orphaned vs. still in use.
+            removeOrphanedMaroonSelectPanels();
             main.classList.remove('animate-in');
             void main.offsetWidth;
             main.classList.add('animate-in');

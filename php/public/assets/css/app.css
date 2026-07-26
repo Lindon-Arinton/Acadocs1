@@ -347,6 +347,80 @@ body.sidebar-collapsed #topbar { left: 64px; }
 .maroon-dp-grid button:disabled { color: #d1d5db; cursor: not-allowed; }
 .maroon-dp-grid span.is-empty { visibility: hidden; }
 
+/* ── Maroon select (replaces native <select> — rounded pill box and a
+   maroon-highlighted dropdown panel, matching the header's Bootstrap
+   dropdown look instead of the browser's native gray/blue popup). The real
+   <select> stays in the DOM, invisibly overlaid on the display button, so
+   name/value/required/onchange keep working exactly as before — this is a
+   purely visual swap, not a new form control. ── */
+.maroon-select { position: relative; display: inline-block; }
+.maroon-select-native {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+.maroon-select-display {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  width: 100%;
+  cursor: pointer; background: #fff; color: #111;
+  font-size: .82rem;
+  border: 1px solid rgba(128,0,0,.35);
+  border-radius: 999px;
+  padding: .45rem 1rem;
+  white-space: nowrap;
+  transition: border-color .15s, box-shadow .15s;
+}
+.maroon-select-display:hover { border-color: var(--primary); }
+.maroon-select-native:disabled ~ .maroon-select-display { opacity: .55; cursor: not-allowed; }
+.maroon-select.open .maroon-select-display,
+.maroon-select-native:focus ~ .maroon-select-display {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(128,0,0,.1);
+}
+.maroon-select-caret {
+  width: 7px; height: 7px;
+  border-right: 2px solid var(--primary);
+  border-bottom: 2px solid var(--primary);
+  transform: rotate(45deg);
+  margin-top: -4px;
+  flex-shrink: 0;
+  transition: transform .15s;
+}
+.maroon-select.open .maroon-select-caret { transform: rotate(225deg); margin-top: 3px; }
+
+/* Detached to <body> and positioned in JS via getBoundingClientRect() (see
+   initMaroonSelect) rather than living inside .maroon-select — an ancestor
+   with an active CSS transform (e.g. a hovered .kpi-card, which creates its
+   own stacking context) would otherwise trap this panel's z-index and let
+   clicks fall through to whatever's underneath it, even though it's still
+   visible. position:fixed matches getBoundingClientRect()'s viewport-relative
+   coordinates without needing to account for page scroll. */
+.maroon-select-panel {
+  display: none;
+  position: fixed;
+  z-index: 1060;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid rgba(128,0,0,.15);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(128,0,0,.15);
+  padding: .4rem;
+}
+.maroon-select-option {
+  display: block; width: 100%; text-align: left;
+  border: none; background: transparent; color: #111;
+  font-size: .82rem; padding: .5rem .75rem;
+  border-radius: 6px; cursor: pointer; white-space: nowrap;
+}
+.maroon-select-option:hover:not(:disabled) { background: var(--primary); color: #fff; }
+.maroon-select-option.is-selected { background: #fff0f0; color: var(--primary); font-weight: 600; }
+.maroon-select-option.is-selected:hover { background: var(--primary); color: #fff; }
+.maroon-select-option:disabled { color: #d1d5db; cursor: not-allowed; }
+
+.maroon-select-sm .maroon-select-display { padding: .3rem .75rem; font-size: .78rem; }
+
 /* ── Main content ─────────────────────────────────────────── */
 #main-content {
   margin-left: var(--sidebar-w);
@@ -575,8 +649,11 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
   color: #fff;
 }
 .dropdown-item.text-danger:hover, .dropdown-item.text-danger:focus {
+  /* Bootstrap's .text-danger utility sets color with !important, which would
+     otherwise win over this hover state and leave dark-red text on a
+     dark-red background (barely legible) — matching !important here too. */
   background: #dc2626;
-  color: #fff;
+  color: #fff !important;
 }
 .dropdown-item:active { background: var(--primary-dark); color: #fff; }
 .dropdown-divider { border-color: rgba(128,0,0,.12); }
@@ -612,8 +689,16 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
   background-color: #fff;
   transition: border-color .15s, box-shadow .15s;
 }
+/* Filter/sort/category/status <select> dropdowns get the same red identity
+   as the Bootstrap .dropdown-menu treatment above — a red-tinted border and
+   arrow at rest, solid red on hover, full red ring on focus (below). */
 .form-select {
   padding-right: 2.25rem;
+  border-color: rgba(128,0,0,.35);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23800000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+.form-select:hover {
+  border-color: var(--primary);
 }
 .form-control:focus, .form-select:focus {
   border-color: var(--primary);

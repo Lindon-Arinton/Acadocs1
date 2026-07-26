@@ -8,17 +8,25 @@
     </div>
     <div class="d-flex gap-2 align-items-center" style="position:relative;z-index:1;">
       <label class="text-white small fw-semibold" for="year-filter">School Year:</label>
-      <select id="year-filter" class="form-select form-select-sm" style="width:auto;">
-        <?php foreach ($years as $y): ?>
-          <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select id="year-filter" class="maroon-select-native">
+          <?php foreach ($years as $y): ?>
+            <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
       <label class="text-white small fw-semibold" for="term-filter">Term:</label>
-      <select id="term-filter" class="form-select form-select-sm" style="width:auto;">
-        <?php foreach ($termOptions as $t): ?>
-          <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select id="term-filter" class="maroon-select-native">
+          <?php foreach ($termOptions as $t): ?>
+            <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -90,6 +98,8 @@ function initGradeFilter() {
   const gradeFilter = document.getElementById("gradeFilter");
   if (!gradeFilter) return;
   gradeFilter.value = currentGrade;
+  const gradeFilterWrap = gradeFilter.closest(".maroon-select");
+  if (gradeFilterWrap) initMaroonSelect(gradeFilterWrap);
   gradeFilter.addEventListener("change", applyGradeFilter);
   applyGradeFilter();
 }
@@ -134,6 +144,9 @@ function reloadPerformance() {
     })
     .then(data => {
       contentBox.innerHTML = data.html;
+      // Only after the swap, once the old gradeFilter wrapper (its dropdown
+      // panel lives under <body>, see initMaroonSelect) is actually detached.
+      removeOrphanedMaroonSelectPanels();
       renderPerformanceCharts(data.byLevel, data.bySubject);
       history.replaceState(null, "", "?year=" + encodeURIComponent(year) + "&term=" + encodeURIComponent(term));
     })

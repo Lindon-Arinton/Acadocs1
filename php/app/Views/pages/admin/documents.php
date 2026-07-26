@@ -34,12 +34,16 @@
                class="form-control border-start-0 ps-0" placeholder="Search teacher, subject...">
       </div>
 
-      <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-        <option value="date_desc"  <?= $sort==='date_desc'  ? 'selected' : '' ?>>Newest First</option>
-        <option value="date_asc"   <?= $sort==='date_asc'   ? 'selected' : '' ?>>Oldest First</option>
-        <option value="teacher_az" <?= $sort==='teacher_az' ? 'selected' : '' ?>>Teacher A-Z</option>
-        <option value="status"     <?= $sort==='status'     ? 'selected' : '' ?>>Status</option>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
+          <option value="date_desc"  <?= $sort==='date_desc'  ? 'selected' : '' ?>>Newest First</option>
+          <option value="date_asc"   <?= $sort==='date_asc'   ? 'selected' : '' ?>>Oldest First</option>
+          <option value="teacher_az" <?= $sort==='teacher_az' ? 'selected' : '' ?>>Teacher A-Z</option>
+          <option value="status"     <?= $sort==='status'     ? 'selected' : '' ?>>Status</option>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
     </form>
   </div>
 </div>

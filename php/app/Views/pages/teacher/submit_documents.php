@@ -34,14 +34,18 @@
               data-confirm-text="It will be sent for review and cannot be edited afterward.">
           <div class="mb-3">
             <label class="form-label small fw-semibold">Task (assigned by principal)</label>
-            <select name="task_id" class="form-select form-select-sm" required>
-              <option value="">Select a task…</option>
-              <?php foreach ($openTasks as $t): ?>
-              <option value="<?= (int) $t['id'] ?>">
-                <?= e($t['title']) ?> — Due <?= date('M d, Y', strtotime($t['deadline'])) ?>
-              </option>
-              <?php endforeach; ?>
-            </select>
+            <div class="maroon-select maroon-select-sm" style="width:100%;">
+              <select name="task_id" class="maroon-select-native" required>
+                <option value="">Select a task…</option>
+                <?php foreach ($openTasks as $t): ?>
+                <option value="<?= (int) $t['id'] ?>">
+                  <?= e($t['title']) ?> — Due <?= date('M d, Y', strtotime($t['deadline'])) ?>
+                </option>
+                <?php endforeach; ?>
+              </select>
+              <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+              <div class="maroon-select-panel"></div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label small fw-semibold">Subject</label>

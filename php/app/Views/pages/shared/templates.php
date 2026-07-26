@@ -78,26 +78,38 @@ include APPPATH . 'Views/layout/header.php';
                class="form-control border-start-0 ps-0" id="templateSearchInput" autocomplete="off">
       </div>
 
-      <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-        <option value="0" <?= $catId === 0 ? 'selected' : '' ?>>All Sections</option>
-        <?php foreach ($categories as $c): ?>
-        <option value="<?= $c['id'] ?>" <?= $catId === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select name="category" class="maroon-select-native" onchange="this.form.requestSubmit()">
+          <option value="0" <?= $catId === 0 ? 'selected' : '' ?>>All Sections</option>
+          <?php foreach ($categories as $c): ?>
+          <option value="<?= $c['id'] ?>" <?= $catId === (int) $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
 
-      <select name="type" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-        <option value="all" <?= $fileType === 'all' ? 'selected' : '' ?>>All File Types</option>
-        <?php foreach ($fileTypes as $ft): ?>
-        <option value="<?= e($ft) ?>" <?= $fileType === $ft ? 'selected' : '' ?>><?= strtoupper(e($ft)) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select name="type" class="maroon-select-native" onchange="this.form.requestSubmit()">
+          <option value="all" <?= $fileType === 'all' ? 'selected' : '' ?>>All File Types</option>
+          <?php foreach ($fileTypes as $ft): ?>
+          <option value="<?= e($ft) ?>" <?= $fileType === $ft ? 'selected' : '' ?>><?= strtoupper(e($ft)) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
 
-      <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-        <option value="date_desc" <?= $sort === 'date_desc' ? 'selected' : '' ?>>Newest First</option>
-        <option value="date_asc"  <?= $sort === 'date_asc'  ? 'selected' : '' ?>>Oldest First</option>
-        <option value="section"   <?= $sort === 'section'   ? 'selected' : '' ?>>Sort by Section</option>
-        <option value="type"      <?= $sort === 'type'      ? 'selected' : '' ?>>Sort by File Type</option>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
+          <option value="date_desc" <?= $sort === 'date_desc' ? 'selected' : '' ?>>Newest First</option>
+          <option value="date_asc"  <?= $sort === 'date_asc'  ? 'selected' : '' ?>>Oldest First</option>
+          <option value="section"   <?= $sort === 'section'   ? 'selected' : '' ?>>Sort by Section</option>
+          <option value="type"      <?= $sort === 'type'      ? 'selected' : '' ?>>Sort by File Type</option>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
 
       <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-search me-1"></i>Search</button>
       <?php if ($search !== '' || $catId !== 0 || $fileType !== 'all' || $sort !== 'date_desc'): ?>
@@ -153,6 +165,10 @@ include APPPATH . 'Views/layout/header.php';
       <?php foreach ($items as $t):
         [$icon, $tc, $bg] = $extCfg[$t['file_ext']] ?? ['bi-file-earmark-fill', '#374151', '#f3f4f6'];
         $conversions      = \App\Controllers\Shared\Templates::conversionTargets($t['file_ext']);
+        // Only the Download button that actually has a dropdown attached
+        // switches to the brand red — a plain Download (no conversions)
+        // isn't a dropdown, so it keeps its file-type color.
+        $downloadColor    = ! empty($conversions) ? 'var(--primary)' : $tc;
       ?>
       <div class="col-md-6 col-xl-4">
         <div class="doclink-card h-100">
@@ -203,12 +219,12 @@ include APPPATH . 'Views/layout/header.php';
                   <i class="bi bi-eye me-1"></i>View
                 </button>
                 <div class="btn-group flex-fill" role="group">
-                  <button type="button" class="btn btn-sm flex-fill" style="background:<?= $tc ?>;color:#fff;"
+                  <button type="button" class="btn btn-sm flex-fill" style="background:<?= $downloadColor ?>;color:#fff;"
                           onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id']) ?>', '<?= e(addslashes($t['file_name'])) ?>')">
                     <i class="bi bi-download me-1"></i>Download
                   </button>
                   <?php if (! empty($conversions)): ?>
-                  <button type="button" class="btn btn-sm dropdown-toggle dropdown-toggle-split" style="background:<?= $tc ?>;color:#fff;"
+                  <button type="button" class="btn btn-sm dropdown-toggle dropdown-toggle-split" style="background:<?= $downloadColor ?>;color:#fff;"
                           data-bs-toggle="dropdown" aria-expanded="false">
                     <span class="visually-hidden">Toggle download options</span>
                   </button>
@@ -297,11 +313,15 @@ include APPPATH . 'Views/layout/header.php';
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Section</label>
-            <select name="category_id" id="uploadCategorySelect" class="form-select" required>
-              <?php foreach ($categories as $c): ?>
-              <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
-              <?php endforeach; ?>
-            </select>
+            <div class="maroon-select" style="width:100%;">
+              <select name="category_id" id="uploadCategorySelect" class="maroon-select-native" required>
+                <?php foreach ($categories as $c): ?>
+                <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+              <div class="maroon-select-panel"></div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label">File</label>
@@ -509,6 +529,7 @@ function openUploadModal(categoryId) {
     const select = document.getElementById('uploadCategorySelect');
     if (select && categoryId) {
         select.value = categoryId;
+        select.dispatchEvent(new Event('change'));
     }
     new bootstrap.Modal(document.getElementById('uploadModal')).show();
 }
