@@ -395,11 +395,12 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
 .kpi-card-clickable { cursor: pointer; text-align: center; border-width: 2px; user-select: none; }
 .kpi-card-clickable.active { border-color: var(--primary); background: #fff8f8; box-shadow: 0 6px 20px rgba(128,0,0,.12); }
+.kpi-card-compact { padding: .6rem .9rem; text-align: left; }
 
 /* ── Compact side-by-side chart cards ────────────────────────── */
 .chart-card-sm { border-width: 2px; transition: box-shadow .2s, border-color .2s; }
 .chart-card-sm .card-body { padding: .85rem 1rem; }
-.chart-card-sm canvas { max-height: 170px; }
+.chart-card-sm canvas { max-height: 230px; }
 .chart-card-sm.active { border-color: var(--primary); box-shadow: 0 6px 20px rgba(128,0,0,.1); }
 .kpi-icon {
   width: 44px; height: 44px; border-radius: 10px;

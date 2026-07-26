@@ -18,26 +18,32 @@
 </div>
 
 <!-- Clickable KPI cards: click one to highlight its chart below -->
-<div class="row g-3 mb-3">
+<div class="row g-2 mb-3">
   <div class="col-md-4">
-    <div class="kpi-card kpi-card-clickable active" data-metric="enrollees" onclick="selectKpiMetric('enrollees')">
-      <i class="bi bi-people-fill fs-2 mb-2" style="color:#800000"></i>
-      <div class="fw-bold" id="kpiCardValue-enrollees" style="font-size:1.6rem;color:#800000">—</div>
-      <div class="text-muted small mt-1">Enrollees (Gross Enrolment Rate)</div>
+    <div class="kpi-card kpi-card-clickable kpi-card-compact active d-flex align-items-center gap-2" data-metric="enrollees" onclick="selectKpiMetric('enrollees')">
+      <i class="bi bi-people-fill fs-5" style="color:#800000"></i>
+      <div>
+        <div class="fw-bold" id="kpiCardValue-enrollees" style="font-size:1.1rem;color:#800000;line-height:1.1;">—</div>
+        <div class="text-muted" style="font-size:.72rem;">Enrollees (Gross Enrolment Rate)</div>
+      </div>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="kpi-card kpi-card-clickable" data-metric="dropout" onclick="selectKpiMetric('dropout')">
-      <i class="bi bi-exclamation-triangle fs-2 mb-2" style="color:#a52a2a"></i>
-      <div class="fw-bold" id="kpiCardValue-dropout" style="font-size:1.6rem;color:#a52a2a">—</div>
-      <div class="text-muted small mt-1">Drop-Out Rate</div>
+    <div class="kpi-card kpi-card-clickable kpi-card-compact d-flex align-items-center gap-2" data-metric="dropout" onclick="selectKpiMetric('dropout')">
+      <i class="bi bi-exclamation-triangle fs-5" style="color:#a52a2a"></i>
+      <div>
+        <div class="fw-bold" id="kpiCardValue-dropout" style="font-size:1.1rem;color:#a52a2a;line-height:1.1;">—</div>
+        <div class="text-muted" style="font-size:.72rem;">Drop-Out Rate</div>
+      </div>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="kpi-card kpi-card-clickable" data-metric="mps" onclick="selectKpiMetric('mps')">
-      <i class="bi bi-graph-up fs-2 mb-2" style="color:#560000"></i>
-      <div class="fw-bold" id="kpiCardValue-mps" style="font-size:1.6rem;color:#560000">—</div>
-      <div class="text-muted small mt-1">Average MPS</div>
+    <div class="kpi-card kpi-card-clickable kpi-card-compact d-flex align-items-center gap-2" data-metric="mps" onclick="selectKpiMetric('mps')">
+      <i class="bi bi-graph-up fs-5" style="color:#560000"></i>
+      <div>
+        <div class="fw-bold" id="kpiCardValue-mps" style="font-size:1.1rem;color:#560000;line-height:1.1;">—</div>
+        <div class="text-muted" style="font-size:.72rem;">Average MPS</div>
+      </div>
     </div>
   </div>
 </div>
@@ -48,7 +54,7 @@
     <div class="card chart-card-sm h-100">
       <div class="card-header bg-white py-2 fw-semibold small"><i class="bi bi-bar-chart me-2 text-muted"></i>Bar — <span id="kpiChartLabel-bar">Enrollees</span></div>
       <div class="card-body">
-        <canvas id="kpiChartBar" height="170"></canvas>
+        <canvas id="kpiChartBar" height="230"></canvas>
         <p id="kpiChartBarEmpty" class="text-muted text-center py-4 mb-0 d-none small">
           <i class="bi bi-bar-chart fs-4 d-block mb-2"></i><span id="kpiChartBarEmptyText">No data available.</span>
         </p>
@@ -59,7 +65,7 @@
     <div class="card chart-card-sm h-100">
       <div class="card-header bg-white py-2 fw-semibold small"><i class="bi bi-graph-up me-2 text-muted"></i>Line — <span id="kpiChartLabel-line">Enrollees</span></div>
       <div class="card-body">
-        <canvas id="kpiChartLine" height="170"></canvas>
+        <canvas id="kpiChartLine" height="230"></canvas>
         <p id="kpiChartLineEmpty" class="text-muted text-center py-4 mb-0 d-none small">
           <i class="bi bi-graph-up fs-4 d-block mb-2"></i><span id="kpiChartLineEmptyText">No data available.</span>
         </p>
@@ -70,7 +76,7 @@
     <div class="card chart-card-sm h-100">
       <div class="card-header bg-white py-2 fw-semibold small"><i class="bi bi-pie-chart me-2 text-muted"></i>Pie — <span id="kpiChartLabel-pie">Enrollees</span></div>
       <div class="card-body">
-        <canvas id="kpiChartPie" height="170"></canvas>
+        <canvas id="kpiChartPie" height="230"></canvas>
         <p id="kpiChartPieEmpty" class="text-muted text-center py-4 mb-0 d-none small">
           <i class="bi bi-pie-chart fs-4 d-block mb-2"></i><span id="kpiChartPieEmptyText">No data available.</span>
         </p>
