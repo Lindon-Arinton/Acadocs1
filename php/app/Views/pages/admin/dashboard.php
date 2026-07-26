@@ -56,49 +56,46 @@
 </div>
 <?php endif; ?>
 
-<!-- Charts Row -->
-<div class="row g-4 mb-4">
+<!-- Charts Row: 3 compact charts side by side -->
+<div class="row g-3 mb-4">
   <!-- Enrollment Chart -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-        <span class="fw-semibold"><i class="bi bi-people me-2 text-muted"></i>Enrollment by Grade Level</span>
-        <a href="<?= base_url('enrollment-kpis') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold small"><i class="bi bi-people me-2 text-muted"></i>Enrollment by Grade Level</span>
+        <a href="<?= base_url('enrollment-kpis') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem;">View All</a>
       </div>
       <div class="card-body">
-        <canvas id="enrollChart" height="220"></canvas>
+        <canvas id="enrollChart" height="150"></canvas>
       </div>
     </div>
   </div>
 
   <!-- Performance Chart -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-        <span class="fw-semibold"><i class="bi bi-graph-up me-2 text-muted"></i>Academic Performance by Level</span>
-        <a href="<?= base_url('performance') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold small"><i class="bi bi-graph-up me-2 text-muted"></i>Academic Performance by Level</span>
+        <a href="<?= base_url('performance') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem;">View All</a>
       </div>
       <div class="card-body">
-        <canvas id="perfChart" height="220"></canvas>
+        <canvas id="perfChart" height="150"></canvas>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Document Status + Recent Documents -->
-<div class="row g-4 mb-4">
   <!-- Document Status -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3">
-        <span class="fw-semibold"><i class="bi bi-pie-chart me-2 text-muted"></i>Document Status</span>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2">
+        <span class="fw-semibold small"><i class="bi bi-pie-chart me-2 text-muted"></i>Document Status</span>
       </div>
-      <div class="card-body d-flex flex-column align-items-center">
-        <canvas id="docChart" height="200" style="max-width:200px;"></canvas>
-        <div class="mt-3 w-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <canvas id="docChart" height="110" style="max-width:110px;flex-shrink:0;"></canvas>
+        <div class="w-100">
           <?php foreach (['Submitted'=>'primary','Reviewed'=>'success','Pending'=>'warning','Returned'=>'danger'] as $status=>$color): ?>
           <div class="d-flex justify-content-between small mb-1">
-            <span><span class="badge bg-<?= $color ?> me-2">&nbsp;</span><?= $status ?></span>
+            <span><span class="badge bg-<?= $color ?> me-1">&nbsp;</span><?= $status ?></span>
             <strong><?= $docSummary[$status] ?? 0 ?></strong>
           </div>
           <?php endforeach; ?>
@@ -106,32 +103,30 @@
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Recent Documents -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Submissions</span>
-        <a href="<?= base_url('documents') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
-      </div>
-      <div class="card-body p-0">
-        <ul class="list-group list-group-flush">
-          <?php foreach ($recentDocs as $doc): ?>
-          <li class="list-group-item border-0 py-2 px-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="fw-semibold small"><?= e($doc['teacher_name']) ?></div>
-                <div class="text-muted" style="font-size:.72rem;"><?= e($doc['type']) ?> · <?= e($doc['subject']) ?></div>
-              </div>
-              <span class="status-pill <?= 'status-'.strtolower($doc['status']) === 'status-submitted' ? 'badge-submitted' : (strtolower($doc['status']) === 'reviewed' ? 'badge-reviewed' : 'badge-pending') ?>">
-                <?= e($doc['status']) ?>
-              </span>
-            </div>
-          </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    </div>
+<!-- Recent Documents -->
+<div class="card mb-4">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Submissions</span>
+    <a href="<?= base_url('documents') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
+  </div>
+  <div class="card-body p-0">
+    <ul class="list-group list-group-flush">
+      <?php foreach ($recentDocs as $doc): ?>
+      <li class="list-group-item border-0 py-2 px-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold small"><?= e($doc['teacher_name']) ?></div>
+            <div class="text-muted" style="font-size:.72rem;"><?= e($doc['type']) ?> · <?= e($doc['subject']) ?></div>
+          </div>
+          <span class="status-pill <?= 'status-'.strtolower($doc['status']) === 'status-submitted' ? 'badge-submitted' : (strtolower($doc['status']) === 'reviewed' ? 'badge-reviewed' : 'badge-pending') ?>">
+            <?= e($doc['status']) ?>
+          </span>
+        </div>
+      </li>
+      <?php endforeach; ?>
+    </ul>
   </div>
 </div>
 
@@ -180,10 +175,10 @@ new Chart(document.getElementById("enrollChart"), {
       label: "Students",
       data: ' . json_encode(array_column($enrollment, 'students')) . ',
       backgroundColor: maroon,
-      borderRadius: 8,
+      borderRadius: 6,
     }]
   },
-  options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
 });
 
 // Performance Chart
@@ -192,11 +187,11 @@ new Chart(document.getElementById("perfChart"), {
   data: {
     labels: ' . json_encode(array_column($perfLevel, 'grade_level')) . ',
     datasets: [
-      { label:"MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:6 },
-      { label:"NDS", data:' . json_encode(array_column($perfLevel, 'nds')) . ', backgroundColor:maroonLight, borderRadius:6 }
+      { label:"MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:4 },
+      { label:"NDS", data:' . json_encode(array_column($perfLevel, 'nds')) . ', backgroundColor:maroonLight, borderRadius:4 }
     ]
   },
-  options: { responsive:true, scales:{y:{beginAtZero:false,min:60,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:60,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
 });
 
 // Document Pie
@@ -211,7 +206,7 @@ new Chart(document.getElementById("docChart"), {
       $docSummary['Returned']  ?? 0,
     ]) . '], backgroundColor:["#60a5fa","#34d399","#fbbf24","#f87171"], borderWidth:0 }]
   },
-  options: { responsive:true, cutout:"70%", plugins:{legend:{display:false}} }
+  options: { responsive:true, maintainAspectRatio:false, cutout:"70%", plugins:{legend:{display:false}} }
 });
 </script>';
 include APPPATH . 'Views/layout/footer.php';

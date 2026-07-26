@@ -17,8 +17,8 @@
   </div>
 </div>
 
-<!-- Clickable KPI cards: click one to change which trend the chart below shows -->
-<div class="row g-3 mb-4">
+<!-- Clickable KPI cards: click one to highlight its chart below -->
+<div class="row g-3 mb-3">
   <div class="col-md-4">
     <div class="kpi-card kpi-card-clickable active" data-metric="enrollees" onclick="selectKpiMetric('enrollees')">
       <i class="bi bi-people-fill fs-2 mb-2" style="color:#800000"></i>
@@ -42,15 +42,40 @@
   </div>
 </div>
 
-<div class="card mb-4">
-  <div class="card-header bg-white py-3 fw-semibold" id="kpiChartTitle">
-    <i class="bi bi-bar-chart me-2 text-muted"></i>Enrollees — Gross Enrolment Rate by Year
+<!-- 3 charts side by side (bar / line / pie), all showing whichever metric was clicked above -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2 fw-semibold small"><i class="bi bi-bar-chart me-2 text-muted"></i>Bar — <span id="kpiChartLabel-bar">Enrollees</span></div>
+      <div class="card-body">
+        <canvas id="kpiChartBar" height="170"></canvas>
+        <p id="kpiChartBarEmpty" class="text-muted text-center py-4 mb-0 d-none small">
+          <i class="bi bi-bar-chart fs-4 d-block mb-2"></i><span id="kpiChartBarEmptyText">No data available.</span>
+        </p>
+      </div>
+    </div>
   </div>
-  <div class="card-body">
-    <canvas id="kpiTrendChart" height="220"></canvas>
-    <p id="kpiChartEmpty" class="text-muted text-center py-4 mb-0 d-none">
-      <i class="bi bi-bar-chart fs-4 d-block mb-2"></i><span id="kpiChartEmptyText">No data available for the selected metric.</span>
-    </p>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2 fw-semibold small"><i class="bi bi-graph-up me-2 text-muted"></i>Line — <span id="kpiChartLabel-line">Enrollees</span></div>
+      <div class="card-body">
+        <canvas id="kpiChartLine" height="170"></canvas>
+        <p id="kpiChartLineEmpty" class="text-muted text-center py-4 mb-0 d-none small">
+          <i class="bi bi-graph-up fs-4 d-block mb-2"></i><span id="kpiChartLineEmptyText">No data available.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2 fw-semibold small"><i class="bi bi-pie-chart me-2 text-muted"></i>Pie — <span id="kpiChartLabel-pie">Enrollees</span></div>
+      <div class="card-body">
+        <canvas id="kpiChartPie" height="170"></canvas>
+        <p id="kpiChartPieEmpty" class="text-muted text-center py-4 mb-0 d-none small">
+          <i class="bi bi-pie-chart fs-4 d-block mb-2"></i><span id="kpiChartPieEmptyText">No data available.</span>
+        </p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -118,13 +143,14 @@ $extraScript = '<script>
 const ENROLLMENT_URL = ' . json_encode(current_url()) . ';
 const DEPED_KPI_DATA = ' . json_encode($depedKpis) . ';
 let enrollChart = null;
-let kpiTrendChart = null;
-let activeKpiMetric = "enrollees";
+let kpiChartBar = null;
+let kpiChartLine = null;
+let kpiChartPie = null;
 
 const KPI_METRIC_CONFIG = {
-  enrollees: { label: "Gross Enrolment Rate", field: "gross_enrolment_rate", color: "#800000", title: "Enrollees — Gross Enrolment Rate by Year" },
-  dropout:   { label: "Drop-Out Rate",        field: "dropout_rate",        color: "#a52a2a", title: "Drop-Out Rate by Year" },
-  mps:       { label: "Average MPS",          field: null,                  color: "#560000", title: "Average MPS by Year" },
+  enrollees: { name: "Enrollees",  label: "Gross Enrolment Rate", field: "gross_enrolment_rate", color: "#800000" },
+  dropout:   { name: "Drop-Out",   label: "Drop-Out Rate",        field: "dropout_rate",        color: "#a52a2a" },
+  mps:       { name: "Average MPS", label: "Average MPS",          field: null,                  color: "#560000" },
 };
 
 function findDepedKpiForYear(year) {
@@ -143,44 +169,67 @@ function renderKpiCards(year) {
   document.getElementById("kpiCardValue-mps").textContent = "No data";
 }
 
-function renderKpiChart(metric) {
-  activeKpiMetric = metric;
-  document.querySelectorAll(".kpi-card-clickable").forEach(el => el.classList.toggle("active", el.dataset.metric === metric));
+const YEAR_PALETTE = ["#800000", "#a52a2a", "#c2410c", "#560000"];
 
-  const cfg = KPI_METRIC_CONFIG[metric];
-  document.getElementById("kpiChartTitle").innerHTML = "<i class=\"bi bi-bar-chart me-2 text-muted\"></i>" + cfg.title;
-
-  const canvas = document.getElementById("kpiTrendChart");
-  const empty  = document.getElementById("kpiChartEmpty");
-
-  if (kpiTrendChart) { kpiTrendChart.destroy(); kpiTrendChart = null; }
-
-  const years  = [...DEPED_KPI_DATA].sort((a, b) => a.school_year.localeCompare(b.school_year));
-  const values = cfg.field ? years.map(r => (r[cfg.field] !== null ? parseFloat(r[cfg.field]) : null)) : [];
+function buildOneKpiChart(kind, canvasId, emptyId, emptyTextId, cfg, years, values) {
+  const canvas = document.getElementById(canvasId);
+  const empty  = document.getElementById(emptyId);
   const hasAny = cfg.field && values.some(v => v !== null);
 
   if (!hasAny) {
     canvas.classList.add("d-none");
     empty.classList.remove("d-none");
-    document.getElementById("kpiChartEmptyText").textContent = "No " + cfg.label + " data available for these school years.";
-    return;
+    document.getElementById(emptyTextId).textContent = "No " + cfg.label + " data available for these school years.";
+    return null;
   }
 
   canvas.classList.remove("d-none");
   empty.classList.add("d-none");
 
-  kpiTrendChart = new Chart(canvas, {
-    type: "bar",
+  const type = kind === "bar" ? "bar" : (kind === "line" ? "line" : "pie");
+
+  return new Chart(canvas, {
+    type: type,
     data: {
       labels: years.map(r => r.school_year),
-      datasets: [{ label: cfg.label, data: values, backgroundColor: cfg.color, borderRadius: 8 }],
+      datasets: [{
+        label: cfg.label,
+        data: values,
+        backgroundColor: type === "pie" ? YEAR_PALETTE : (type === "line" ? cfg.color + "33" : cfg.color),
+        borderColor: cfg.color,
+        borderRadius: type === "bar" ? 8 : undefined,
+        fill: type === "line",
+        tension: .3,
+        borderWidth: type === "pie" ? 0 : (type === "line" ? 2 : undefined),
+      }],
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } },
+      maintainAspectRatio: false,
+      plugins: { legend: { display: type === "pie", position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } },
+      scales: type === "pie" ? {} : { y: { beginAtZero: true, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } },
     },
   });
+}
+
+function renderKpiChart(metric) {
+  document.querySelectorAll(".kpi-card-clickable").forEach(el => el.classList.toggle("active", el.dataset.metric === metric));
+
+  const cfg = KPI_METRIC_CONFIG[metric];
+  document.getElementById("kpiChartLabel-bar").textContent = cfg.name;
+  document.getElementById("kpiChartLabel-line").textContent = cfg.name;
+  document.getElementById("kpiChartLabel-pie").textContent = cfg.name;
+
+  if (kpiChartBar)  { kpiChartBar.destroy();  kpiChartBar = null; }
+  if (kpiChartLine) { kpiChartLine.destroy(); kpiChartLine = null; }
+  if (kpiChartPie)  { kpiChartPie.destroy();  kpiChartPie = null; }
+
+  const years  = [...DEPED_KPI_DATA].sort((a, b) => a.school_year.localeCompare(b.school_year));
+  const values = cfg.field ? years.map(r => (r[cfg.field] !== null ? parseFloat(r[cfg.field]) : null)) : [];
+
+  kpiChartBar  = buildOneKpiChart("bar",  "kpiChartBar",  "kpiChartBarEmpty",  "kpiChartBarEmptyText",  cfg, years, values);
+  kpiChartLine = buildOneKpiChart("line", "kpiChartLine", "kpiChartLineEmpty", "kpiChartLineEmptyText", cfg, years, values);
+  kpiChartPie  = buildOneKpiChart("pie",  "kpiChartPie",  "kpiChartPieEmpty",  "kpiChartPieEmptyText",  cfg, years, values);
 }
 
 function selectKpiMetric(metric) {
@@ -248,7 +297,7 @@ try {
 }
 
 renderKpiCards(' . json_encode($year) . ');
-renderKpiChart("enrollees");
+selectKpiMetric("enrollees");
 </script>';
 include APPPATH . 'Views/layout/footer.php';
 ?>
