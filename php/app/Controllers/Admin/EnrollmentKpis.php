@@ -3,15 +3,19 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Libraries\EnrollmentKpiDocxImporter;
+use App\Models\DepedKpiReportModel;
 use App\Models\EnrollmentByLevelModel;
-use App\Models\KpiReportIndicatorModel;
-use App\Models\KpiSnapshotModel;
+use App\Models\PerformanceByLevelModel;
 
 class EnrollmentKpis extends BaseController
 {
-    // Hardcoded: current school year plus the 3 preceding ones.
-    public const YEAR_OPTIONS = ['2026-2027', '2025-2026', '2024-2025', '2023-2024', '2022-2023'];
+    // Hardcoded: the school years covered by the client's provided DepEd KPI reports.
+    private const YEAR_OPTIONS = ['2023-2024', '2022-2023', '2021-2022', '2020-2021'];
+
+    // MPS isn't reported in the DepEd KPI docs above — it lives in the same
+    // performance_by_level table Performance Analytics reads from, and the
+    // only school year with real scores there is 2024-2025.
+    private const MPS_SOURCE_YEAR = '2024-2025';
 
     public function index()
     {
@@ -24,8 +28,6 @@ class EnrollmentKpis extends BaseController
 
         $data = [
             'year'       => $year,
-            'kpi'        => (new KpiSnapshotModel())->forYear($year) ?? [],
-            'kpiReport'  => (new KpiReportIndicatorModel())->forYear($year) ?? [],
             'enrollment' => $enrollment,
             'total'      => array_sum(array_column($enrollment, 'students')),
         ];
@@ -37,9 +39,35 @@ class EnrollmentKpis extends BaseController
             ]);
         }
 
+        $mpsByTerm = (new PerformanceByLevelModel())
+            ->where('school_year', self::MPS_SOURCE_YEAR)
+            ->orderBy('term')->orderBy('grade_level')
+            ->findAll();
+
+        $mpsTrend = [];
+        foreach ($mpsByTerm as $row) {
+            $term = (int) $row['term'];
+            $mpsTrend[$term]['term']   = $term;
+            $mpsTrend[$term]['scores'][] = (float) $row['mps'];
+        }
+        foreach ($mpsTrend as &$t) {
+            $t['avg_mps'] = round(array_sum($t['scores']) / count($t['scores']), 2);
+            unset($t['scores']);
+        }
+        unset($t);
+        $mpsTrend = array_values($mpsTrend);
+
+        $mpsOverallAvg = $mpsTrend
+            ? round(array_sum(array_column($mpsTrend, 'avg_mps')) / count($mpsTrend), 2)
+            : null;
+
         return view('pages/admin/enrollment_kpis', array_merge($data, [
-            'pageTitle' => 'Enrollment KPIs',
-            'years'     => self::YEAR_OPTIONS,
+            'pageTitle'      => 'Enrollment KPIs',
+            'years'          => self::YEAR_OPTIONS,
+            'depedKpis'      => (new DepedKpiReportModel())->allByYear(),
+            'mpsTrend'       => $mpsTrend,
+            'mpsSourceYear'  => self::MPS_SOURCE_YEAR,
+            'mpsOverallAvg'  => $mpsOverallAvg,
         ]));
     }
 

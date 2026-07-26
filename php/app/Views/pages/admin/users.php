@@ -21,7 +21,7 @@
           <input type="text" name="q" id="userSearchInput" value="<?= e($search) ?>" placeholder="Search by name or email..."
                  class="form-control border-start-0 ps-0">
         </div>
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
           <option value="role"    <?= $sort==='role'    ? 'selected' : '' ?>>Role</option>
           <option value="name_az" <?= $sort==='name_az' ? 'selected' : '' ?>>Name A-Z</option>
           <option value="newest"  <?= $sort==='newest'  ? 'selected' : '' ?>>Newest First</option>

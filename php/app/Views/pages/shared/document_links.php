@@ -44,7 +44,7 @@ include APPPATH . 'Views/layout/header.php';
       <input type="text" name="q" id="linkSearchInput" value="<?= e($search) ?>"
              class="form-control border-start-0 ps-0" placeholder="Search title, description...">
     </div>
-    <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+    <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
       <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Newest First</option>
       <option value="oldest"   <?= $sort==='oldest'   ? 'selected' : '' ?>>Oldest First</option>
       <option value="title_az" <?= $sort==='title_az' ? 'selected' : '' ?>>Title A-Z</option>

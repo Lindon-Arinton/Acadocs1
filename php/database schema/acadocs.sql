@@ -124,6 +124,51 @@ CREATE TABLE IF NOT EXISTS `documents` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `document_files`
+--
+
+CREATE TABLE IF NOT EXISTS `document_files` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `document_id` int(10) UNSIGNED NOT NULL,
+  `file_path` varchar(500) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `document_id` (`document_id`),
+  CONSTRAINT `document_files_ibfk_1` FOREIGN KEY (`document_id`) REFERENCES `documents` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `deped_kpi_reports`
+--
+
+CREATE TABLE IF NOT EXISTS `deped_kpi_reports` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `school_year` varchar(20) NOT NULL,
+  `gross_enrolment_rate` decimal(5,2) DEFAULT NULL,
+  `net_enrolment_rate` decimal(5,2) DEFAULT NULL,
+  `cohort_survival_rate` decimal(5,2) DEFAULT NULL,
+  `repetition_rate` decimal(5,2) DEFAULT NULL,
+  `promotion_rate` decimal(5,2) DEFAULT NULL,
+  `retention_rate` decimal(5,2) DEFAULT NULL,
+  `graduation_rate` decimal(5,2) DEFAULT NULL,
+  `completion_rate` decimal(5,2) DEFAULT NULL,
+  `transition_rate` decimal(5,2) DEFAULT NULL,
+  `dropout_rate` decimal(5,2) DEFAULT NULL,
+  `enrolment_total` int(10) UNSIGNED DEFAULT NULL,
+  `enrolment_male` int(10) UNSIGNED DEFAULT NULL,
+  `enrolment_female` int(10) UNSIGNED DEFAULT NULL,
+  `source_file` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `school_year` (`school_year`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `document_feedback`
 --
 
@@ -170,7 +215,8 @@ CREATE TABLE IF NOT EXISTS `enrollment_by_level` (
   `grade_level` varchar(50) NOT NULL,
   `students` int(10) UNSIGNED NOT NULL,
   `sections` int(10) UNSIGNED NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `enrollment_year_grade` (`school_year`,`grade_level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

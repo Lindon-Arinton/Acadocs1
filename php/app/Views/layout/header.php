@@ -14,6 +14,7 @@ $notifTypeIcons = [
     'task_submission'   => ['bi-check2-square', '#f0fdf4', '#065f46'],
     'task_feedback'     => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
     'document_feedback' => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
+    'parent_meeting'    => ['bi-people-fill', '#fff7ed', '#9a3412'],
 ];
 
 try {
@@ -58,6 +59,9 @@ $chatNavBadge = $unreadChatCount > 0
 <?php if (isset($extraHead)) echo $extraHead; ?>
 </head>
 <body>
+
+<!-- AJAX navigation progress bar -->
+<div id="ajax-progress"></div>
 
 <!-- Sidebar overlay (mobile) -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>

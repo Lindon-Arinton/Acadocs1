@@ -75,23 +75,29 @@ $monthEnd   = date('Y-m-t');
       <?php endif; ?>
     </div>
 
-    <hr class="my-2">
-
-    <span class="text-muted small d-block mb-2 <?= $overdue ? 'text-danger fw-semibold' : '' ?>">
-      <i class="bi bi-calendar3 me-1"></i>Deadline <?= date('M d, Y h:i A', strtotime($t['deadline'])) ?>
-      <?= $overdue ? ' · Overdue' : '' ?>
-      <?= $t['status'] === 'Closed' ? ' · Closed' : '' ?>
-    </span>
+    <div class="task-section mb-2">
+      <div class="task-kicker" style="color:<?= $overdue ? '#dc2626' : 'var(--primary)' ?>;">
+        <i class="bi bi-calendar3 me-1"></i>Deadline
+      </div>
+      <span class="small <?= $overdue ? 'text-danger fw-semibold' : 'text-dark' ?>">
+        <?= date('M d, Y h:i A', strtotime($t['deadline'])) ?>
+        <?= $overdue ? ' · Overdue' : '' ?>
+        <?= $t['status'] === 'Closed' ? ' · Closed' : '' ?>
+      </span>
+    </div>
 
     <?php if ($t['description']): ?>
-    <hr class="my-2">
-    <p class="small text-muted mb-0 mt-2"><?= nl2br(e($t['description'])) ?></p>
+    <div class="task-section mb-2">
+      <div class="task-kicker" style="color:var(--pink);">
+        <i class="bi bi-card-text me-1"></i>Description
+      </div>
+      <p class="small text-muted mb-0"><?= nl2br(e($t['description'])) ?></p>
+    </div>
     <?php endif; ?>
 
     <?php if ($submission): ?>
-    <hr class="my-2">
-    <div class="p-3 rounded-3 mb-3 mt-2" style="background:#f8f9fa;">
-      <div class="small fw-semibold text-muted mb-2">
+    <div class="p-3 rounded-3 mb-3 task-section" style="background:#f8f9fa;">
+      <div class="task-kicker mb-2" style="color:var(--primary-light);">
         <i class="bi bi-paperclip me-1"></i><?= count($t['files']) ?> file<?= count($t['files']) !== 1 ? 's' : '' ?> submitted
       </div>
       <?php foreach ($t['files'] as $f): ?>
@@ -107,9 +113,10 @@ $monthEnd   = date('Y-m-t');
     <?php endif; ?>
 
     <?php if (! empty($t['feedback'])): ?>
-    <hr class="my-2">
-    <div class="p-3 rounded-3 mb-3" style="background:#fff5f5;border-left:3px solid var(--maroon);">
-      <p class="small fw-semibold mb-2 text-muted"><i class="bi bi-chat-dots me-1"></i>Principal Feedback (private)</p>
+    <div class="p-3 rounded-3 mb-3 task-section" style="background:#fff5f5;border-left:3px solid var(--maroon);">
+      <div class="task-kicker mb-2" style="color:var(--maroon);">
+        <i class="bi bi-chat-dots me-1"></i>Principal Feedback (private)
+      </div>
       <?php foreach ($t['feedback'] as $fb): ?>
       <p class="small mb-1"><?= e($fb['comment']) ?> <span class="text-muted">— <?= date('M d, Y', strtotime($fb['date'])) ?></span></p>
       <?php endforeach; ?>

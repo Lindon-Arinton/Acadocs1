@@ -4,7 +4,6 @@
     ['Average MPS', ($kpi['average_mps']??0).'%', 'bi-graph-up', '#800000'],
     ['Total Enrollment', number_format($kpi['total_enrollment']??0), 'bi-people-fill', '#560000'],
     ['Dropout Count', $kpi['dropout_count']??0, 'bi-exclamation-triangle', '#a52a2a'],
-    ['Submission Rate', ($kpi['submission_compliance']??0).'%', 'bi-file-earmark-check', '#6b0000'],
   ] as [$lbl,$val,$ico,$col]): ?>
   <div class="col-sm-6 col-xl-3">
     <div class="kpi-card text-center">
@@ -14,6 +13,18 @@
     </div>
   </div>
   <?php endforeach; ?>
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card text-center d-flex flex-column align-items-center justify-content-center">
+      <i class="bi bi-funnel fs-2 mb-2" style="color:#6b0000"></i>
+      <label for="gradeFilter" class="text-muted small mb-2">Filter by Grade</label>
+      <select id="gradeFilter" class="form-select form-select-sm" style="width:auto;" <?= empty($bySubject) ? 'disabled' : '' ?>>
+        <option value="all">All Levels</option>
+        <?php foreach (['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'] as $g): ?>
+        <option value="<?= e($g) ?>"><?= e($g) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+  </div>
 </div>
 
 <div class="row g-4 mb-4">
@@ -85,7 +96,7 @@
           <?php foreach ($bySubject as $i => $s):
             $rating = $s['mps'] >= 85 ? ['Excellent','success'] : ($s['mps'] >= 75 ? ['Satisfactory','primary'] : ['Needs Improvement','danger']);
           ?>
-          <tr>
+          <tr data-grade="<?= e($s['grade_level']) ?>">
             <td class="text-muted small"><?= $i+1 ?></td>
             <td class="fw-semibold"><?= e($s['subject']) ?></td>
             <td><?= e($s['grade_level']) ?></td>
@@ -101,6 +112,9 @@
             </td>
           </tr>
           <?php endforeach; ?>
+          <tr id="gradeFilterEmpty" class="d-none">
+            <td colspan="7" class="text-center text-muted py-4">No subjects for this grade.</td>
+          </tr>
         </tbody>
       </table>
     </div>

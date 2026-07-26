@@ -32,6 +32,67 @@ $extraScript = '<script>
 const PERFORMANCE_URL = ' . json_encode(current_url()) . ';
 let levelChart = null;
 let subjectChart = null;
+let currentBySubject = [];
+// Persists across term/year reloads (which re-render #performance-content from scratch)
+// so switching terms keeps whatever grade the user had selected instead of resetting to "all".
+let currentGrade = "all";
+
+function buildSubjectChart(rows, grade) {
+  if (subjectChart) { subjectChart.destroy(); subjectChart = null; }
+  const subjectCanvas = document.getElementById("subjectChart");
+  if (!subjectCanvas) return;
+
+  let sLabels, sMPS;
+  if (grade === "all") {
+    // Combine each subject\'s scores across all grade levels into one bar
+    // instead of listing every subject once per grade.
+    const bySubjectName = {};
+    rows.forEach(s => { (bySubjectName[s.subject] = bySubjectName[s.subject] || []).push(parseFloat(s.mps)); });
+    sLabels = Object.keys(bySubjectName);
+    sMPS = sLabels.map(name => {
+      const vals = bySubjectName[name];
+      return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
+    });
+  } else {
+    sLabels = rows.map(s => s.subject);
+    sMPS = rows.map(s => parseFloat(s.mps));
+  }
+
+  subjectChart = new Chart(subjectCanvas, {
+    type: "bar",
+    data: { labels: sLabels, datasets: [{ label: "MPS", data: sMPS, backgroundColor: "#800000", borderRadius: 4 }] },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { x: { min: 60, max: 100, grid: { color: "#f0f0f0" } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
+    }
+  });
+}
+
+function applyGradeFilter() {
+  const gradeFilter = document.getElementById("gradeFilter");
+  currentGrade = gradeFilter ? gradeFilter.value : "all";
+
+  const rows = currentGrade === "all" ? currentBySubject : currentBySubject.filter(s => s.grade_level === currentGrade);
+  buildSubjectChart(rows, currentGrade);
+
+  let anyVisible = false;
+  document.querySelectorAll("#performance-content tr[data-grade]").forEach(row => {
+    const visible = currentGrade === "all" || row.dataset.grade === currentGrade;
+    row.classList.toggle("d-none", !visible);
+    if (visible) anyVisible = true;
+  });
+  document.getElementById("gradeFilterEmpty")?.classList.toggle("d-none", anyVisible || currentBySubject.length === 0);
+}
+
+function initGradeFilter() {
+  const gradeFilter = document.getElementById("gradeFilter");
+  if (!gradeFilter) return;
+  gradeFilter.value = currentGrade;
+  gradeFilter.addEventListener("change", applyGradeFilter);
+  applyGradeFilter();
+}
 
 function renderPerformanceCharts(byLevel, bySubject) {
   if (levelChart) { levelChart.destroy(); levelChart = null; }
@@ -51,23 +112,8 @@ function renderPerformanceCharts(byLevel, bySubject) {
     });
   }
 
-  if (subjectChart) { subjectChart.destroy(); subjectChart = null; }
-  const subjectCanvas = document.getElementById("subjectChart");
-  if (subjectCanvas) {
-    const sLabels = bySubject.map(s => s.subject + " (" + s.grade_level + ")");
-    const sMPS    = bySubject.map(s => s.mps);
-
-    subjectChart = new Chart(subjectCanvas, {
-      type: "bar",
-      data: { labels: sLabels, datasets: [{ label: "MPS", data: sMPS, backgroundColor: "#800000", borderRadius: 4 }] },
-      options: {
-        indexAxis: "y",
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { x: { min: 60, max: 100, grid: { color: "#f0f0f0" } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
-      }
-    });
-  }
+  currentBySubject = bySubject;
+  initGradeFilter();
 }
 
 const yearFilter = document.getElementById("year-filter");

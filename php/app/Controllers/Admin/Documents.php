@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\DocumentFeedbackModel;
+use App\Models\DocumentFileModel;
 use App\Models\DocumentModel;
 use App\Models\NotificationModel;
 
@@ -94,6 +95,13 @@ class Documents extends BaseController
         };
 
         $docs = $builder->findAll();
+
+        $fileModel    = new DocumentFileModel();
+        $filesGrouped = $fileModel->forDocuments(array_column($docs, 'id'));
+        foreach ($docs as &$doc) {
+            $doc['files'] = $filesGrouped[$doc['id']] ?? [];
+        }
+        unset($doc);
 
         $statusCounts = $documentModel->statusCounts();
 

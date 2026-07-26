@@ -18,12 +18,11 @@
   <?php
   $kpis = [
     ['icon'=>'bi-people-fill','color'=>'#fff0f0','icolor'=>'#800000','label'=>'Total Enrollment','value'=>number_format($kpi['total_enrollment']??0),'sub'=>'+2.6% from last year'],
-    ['icon'=>'bi-file-earmark-check-fill','color'=>'#fff0f0','icolor'=>'#800000','label'=>'Submission Compliance','value'=>($kpi['submission_compliance']??0).'%','sub'=>'Documents submitted on time'],
     ['icon'=>'bi-graph-up-arrow','color'=>'#fff0f0','icolor'=>'#560000','label'=>'Average MPS','value'=>($kpi['average_mps']??0).'%','sub'=>'School-wide performance'],
     ['icon'=>'bi-exclamation-triangle-fill','color'=>'#ffe0e0','icolor'=>'#800000','label'=>'Dropout Count','value'=>$kpi['dropout_count']??0,'sub'=>'Students this year'],
   ];
   foreach ($kpis as $k): ?>
-  <div class="col-sm-6 col-xl-3">
+  <div class="col-sm-6 col-xl-4">
     <div class="kpi-card">
       <div class="d-flex align-items-start justify-content-between mb-3">
         <div class="kpi-icon" style="background:<?= $k['color'] ?>">
@@ -56,49 +55,46 @@
 </div>
 <?php endif; ?>
 
-<!-- Charts Row -->
-<div class="row g-4 mb-4">
+<!-- Charts Row: 3 compact charts side by side -->
+<div class="row g-3 mb-4">
   <!-- Enrollment Chart -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-        <span class="fw-semibold"><i class="bi bi-people me-2 text-muted"></i>Enrollment by Grade Level</span>
-        <a href="<?= base_url('enrollment-kpis') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold small"><i class="bi bi-people me-2 text-muted"></i>Enrollment by Grade Level</span>
+        <a href="<?= base_url('enrollment-kpis') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem;">View All</a>
       </div>
       <div class="card-body">
-        <canvas id="enrollChart" height="220"></canvas>
+        <canvas id="enrollChart" height="190"></canvas>
       </div>
     </div>
   </div>
 
   <!-- Performance Chart -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-        <span class="fw-semibold"><i class="bi bi-graph-up me-2 text-muted"></i>Academic Performance by Level</span>
-        <a href="<?= base_url('performance') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+        <span class="fw-semibold small"><i class="bi bi-graph-up me-2 text-muted"></i>Academic Performance by Level</span>
+        <a href="<?= base_url('performance') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem;">View All</a>
       </div>
       <div class="card-body">
-        <canvas id="perfChart" height="220"></canvas>
+        <canvas id="perfChart" height="190"></canvas>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Document Status + Recent Documents -->
-<div class="row g-4 mb-4">
   <!-- Document Status -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3">
-        <span class="fw-semibold"><i class="bi bi-pie-chart me-2 text-muted"></i>Document Status</span>
+  <div class="col-lg-4">
+    <div class="card chart-card-sm h-100">
+      <div class="card-header bg-white py-2">
+        <span class="fw-semibold small"><i class="bi bi-pie-chart me-2 text-muted"></i>Document Status</span>
       </div>
-      <div class="card-body d-flex flex-column align-items-center">
-        <canvas id="docChart" height="200" style="max-width:200px;"></canvas>
-        <div class="mt-3 w-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <canvas id="docChart" height="130" style="max-width:130px;flex-shrink:0;"></canvas>
+        <div class="w-100">
           <?php foreach (['Submitted'=>'primary','Reviewed'=>'success','Pending'=>'warning','Returned'=>'danger'] as $status=>$color): ?>
           <div class="d-flex justify-content-between small mb-1">
-            <span><span class="badge bg-<?= $color ?> me-2">&nbsp;</span><?= $status ?></span>
+            <span><span class="badge bg-<?= $color ?> me-1">&nbsp;</span><?= $status ?></span>
             <strong><?= $docSummary[$status] ?? 0 ?></strong>
           </div>
           <?php endforeach; ?>
@@ -106,39 +102,40 @@
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Recent Documents -->
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Submissions</span>
-        <a href="<?= base_url('documents') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
-      </div>
-      <div class="card-body p-0">
-        <ul class="list-group list-group-flush">
-          <?php foreach ($recentDocs as $doc): ?>
-          <li class="list-group-item border-0 py-2 px-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="fw-semibold small"><?= e($doc['teacher_name']) ?></div>
-                <div class="text-muted" style="font-size:.72rem;"><?= e($doc['type']) ?> · <?= e($doc['subject']) ?></div>
-              </div>
-              <span class="status-pill <?= 'status-'.strtolower($doc['status']) === 'status-submitted' ? 'badge-submitted' : (strtolower($doc['status']) === 'reviewed' ? 'badge-reviewed' : 'badge-pending') ?>">
-                <?= e($doc['status']) ?>
-              </span>
-            </div>
-          </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    </div>
+<!-- Recent Documents -->
+<div class="card mb-4">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Submissions</span>
+    <a href="<?= base_url('documents') ?>" class="btn btn-sm btn-outline-secondary">View All</a>
+  </div>
+  <div class="card-body p-0">
+    <ul class="list-group list-group-flush">
+      <?php foreach ($recentDocs as $doc): ?>
+      <li class="list-group-item border-0 py-2 px-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold small"><?= e($doc['teacher_name']) ?></div>
+            <div class="text-muted" style="font-size:.72rem;"><?= e($doc['type']) ?> · <?= e($doc['subject']) ?></div>
+          </div>
+          <span class="status-pill <?= 'status-'.strtolower($doc['status']) === 'status-submitted' ? 'badge-submitted' : (strtolower($doc['status']) === 'reviewed' ? 'badge-reviewed' : 'badge-pending') ?>">
+            <?= e($doc['status']) ?>
+          </span>
+        </div>
+      </li>
+      <?php endforeach; ?>
+    </ul>
   </div>
 </div>
 
 <!-- Performance by Subject Table -->
 <div class="card">
-  <div class="card-header py-3 text-white" style="background:linear-gradient(135deg,#9d174d,#800000,#c2410c);">
+  <div class="card-header py-3 text-white d-flex align-items-center justify-content-between flex-wrap gap-2" style="background:linear-gradient(135deg,#9d174d,#800000,#c2410c);">
     <span class="fw-bold"><i class="bi bi-table me-2"></i>Performance by Learning Area</span>
+    <button type="button" id="perfViewAllBtn" class="btn btn-sm btn-outline-light" onclick="togglePerfBreakdown()">
+      <i class="bi bi-list-ul me-1"></i>View All
+    </button>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -149,7 +146,20 @@
             <th class="text-end">MPS</th><th class="text-center">Status</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="perfSummaryBody">
+          <?php foreach ($avgPerf as $p):
+            $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
+          ?>
+          <tr>
+            <td class="fw-semibold"><?= e($p['subject']) ?></td>
+            <td class="text-muted">All Grades</td>
+            <td class="text-muted">—</td>
+            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
+            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+        <tbody id="perfFullBody" class="d-none">
           <?php foreach ($allPerf as $p):
             $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
           ?>
@@ -171,6 +181,18 @@
 $extraScript = '<script>
 const maroon = "#800000", maroonLight = "#a52a2a", maroonDark = "#560000", crimson = "#dc143c";
 
+function togglePerfBreakdown() {
+  const summary = document.getElementById("perfSummaryBody");
+  const full = document.getElementById("perfFullBody");
+  const btn = document.getElementById("perfViewAllBtn");
+  const showingFull = !full.classList.contains("d-none");
+  full.classList.toggle("d-none", showingFull);
+  summary.classList.toggle("d-none", !showingFull);
+  btn.innerHTML = showingFull
+    ? "<i class=\\"bi bi-list-ul me-1\\"></i>View All"
+    : "<i class=\\"bi bi-collection me-1\\"></i>Collapse";
+}
+
 // Enrollment Chart
 new Chart(document.getElementById("enrollChart"), {
   type: "bar",
@@ -180,10 +202,10 @@ new Chart(document.getElementById("enrollChart"), {
       label: "Students",
       data: ' . json_encode(array_column($enrollment, 'students')) . ',
       backgroundColor: maroon,
-      borderRadius: 8,
+      borderRadius: 6,
     }]
   },
-  options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
 });
 
 // Performance Chart
@@ -192,11 +214,11 @@ new Chart(document.getElementById("perfChart"), {
   data: {
     labels: ' . json_encode(array_column($perfLevel, 'grade_level')) . ',
     datasets: [
-      { label:"MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:6 },
-      { label:"NDS", data:' . json_encode(array_column($perfLevel, 'nds')) . ', backgroundColor:maroonLight, borderRadius:6 }
+      { label:"MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:4 },
+      { label:"NDS", data:' . json_encode(array_column($perfLevel, 'nds')) . ', backgroundColor:maroonLight, borderRadius:4 }
     ]
   },
-  options: { responsive:true, scales:{y:{beginAtZero:false,min:60,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:60,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
 });
 
 // Document Pie
@@ -211,7 +233,7 @@ new Chart(document.getElementById("docChart"), {
       $docSummary['Returned']  ?? 0,
     ]) . '], backgroundColor:["#60a5fa","#34d399","#fbbf24","#f87171"], borderWidth:0 }]
   },
-  options: { responsive:true, cutout:"70%", plugins:{legend:{display:false}} }
+  options: { responsive:true, maintainAspectRatio:false, cutout:"70%", plugins:{legend:{display:false}} }
 });
 </script>';
 include APPPATH . 'Views/layout/footer.php';

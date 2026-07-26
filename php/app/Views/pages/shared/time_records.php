@@ -44,7 +44,7 @@
                  class="form-control border-start-0 ps-0" placeholder="Search name, ID, remarks...">
         </div>
 
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
           <option value="name_az" <?= $sort==='name_az' ? 'selected' : '' ?>>Name A-Z</option>
           <option value="status"  <?= $sort==='status'  ? 'selected' : '' ?>>Status</option>
           <option value="time_in" <?= $sort==='time_in' ? 'selected' : '' ?>>Time In</option>

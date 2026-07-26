@@ -23,6 +23,8 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
     $routes->get('documents/(:num)/file', 'Shared\DocumentFile::show/$1');
     $routes->get('documents/(:num)/download', 'Shared\DocumentFile::download/$1');
+    $routes->get('document-files/(:num)/download', 'Shared\DocumentFileDownload::show/$1');
+    $routes->get('document-files/(:num)/preview', 'Shared\DocumentFileDownload::preview/$1');
     $routes->get('performance', 'Admin\Performance::index');
     $routes->match(['get', 'post'], 'performance/mps', 'Teacher\PerformanceMps::index');
     $routes->post('performance/mps/import', 'Teacher\PerformanceMps::import');
@@ -31,6 +33,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->post('enrollment-kpis/import', 'Admin\EnrollmentKpis::import');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
     $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');
+    $routes->get('parent-meetings/(:num)/attendance-file', 'Shared\ParentMeetings::downloadAttendance/$1');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
