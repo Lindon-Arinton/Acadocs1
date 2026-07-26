@@ -55,7 +55,7 @@
       </a>
     </div>
     <?php elseif (hasRole('admin', 'adas')): ?>
-    <button type="button" class="btn btn-light btn-sm" onclick="openUploadModal(<?= (int) $tm['id'] ?>, <?= json_encode($tm['title']) ?>)">
+    <button type="button" class="btn btn-light btn-sm" onclick="openUploadModal(<?= (int) $tm['id'] ?>, <?= htmlspecialchars(json_encode($tm['title']), ENT_QUOTES) ?>)">
       <i class="bi bi-file-earmark-arrow-up me-1"></i>Add Attendance File
     </button>
     <?php endif; ?>
@@ -121,7 +121,7 @@
             <i class="bi bi-download me-1"></i><?= e($m['attendance_file_name']) ?>
           </a>
           <?php if (hasRole('admin', 'adas')): ?>
-          <button type="button" class="btn btn-outline-secondary btn-sm" title="Replace file" onclick="openUploadModal(<?= (int) $m['id'] ?>, <?= json_encode($m['title']) ?>)">
+          <button type="button" class="btn btn-outline-secondary btn-sm" title="Replace file" onclick="openUploadModal(<?= (int) $m['id'] ?>, <?= htmlspecialchars(json_encode($m['title']), ENT_QUOTES) ?>)">
             <i class="bi bi-arrow-repeat"></i>
           </button>
           <?php endif; ?>
@@ -129,7 +129,7 @@
         <?php else: ?>
         <p class="text-muted small mb-3"><i class="bi bi-hourglass-split me-1"></i>Attendance not yet recorded. Expected Parents: <?= number_format($m['expected_parents']) ?>.</p>
         <?php if (hasRole('admin', 'adas')): ?>
-        <button type="button" class="btn btn-maroon btn-sm w-100" onclick="openUploadModal(<?= (int) $m['id'] ?>, <?= json_encode($m['title']) ?>)">
+        <button type="button" class="btn btn-maroon btn-sm w-100" onclick="openUploadModal(<?= (int) $m['id'] ?>, <?= htmlspecialchars(json_encode($m['title']), ENT_QUOTES) ?>)">
           <i class="bi bi-file-earmark-arrow-up me-1"></i>Upload Attendance File
         </button>
         <?php endif; ?>

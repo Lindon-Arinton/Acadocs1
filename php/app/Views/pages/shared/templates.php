@@ -224,6 +224,16 @@ include APPPATH . 'Views/layout/header.php';
                   </ul>
                   <?php endif; ?>
                 </div>
+                <?php if ($canManage && $t['file_ext'] === 'docx'): ?>
+                <button type="button" class="btn btn-sm flex-fill" style="background:#15803d;color:#fff;"
+                        onclick='openCertificateModal(<?= json_encode([
+                            'id'     => (int) $t['id'],
+                            'title'  => $t['title'],
+                            'fields' => $certificateFields[$t['id']] ?? [],
+                        ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                  <i class="bi bi-file-earmark-spreadsheet me-1"></i>Import Data
+                </button>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -345,9 +355,62 @@ include APPPATH . 'Views/layout/header.php';
   </div>
 </div>
 
+<?php if ($canManage): ?>
+<!-- Generate Certificates Modal -->
+<div class="modal fade" id="certificateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-patch-check me-2"></i>Generate Certificates</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="certificateForm" method="POST" enctype="multipart/form-data">
+        <div class="modal-body">
+          <p class="text-muted mb-3" style="font-size:.82rem;">
+            Fills <strong id="certificateTemplateTitle"></strong> once for every row in the Excel file below,
+            then bundles every generated certificate into one ZIP.
+          </p>
+
+          <div class="mb-3" id="certificateFieldsWrap">
+            <label class="form-label small fw-semibold mb-1">Fields this template will fill in</label>
+            <div id="certificateFieldsList"></div>
+          </div>
+
+          <div class="alert alert-warning py-2 px-3 mb-3 d-none" style="font-size:.8rem;" id="certificateNoFieldsAlert">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            This template has no <code>&#36;{Field}</code>-style placeholders yet, so there's nothing to fill in.
+            Open it in Word and add some (e.g. <code>&#36;{Name}</code>) first.
+          </div>
+
+          <input type="hidden" name="template_id" id="certificateTemplateId">
+          <div class="mb-1">
+            <label class="form-label">Recipient list (Excel)</label>
+            <input type="file" name="import_file" id="certificateExcelInput" class="form-control" accept=".xlsx,.xls" required>
+            <p class="text-muted mt-1 mb-0" style="font-size:.75rem;">
+              First row = column headers matching the field names above (punctuation/spacing is ignored when matching).
+              One certificate is generated per row after that.
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="certificateSubmitBtn">
+            <i class="bi bi-file-earmark-zip me-1"></i>Generate &amp; Download ZIP
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php
 $extraScript = "<script>
-const TEMPLATES_PREVIEW_BASE = '" . base_url('templates/preview/') . "';
+// var, not const: this script gets re-injected verbatim on every AJAX
+// navigation to/within this page (see runPageScript() in footer.php), and a
+// top-level const would collide with the one the first real load already
+// declared in the shared global scope.
+var TEMPLATES_PREVIEW_BASE = '" . base_url('templates/preview/') . "';
 
 function escapeHtml(str) {
     const div = document.createElement('div');
@@ -355,8 +418,8 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
-const OFFICE_PREVIEW_EXT = ['doc','docx','xls','xlsx','ppt','pptx','csv','odt','ods','odp'];
-const FORMAT_LABELS = { pdf: 'PDF', docx: 'Word' };
+var OFFICE_PREVIEW_EXT = ['doc','docx','xls','xlsx','ppt','pptx','csv','odt','ods','odp'];
+var FORMAT_LABELS = { pdf: 'PDF', docx: 'Word' };
 
 function previewTemplate(t) {
     document.getElementById('previewModalTitle').innerHTML = '<i class=\"bi bi-eye me-2\"></i>' + escapeHtml(t.title);
@@ -455,6 +518,90 @@ function autofillTemplateTitle(fileInput) {
     const name = fileInput.files[0].name;
     const withoutExt = name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
     document.getElementById('uploadTitleInput').value = withoutExt;
+}
+
+function openCertificateModal(t) {
+    document.getElementById('certificateTemplateTitle').textContent = t.title;
+    document.getElementById('certificateTemplateId').value = t.id;
+    document.getElementById('certificateExcelInput').value = '';
+
+    const fields = t.fields || [];
+    const listEl = document.getElementById('certificateFieldsList');
+    listEl.innerHTML = fields.map(function (f) {
+        return '<span class=\"badge me-1 mb-1\" style=\"background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;font-weight:500;\">' + escapeHtml(f) + '</span>';
+    }).join('');
+
+    document.getElementById('certificateFieldsWrap').classList.toggle('d-none', fields.length === 0);
+    document.getElementById('certificateNoFieldsAlert').classList.toggle('d-none', fields.length > 0);
+    document.getElementById('certificateSubmitBtn').disabled = fields.length === 0;
+
+    new bootstrap.Modal(document.getElementById('certificateModal')).show();
+}
+
+function certificateFileNameFrom(disposition) {
+    if (!disposition) return 'certificates.zip';
+    const match = disposition.match(/filename=\"?([^\";]+)\"?/);
+    return match ? match[1] : 'certificates.zip';
+}
+
+var certificateForm = document.getElementById('certificateForm');
+if (certificateForm) {
+    certificateForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(certificateForm);
+
+        Swal.fire({
+            title: 'Generating certificates...',
+            html: 'Filling in the template for each recipient row. This can take a moment for larger lists.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: function () { Swal.showLoading(); },
+        });
+
+        fetch('" . base_url('templates/certificates/generate') . "', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        }).then(function (res) {
+            const contentType = res.headers.get('Content-Type') || '';
+
+            if (contentType.indexOf('application/json') !== -1) {
+                return res.json().then(function (data) {
+                    throw new Error(data.message || 'Something went wrong.');
+                });
+            }
+            if (!res.ok) {
+                throw new Error('Something went wrong. Please try again.');
+            }
+
+            const count      = res.headers.get('X-Certificate-Count');
+            const unmatched  = res.headers.get('X-Certificate-Unmatched-Fields');
+            const fileName   = certificateFileNameFrom(res.headers.get('Content-Disposition'));
+
+            return res.blob().then(function (blob) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                const modalEl = document.getElementById('certificateModal');
+                bootstrap.Modal.getInstance(modalEl) && bootstrap.Modal.getInstance(modalEl).hide();
+
+                let text = (count || '') + ' certificate(s) downloaded as ' + fileName + '.';
+                if (unmatched) {
+                    text += ' No matching column for: ' + unmatched + ' (left blank in every certificate).';
+                }
+
+                Swal.fire({ icon: 'success', title: 'Certificates generated', text: text });
+            });
+        }).catch(function (err) {
+            Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Something went wrong. Please try again.' });
+        });
+    });
 }
 
 initLiveSearch('templateSearchInput', 'filterForm');

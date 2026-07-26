@@ -61,9 +61,6 @@
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
           <i class="bi bi-upload me-1"></i>Import
         </button>
-        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-          <i class="bi bi-plus-lg me-1"></i>Add Record
-        </button>
         <?php endif; ?>
       </div>
     </div>
@@ -170,72 +167,6 @@
           <?php endif; ?>
         </tbody>
       </table>
-    </div>
-  </div>
-</div>
-
-<!-- Add Record Modal -->
-<div class="modal fade" id="addModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header gradient">
-        <h6 class="modal-title"><i class="bi bi-clock me-2"></i>Add Time Record</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form">
-        <input type="hidden" name="action" value="add">
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-6">
-              <label class="form-label">Date</label>
-              <div class="maroon-dp">
-                <input type="text" class="form-control maroon-dp-display" placeholder="Select date" readonly required>
-                <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
-                <div class="maroon-dp-panel">
-                  <div class="maroon-dp-header">
-                    <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
-                    <span class="maroon-dp-month-label"></span>
-                    <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
-                  </div>
-                  <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
-                  <div class="maroon-dp-grid"></div>
-                </div>
-              </div>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Employee ID</label>
-              <input type="text" name="employee_id" class="form-control" placeholder="T-001" required>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Employee Name</label>
-              <input type="text" name="employee_name" class="form-control" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Time In</label>
-              <input type="time" name="time_in" class="form-control">
-            </div>
-            <div class="col-6">
-              <label class="form-label">Time Out</label>
-              <input type="time" name="time_out" class="form-control">
-            </div>
-            <div class="col-6">
-              <label class="form-label">Status</label>
-              <select name="status" class="form-select">
-                <option>Present</option><option>Late</option>
-                <option>Absent</option><option>On Leave</option>
-              </select>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Remarks</label>
-              <input type="text" name="remarks" class="form-control">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Record</button>
-        </div>
-      </form>
     </div>
   </div>
 </div>
@@ -384,8 +315,47 @@
 <?php endif; ?>
 
 <?php
-$extraScript = <<<'HTML'
+$holidayMap = [];
+foreach ($holidays as $h) {
+    $holidayMap[$h['date']] = $h['label'] ?: 'Holiday';
+}
+$holidayMapJson  = json_encode($holidayMap);
+$dateFilterJson  = json_encode($dateFilter);
+$canManageHolidays = hasRole('admin', 'adas') ? 'true' : 'false';
+
+$extraScript = <<<HTML
 <script>
+// Values are read inside the function body (not as top-level const/let)
+// because this script gets re-injected on every AJAX filter navigation on
+// this same page — a top-level const here would collide with the one the
+// first real page load already declared in the shared global scope.
+function maybeShowHolidayAlert() {
+    var holidayMap        = {$holidayMapJson};
+    var currentDateFilter = {$dateFilterJson};
+    var canManageHolidays = {$canManageHolidays};
+    var label = holidayMap[currentDateFilter];
+    if (label === undefined) return;
+
+    var niceDate = new Date(currentDateFilter + 'T00:00:00')
+        .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+    Swal.fire({
+        icon: 'info',
+        title: niceDate + ' is a holiday',
+        text: label,
+        showDenyButton: canManageHolidays,
+        confirmButtonText: canManageHolidays ? 'Manage Holidays' : 'Close',
+        denyButtonText: 'Close',
+        confirmButtonColor: '#800000',
+        denyButtonColor: '#6b7280',
+    }).then(function (result) {
+        if (canManageHolidays && result.isConfirmed) {
+            new bootstrap.Modal(document.getElementById('holidaysModal')).show();
+        }
+    });
+}
+maybeShowHolidayAlert();
+
 function editRecord(r) {
     document.getElementById('editId').value      = r.id;
     document.getElementById('editName').textContent = r.employee_name;

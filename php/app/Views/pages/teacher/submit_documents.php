@@ -22,18 +22,25 @@
       <div class="card-body">
         <?php if (!$teacher): ?>
         <div class="alert alert-warning small">Your account is not linked to a teacher profile.</div>
+        <?php elseif (empty($openTasks)): ?>
+        <div class="alert alert-warning small mb-0">
+          <i class="bi bi-info-circle me-1"></i>No open tasks assigned to you by the principal yet. Check
+          <a href="<?= base_url('my-tasks') ?>">My Tasks</a> once one is posted.
+        </div>
         <?php else: ?>
         <form method="POST" action="<?= base_url('submit-documents') ?>" class="ajax-form"
               enctype="multipart/form-data"
               data-confirm-action="add" data-confirm-title="Submit this document?"
               data-confirm-text="It will be sent for review and cannot be edited afterward.">
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Document Type</label>
-            <select name="type" class="form-select form-select-sm">
-              <option>DLL</option>
-              <option>Lesson Plan</option>
-              <option>Assessment</option>
-              <option>Report</option>
+            <label class="form-label small fw-semibold">Task (assigned by principal)</label>
+            <select name="task_id" class="form-select form-select-sm" required>
+              <option value="">Select a task…</option>
+              <?php foreach ($openTasks as $t): ?>
+              <option value="<?= (int) $t['id'] ?>">
+                <?= e($t['title']) ?> — Due <?= date('M d, Y', strtotime($t['deadline'])) ?>
+              </option>
+              <?php endforeach; ?>
             </select>
           </div>
           <div class="mb-3">
