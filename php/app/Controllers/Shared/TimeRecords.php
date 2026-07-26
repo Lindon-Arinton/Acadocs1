@@ -25,18 +25,7 @@ class TimeRecords extends BaseController
             $message = null;
 
             try {
-                if ($action === 'add') {
-                    $model->insert([
-                        'date'          => $this->request->getPost('date'),
-                        'employee_name' => $this->request->getPost('employee_name'),
-                        'employee_id'   => $this->request->getPost('employee_id'),
-                        'time_in'       => $this->request->getPost('time_in') ?: null,
-                        'time_out'      => $this->request->getPost('time_out') ?: null,
-                        'status'        => $this->request->getPost('status'),
-                        'remarks'       => $this->request->getPost('remarks') ?? '',
-                    ]);
-                    $message = 'Time record added.';
-                } elseif ($action === 'update') {
+                if ($action === 'update') {
                     $model->update((int) $this->request->getPost('id'), [
                         'time_in'  => $this->request->getPost('time_in') ?: null,
                         'time_out' => $this->request->getPost('time_out') ?: null,
