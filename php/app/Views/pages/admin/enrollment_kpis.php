@@ -38,7 +38,7 @@
       <i class="bi bi-exclamation-triangle fs-5" style="color:#a52a2a"></i>
       <div>
         <div class="fw-bold" id="kpiCardValue-dropout" style="font-size:1.1rem;color:#a52a2a;line-height:1.1;">—</div>
-        <div class="text-muted" style="font-size:.72rem;">Drop-Out Rate</div>
+        <div class="text-muted" style="font-size:.72rem;">Drop-Out Rate <span id="kpiCardYearNote-dropout" class="fst-italic"></span></div>
       </div>
     </div>
   </div>
@@ -213,6 +213,18 @@ function findDepedKpiForYear(year) {
   return DEPED_KPI_DATA.find(r => r.school_year === year) || null;
 }
 
+// Not every year in the School Year filter has a DepEd KPI report imported yet
+// (the filter also includes years that only have enrollment headcounts) — the
+// bar/line/pie charts below already plot every year that DOES have KPI data,
+// which is why they show bars even when the selected year has none. Falling
+// back to the latest reported year, with a note, keeps the card from reading
+// "No data" while the charts clearly are not empty.
+function latestDepedKpiRow() {
+  const sorted = [...DEPED_KPI_DATA].sort((a, b) => b.school_year.localeCompare(a.school_year));
+
+  return sorted[0] || null;
+}
+
 function findEnrollmentTotalForYear(year) {
   return ENROLLMENT_TOTALS_DATA.find(r => r.school_year === year) || null;
 }
@@ -225,7 +237,16 @@ function formatKpiValue(row, field, unit) {
 
 function renderKpiCards(year) {
   document.getElementById("kpiCardValue-enrollees").textContent = formatKpiValue(findEnrollmentTotalForYear(year), "total", "");
-  document.getElementById("kpiCardValue-dropout").textContent = formatKpiValue(findDepedKpiForYear(year), "dropout_rate", "%");
+
+  const yearNoteEl  = document.getElementById("kpiCardYearNote-dropout");
+  let dropoutRow    = findDepedKpiForYear(year);
+  if (dropoutRow) {
+    yearNoteEl.textContent = "";
+  } else {
+    dropoutRow = latestDepedKpiRow();
+    yearNoteEl.textContent = dropoutRow ? "(SY " + dropoutRow.school_year + ")" : "";
+  }
+  document.getElementById("kpiCardValue-dropout").textContent = formatKpiValue(dropoutRow, "dropout_rate", "%");
   // Average MPS is not tied to the year filter above — it comes from Performance
   // Analytics data for the only year with real scores.
   document.getElementById("kpiCardValue-mps").textContent = MPS_OVERALL_AVG !== null ? MPS_OVERALL_AVG.toFixed(2) + "%" : "No data";
