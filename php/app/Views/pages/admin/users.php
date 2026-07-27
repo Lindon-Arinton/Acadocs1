@@ -21,12 +21,16 @@
           <input type="text" name="q" id="userSearchInput" value="<?= e($search) ?>" placeholder="Search by name or email..."
                  class="form-control border-start-0 ps-0">
         </div>
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-          <option value="role"    <?= $sort==='role'    ? 'selected' : '' ?>>Role</option>
-          <option value="name_az" <?= $sort==='name_az' ? 'selected' : '' ?>>Name A-Z</option>
-          <option value="newest"  <?= $sort==='newest'  ? 'selected' : '' ?>>Newest First</option>
-          <option value="oldest"  <?= $sort==='oldest'  ? 'selected' : '' ?>>Oldest First</option>
-        </select>
+        <div class="maroon-select maroon-select-sm" style="width:auto;">
+          <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <option value="role"    <?= $sort==='role'    ? 'selected' : '' ?>>Role</option>
+            <option value="name_az" <?= $sort==='name_az' ? 'selected' : '' ?>>Name A-Z</option>
+            <option value="newest"  <?= $sort==='newest'  ? 'selected' : '' ?>>Newest First</option>
+            <option value="oldest"  <?= $sort==='oldest'  ? 'selected' : '' ?>>Oldest First</option>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
       </form>
       <button class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addUserModal">
         <i class="bi bi-person-plus me-1"></i>Add User
@@ -130,11 +134,15 @@
             </div>
             <div class="col-6">
               <label class="form-label">Role</label>
-              <select name="role" class="form-select">
-                <option value="teacher">Teacher</option>
-                <option value="adas">ADAS</option>
-                <option value="admin">Admin</option>
-              </select>
+              <div class="maroon-select" style="width:100%;">
+                <select name="role" class="maroon-select-native">
+                  <option value="teacher">Teacher</option>
+                  <option value="adas">ADAS</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-6">
               <label class="form-label">Password</label>

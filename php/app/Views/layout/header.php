@@ -320,6 +320,11 @@ try {
       <?php endif; ?>
     </a>
 
+    <!-- Announcements Shortcut -->
+    <a href="<?= base_url('announcements') ?>" class="notif-btn" title="Announcements">
+      <i class="bi bi-megaphone fs-5"></i>
+    </a>
+
     <!-- Notification Bell -->
     <div class="position-relative">
       <button class="notif-btn" onclick="toggleNotif(event)" title="Notifications">
@@ -368,7 +373,7 @@ try {
 
     <!-- User chip / Profile dropdown -->
     <div class="dropdown ps-2 border-start">
-      <button type="button" class="btn d-flex align-items-center gap-2 p-0 border-0 bg-transparent" data-bs-toggle="dropdown" aria-expanded="false">
+      <button type="button" class="btn d-flex align-items-center gap-2 profile-dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
         <?php if ($photoUrl): ?>
         <img src="<?= e($photoUrl) ?>" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
         <?php else: ?>

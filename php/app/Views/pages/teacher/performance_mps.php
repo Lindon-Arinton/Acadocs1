@@ -32,19 +32,27 @@
     <form method="GET" action="<?= base_url('performance/mps') ?>" class="d-flex align-items-center gap-3 flex-wrap">
       <div class="d-flex align-items-center gap-2">
         <label class="small fw-semibold text-muted mb-0">School Year:</label>
-        <select name="year" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-          <?php foreach ($years as $y): ?>
-          <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-          <?php endforeach; ?>
-        </select>
+        <div class="maroon-select maroon-select-sm" style="width:auto;">
+          <select name="year" class="maroon-select-native" onchange="this.form.submit()">
+            <?php foreach ($years as $y): ?>
+            <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
       </div>
       <div class="d-flex align-items-center gap-2">
         <label class="small fw-semibold text-muted mb-0">Term:</label>
-        <select name="term" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-          <?php foreach ($terms as $t): ?>
-          <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
-          <?php endforeach; ?>
-        </select>
+        <div class="maroon-select maroon-select-sm" style="width:auto;">
+          <select name="term" class="maroon-select-native" onchange="this.form.submit()">
+            <?php foreach ($terms as $t): ?>
+            <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
+            <?php endforeach; ?>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
       </div>
     </form>
   </div>
@@ -117,19 +125,27 @@
           <div class="row g-2 mb-2">
             <div class="col-6">
               <label class="form-label">School Year</label>
-              <select name="school_year" class="form-select form-select-sm" required>
-                <?php foreach ($years as $y): ?>
-                <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-                <?php endforeach; ?>
-              </select>
+              <div class="maroon-select maroon-select-sm" style="width:100%;">
+                <select name="school_year" class="maroon-select-native" required>
+                  <?php foreach ($years as $y): ?>
+                  <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-6">
               <label class="form-label">Term</label>
-              <select name="term" class="form-select form-select-sm" required>
-                <?php foreach ($terms as $t): ?>
-                <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
-                <?php endforeach; ?>
-              </select>
+              <div class="maroon-select maroon-select-sm" style="width:100%;">
+                <select name="term" class="maroon-select-native" required>
+                  <?php foreach ($terms as $t): ?>
+                  <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
           </div>
           <div class="mb-3">

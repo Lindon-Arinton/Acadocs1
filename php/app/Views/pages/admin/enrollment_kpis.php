@@ -13,11 +13,15 @@
       </button>
       <?php endif; ?>
       <label class="text-white small fw-semibold" for="year-filter">School Year:</label>
-      <select id="year-filter" class="form-select form-select-sm" style="width:auto;">
-        <?php foreach ($years as $y): ?>
-          <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select id="year-filter" class="maroon-select-native">
+          <?php foreach ($years as $y): ?>
+            <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
     </div>
   </div>
 </div>

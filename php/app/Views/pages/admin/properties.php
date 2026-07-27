@@ -55,34 +55,46 @@ include APPPATH . 'Views/layout/header.php';
       <form method="GET" action="<?= base_url('property-management') ?>" id="filterForm" class="d-flex align-items-center gap-3 flex-wrap">
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-building text-muted"></i>
-          <select name="building" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-            <option value="all" <?= $building==='all'?'selected':'' ?>>All Buildings</option>
-            <?php foreach ($buildings as $b): ?>
-            <option value="<?= e($b) ?>" <?= $building===$b?'selected':'' ?>><?= e($b) ?></option>
-            <?php endforeach; ?>
-          </select>
+          <div class="maroon-select maroon-select-sm" style="width:auto;">
+            <select name="building" class="maroon-select-native" onchange="this.form.requestSubmit()">
+              <option value="all" <?= $building==='all'?'selected':'' ?>>All Buildings</option>
+              <?php foreach ($buildings as $b): ?>
+              <option value="<?= e($b) ?>" <?= $building===$b?'selected':'' ?>><?= e($b) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+            <div class="maroon-select-panel"></div>
+          </div>
         </div>
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-funnel text-muted"></i>
-          <select name="condition" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-            <option value="all" <?= $condition==='all'?'selected':'' ?>>All Conditions</option>
-            <?php foreach ($conditions as $c): ?>
-            <option value="<?= $c ?>" <?= $condition===$c?'selected':'' ?>><?= $c ?></option>
-            <?php endforeach; ?>
-          </select>
+          <div class="maroon-select maroon-select-sm" style="width:auto;">
+            <select name="condition" class="maroon-select-native" onchange="this.form.requestSubmit()">
+              <option value="all" <?= $condition==='all'?'selected':'' ?>>All Conditions</option>
+              <?php foreach ($conditions as $c): ?>
+              <option value="<?= $c ?>" <?= $condition===$c?'selected':'' ?>><?= $c ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+            <div class="maroon-select-panel"></div>
+          </div>
         </div>
         <div class="input-group input-group-sm" style="max-width:220px;">
           <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
           <input type="text" name="q" id="propSearchInput" value="<?= e($search) ?>"
                  class="form-control border-start-0 ps-0" placeholder="Search room, item, remarks...">
         </div>
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-          <option value="building_az" <?= $sort==='building_az' ? 'selected' : '' ?>>Building A-Z</option>
-          <option value="item_az"     <?= $sort==='item_az'     ? 'selected' : '' ?>>Item Name A-Z</option>
-          <option value="condition"   <?= $sort==='condition'   ? 'selected' : '' ?>>Condition</option>
-          <option value="qty_desc"    <?= $sort==='qty_desc'    ? 'selected' : '' ?>>Quantity (High-Low)</option>
-          <option value="inspected"   <?= $sort==='inspected'   ? 'selected' : '' ?>>Recently Inspected</option>
-        </select>
+        <div class="maroon-select maroon-select-sm" style="width:auto;">
+          <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <option value="building_az" <?= $sort==='building_az' ? 'selected' : '' ?>>Building A-Z</option>
+            <option value="item_az"     <?= $sort==='item_az'     ? 'selected' : '' ?>>Item Name A-Z</option>
+            <option value="condition"   <?= $sort==='condition'   ? 'selected' : '' ?>>Condition</option>
+            <option value="qty_desc"    <?= $sort==='qty_desc'    ? 'selected' : '' ?>>Quantity (High-Low)</option>
+            <option value="inspected"   <?= $sort==='inspected'   ? 'selected' : '' ?>>Recently Inspected</option>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
       </form>
       <div class="ms-auto d-flex gap-2 align-items-center">
         <span class="text-muted" style="font-size:.78rem;"><?= count($items) ?> items · <?= $totalItems ?> total units</span>
@@ -183,9 +195,13 @@ include APPPATH . 'Views/layout/header.php';
             </div>
             <div class="col-6">
               <label class="form-label">Condition</label>
-              <select name="condition_status" class="form-select">
-                <option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option>
-              </select>
+              <div class="maroon-select" style="width:100%;">
+                <select name="condition_status" class="maroon-select-native">
+                  <option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-6">
               <label class="form-label">Last Inspection</label>

@@ -35,11 +35,15 @@
           <input type="text" name="q" id="announcementSearchInput" value="<?= e($search) ?>"
                  class="form-control border-start-0 ps-0" placeholder="Search title, content...">
         </div>
-        <select name="sort" class="form-select form-select-sm" style="width:auto;" onchange="this.form.requestSubmit()">
-          <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Newest First</option>
-          <option value="oldest"   <?= $sort==='oldest'   ? 'selected' : '' ?>>Oldest First</option>
-          <option value="title_az" <?= $sort==='title_az' ? 'selected' : '' ?>>Title A-Z</option>
-        </select>
+        <div class="maroon-select maroon-select-sm" style="width:auto;">
+          <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Newest First</option>
+            <option value="oldest"   <?= $sort==='oldest'   ? 'selected' : '' ?>>Oldest First</option>
+            <option value="title_az" <?= $sort==='title_az' ? 'selected' : '' ?>>Title A-Z</option>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
       </div>
     </form>
 
@@ -111,11 +115,15 @@
           <input type="hidden" name="action" value="add">
           <div class="mb-3">
             <label class="form-label">Type</label>
-            <select name="type" class="form-select">
-              <option>Announcement</option>
-              <option>Questionnaires</option>
-              <option>Forms</option>
-            </select>
+            <div class="maroon-select" style="width:100%;">
+              <select name="type" class="maroon-select-native">
+                <option>Announcement</option>
+                <option>Questionnaires</option>
+                <option>Forms</option>
+              </select>
+              <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+              <div class="maroon-select-panel"></div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label">Title</label>

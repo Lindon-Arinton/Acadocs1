@@ -20,13 +20,17 @@
         <input type="text" id="taskSearchInput" placeholder="Search tasks by title..."
                class="form-control border-start-0 ps-0" autocomplete="off">
       </div>
-      <select id="taskDueFilter" class="form-select form-select-sm" style="width:auto;">
-        <option value="all">All Due Dates</option>
-        <option value="overdue">Overdue</option>
-        <option value="today">Due Today</option>
-        <option value="week">Due This Week</option>
-        <option value="month">Due This Month</option>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select id="taskDueFilter" class="maroon-select-native">
+          <option value="all">All Due Dates</option>
+          <option value="overdue">Overdue</option>
+          <option value="today">Due Today</option>
+          <option value="week">Due This Week</option>
+          <option value="month">Due This Month</option>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
     </div>
   </div>
 </div>

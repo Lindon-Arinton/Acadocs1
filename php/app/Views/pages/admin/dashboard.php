@@ -9,12 +9,16 @@
     </div>
     <div class="d-flex align-items-center gap-2">
       <label class="text-white small fw-semibold mb-0" for="dashboard-year-filter">School Year:</label>
-      <select id="dashboard-year-filter" class="form-select form-select-sm" style="width:auto;"
-              onchange="location.href='<?= base_url('dashboard') ?>?year=' + encodeURIComponent(this.value)">
-        <?php foreach ($years as $y): ?>
-        <option value="<?= e($y) ?>" <?= $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <div class="maroon-select maroon-select-sm" style="width:auto;">
+        <select id="dashboard-year-filter" class="maroon-select-native"
+                onchange="location.href='<?= base_url('dashboard') ?>?year=' + encodeURIComponent(this.value)">
+          <?php foreach ($years as $y): ?>
+          <option value="<?= e($y) ?>" <?= $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
       <span class="badge rounded-pill px-3 py-2" style="background:rgba(255,255,255,.2);font-size:.8rem;">
         <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;vertical-align:middle;"></i>Live Data
       </span>
