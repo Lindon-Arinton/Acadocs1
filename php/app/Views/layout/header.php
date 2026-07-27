@@ -55,7 +55,17 @@ $chatNavBadge = $unreadChatCount > 0
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
+<link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+// Applied before first paint (this early, inline, in <head>) so the page
+// never flashes light before switching to a saved dark preference.
+(function () {
+    var saved = localStorage.getItem('theme');
+    var theme = saved === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-bs-theme', theme);
+})();
+</script>
 <?php if (isset($extraHead)) echo $extraHead; ?>
 </head>
 <body>
@@ -72,7 +82,7 @@ $chatNavBadge = $unreadChatCount > 0
   <!-- Brand -->
   <button id="sidebar-brand-toggle" class="sidebar-brand" type="button" onclick="toggleCollapse()" title="Toggle sidebar" aria-expanded="true">
     <div class="sidebar-brand-icon">
-      <i class="bi bi-mortarboard-fill fs-6"></i>
+      <img src="<?= base_url('assets/img/logo-icon.png') ?>" alt="ACADOCS">
     </div>
     <div class="sidebar-brand-text">
       <h6>ACADOCS</h6>
@@ -316,6 +326,11 @@ $chatNavBadge = $unreadChatCount > 0
 
   <!-- Actions -->
   <div class="d-flex align-items-center gap-2 ms-auto">
+    <!-- Dark mode toggle -->
+    <button type="button" class="notif-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark mode">
+      <i class="bi bi-moon-stars fs-5" id="theme-toggle-icon"></i>
+    </button>
+
     <!-- Chat Shortcut -->
     <a href="<?= base_url('chat') ?>" class="notif-btn" title="Chat">
       <i class="bi bi-chat-dots fs-5"></i>
@@ -381,7 +396,7 @@ $chatNavBadge = $unreadChatCount > 0
         </div>
         <?php endif; ?>
         <div class="d-none d-sm-block text-start">
-          <div style="font-size:.78rem;font-weight:600;color:#111;"><?= e($user['name'] ?? '') ?></div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--text);"><?= e($user['name'] ?? '') ?></div>
           <div style="font-size:.68rem;color:var(--muted);"><?= e(ucfirst($role)) ?></div>
         </div>
         <i class="bi bi-chevron-down d-none d-sm-inline text-muted" style="font-size:.65rem;"></i>

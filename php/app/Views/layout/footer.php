@@ -4,6 +4,27 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
 <script>
+/* ── Dark mode toggle (persisted; data-bs-theme also drives Bootstrap's
+   own dark styling for modals/dropdowns/forms) ──────────────────── */
+const THEME_KEY = 'theme';
+
+function syncThemeIcon() {
+    const icon = document.getElementById('theme-toggle-icon');
+    if (!icon) return;
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    icon.className = isDark ? 'bi bi-sun fs-5' : 'bi bi-moon-stars fs-5';
+}
+
+function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-bs-theme', next);
+    localStorage.setItem(THEME_KEY, next);
+    syncThemeIcon();
+}
+
+syncThemeIcon();
+
 /* ── Sidebar collapse (desktop) ──────────────────────────── */
 const COLLAPSED_KEY = 'sidebar_collapsed';
 const sidebar = document.getElementById('sidebar');
@@ -257,6 +278,59 @@ function initLiveSearch(inputId, formId, delay = 500) {
         clearTimeout(timer);
         timer = setTimeout(() => form.requestSubmit(), delay);
     });
+}
+
+/* ── Instant client-side table filter (no server round-trip, filters rows
+   already on the page as you type) ── */
+function initInstantFilter(inputId, tableId, options = {}) {
+    const input = document.getElementById(inputId);
+    const table = document.getElementById(tableId);
+    const tbody = table?.tBodies[0];
+    if (!input || !tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll(':scope > tr'));
+    const columnCount = table.querySelectorAll('thead tr:last-child th').length || 1;
+
+    let emptyRow = null;
+    function getEmptyRow() {
+        if (!emptyRow) {
+            emptyRow = document.createElement('tr');
+            emptyRow.className = 'instant-filter-empty-row';
+            const td = document.createElement('td');
+            td.colSpan = columnCount;
+            td.className = 'text-center text-muted py-4';
+            td.textContent = options.emptyText || 'No matching results.';
+            emptyRow.appendChild(td);
+        }
+        return emptyRow;
+    }
+
+    function applyFilter() {
+        const term = input.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const matches = term === '' || row.textContent.toLowerCase().includes(term);
+            row.classList.toggle('d-none', !matches);
+            if (matches) visibleCount++;
+        });
+
+        const empty = getEmptyRow();
+        if (visibleCount === 0 && rows.length > 0) {
+            if (!empty.isConnected) tbody.appendChild(empty);
+        } else if (empty.isConnected) {
+            empty.remove();
+        }
+
+        if (options.counterId) {
+            const counter = document.getElementById(options.counterId);
+            if (counter) {
+                counter.textContent = options.counterLabel ? options.counterLabel(visibleCount) : visibleCount;
+            }
+        }
+    }
+
+    input.addEventListener('input', applyFilter);
 }
 
 /* ── Maroon date picker (replaces native <input type=date>) ── */
