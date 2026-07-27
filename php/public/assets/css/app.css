@@ -47,6 +47,20 @@
   color-scheme: dark;
 }
 
+/* Bootstrap's bg-white/bg-light/text-dark utilities are hardcoded with
+   !important and ignore data-bs-theme, so card headers/footers and
+   input-group icon boxes built with them stay stuck white. Override
+   them to follow our theme variables instead. */
+[data-bs-theme="dark"] .bg-white {
+  background-color: var(--card) !important;
+}
+[data-bs-theme="dark"] .bg-light {
+  background-color: var(--surface-hover) !important;
+}
+[data-bs-theme="dark"] .text-dark {
+  color: var(--text) !important;
+}
+
 /* ── Reset / Base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
