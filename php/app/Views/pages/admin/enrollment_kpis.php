@@ -32,7 +32,7 @@
     <div class="kpi-card kpi-card-clickable kpi-card-compact active d-flex align-items-center gap-2" data-metric="enrollees" onclick="selectKpiMetric('enrollees')">
       <i class="bi bi-people-fill fs-5" style="color:#800000"></i>
       <div>
-        <div class="fw-bold" id="kpiCardValue-enrollees" style="font-size:1.1rem;color:#800000;line-height:1.1;">—</div>
+        <div class="fw-bold" id="kpiCardValue-enrollees" style="font-size:1.1rem;color:var(--text);line-height:1.1;">—</div>
         <div class="text-muted" style="font-size:.72rem;">Total Enrollees (all grade levels)</div>
       </div>
     </div>
@@ -41,7 +41,7 @@
     <div class="kpi-card kpi-card-clickable kpi-card-compact d-flex align-items-center gap-2" data-metric="dropout" onclick="selectKpiMetric('dropout')">
       <i class="bi bi-exclamation-triangle fs-5" style="color:#a52a2a"></i>
       <div>
-        <div class="fw-bold" id="kpiCardValue-dropout" style="font-size:1.1rem;color:#a52a2a;line-height:1.1;">—</div>
+        <div class="fw-bold" id="kpiCardValue-dropout" style="font-size:1.1rem;color:var(--text);line-height:1.1;">—</div>
         <div class="text-muted" style="font-size:.72rem;">Drop-Out Rate <span id="kpiCardYearNote-dropout" class="fst-italic"></span></div>
       </div>
     </div>
@@ -50,7 +50,7 @@
     <div class="kpi-card kpi-card-clickable kpi-card-compact d-flex align-items-center gap-2" data-metric="mps" onclick="selectKpiMetric('mps')">
       <i class="bi bi-graph-up fs-5" style="color:#560000"></i>
       <div>
-        <div class="fw-bold" id="kpiCardValue-mps" style="font-size:1.1rem;color:#560000;line-height:1.1;">
+        <div class="fw-bold" id="kpiCardValue-mps" style="font-size:1.1rem;color:var(--text);line-height:1.1;">
           <?= $mpsOverallAvg !== null ? number_format($mpsOverallAvg, 2) . '%' : 'No data' ?>
         </div>
         <div class="text-muted" style="font-size:.72rem;">Average MPS (SY <?= e($mpsSourceYear) ?>)</div>
@@ -294,7 +294,7 @@ function buildOneKpiChart(kind, canvasId, emptyId, emptyTextId, cfg, labels, val
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: type === "pie", position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } },
-      scales: type === "pie" ? {} : { y: { beginAtZero: true, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } },
+      scales: type === "pie" ? {} : { y: { beginAtZero: true, grid: { color: chartGridColor() } }, x: { grid: { display: false } } },
     },
   });
 }

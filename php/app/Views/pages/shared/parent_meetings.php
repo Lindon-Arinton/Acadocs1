@@ -99,7 +99,7 @@
         <?php if ($hasFile): ?>
         <div class="d-flex justify-content-between small mb-2">
           <span class="text-muted">Attendance Rate</span>
-          <strong style="color:<?= $color ?>"><?= $pct ?>%</strong>
+          <strong style="color:var(--text)"><?= $pct ?>%</strong>
         </div>
         <div class="progress mb-4" style="height:10px;">
           <div class="progress-bar" style="width:<?= $pct ?>%;background:<?= $color ?>!important;border-radius:8px;"></div>
@@ -107,13 +107,13 @@
 
         <div class="row g-2 text-center mb-3">
           <div class="col-6">
-            <div class="p-3 rounded-3" style="background:#f8f9fa;">
+            <div class="p-3 rounded-3" style="background:var(--surface-hover);">
               <div class="fw-bold fs-4"><?= number_format($m['actual_attendance']) ?></div>
               <div class="text-muted small">Attended</div>
             </div>
           </div>
           <div class="col-6">
-            <div class="p-3 rounded-3" style="background:#f8f9fa;">
+            <div class="p-3 rounded-3" style="background:var(--surface-hover);">
               <div class="fw-bold fs-4"><?= number_format($m['expected_parents']) ?></div>
               <div class="text-muted small">Expected</div>
             </div>
@@ -230,7 +230,7 @@ new Chart(document.getElementById("meetingChart"),{
       {label:"Attended",data:' . json_encode(array_column($chartMeetings,'actual_attendance')) . ',backgroundColor:"#800000",borderRadius:6}
     ]
   },
-  options:{responsive:true,scales:{y:{beginAtZero:true,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}}}
+  options:{responsive:true,scales:{y:{beginAtZero:true,grid:{color:chartGridColor()}},x:{grid:{display:false}}}}
 });';
 }
 

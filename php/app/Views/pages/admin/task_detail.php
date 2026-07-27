@@ -160,7 +160,7 @@ function viewSubmission(data) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)
             ? \'<button type="button" class="btn btn-sm btn-outline-secondary preview-file-btn" data-file-id="\' + f.id + \'" data-file-name="\' + escapeHtml(f.name) + \'"><i class="bi bi-eye"></i></button>\'
             : "";
-        return \'<div class="d-flex justify-content-between align-items-center p-2 rounded-3 mb-2" style="background:#f8f9fa;">\'
+        return \'<div class="d-flex justify-content-between align-items-center p-2 rounded-3 mb-2" style="background:var(--surface-hover);">\'
             + \'<span class="small text-truncate me-2"><i class="bi bi-file-earmark me-1"></i>\' + escapeHtml(f.name) + "</span>"
             + \'<div class="d-flex gap-1 flex-shrink-0">\' + previewBtn
             + \'<a class="btn btn-sm btn-outline-secondary" href="\' + TASK_FILE_BASE + f.id + \'/download"><i class="bi bi-download"></i></a>\'
@@ -175,7 +175,7 @@ function viewSubmission(data) {
 
     const thread = document.getElementById("viewFeedbackThread");
     thread.innerHTML = data.feedback.length
-        ? \'<div class="p-3 rounded-3" style="background:#f8f9fa;border-left:3px solid var(--maroon);">\'
+        ? \'<div class="p-3 rounded-3" style="background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);">\'
             + \'<p class="small fw-semibold mb-2 text-muted"><i class="bi bi-chat-dots me-1"></i>Your Private Feedback</p>\'
             + data.feedback.map(function (fb) {
                 return \'<p class="small mb-1">\' + escapeHtml(fb.comment) + \' <span class="text-muted">— \' + escapeHtml(fb.date) + "</span></p>";

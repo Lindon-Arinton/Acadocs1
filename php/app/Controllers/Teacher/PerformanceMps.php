@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Libraries\MpsCalculator;
 use App\Libraries\MpsScoreImporter;
 use App\Models\MpsTestScoreModel;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class PerformanceMps extends BaseController
 {
@@ -178,5 +180,41 @@ class PerformanceMps extends BaseController
         session()->setFlashdata('flash', ['type' => $summary['warnings'] === [] ? 'success' : 'warning', 'msg' => $message]);
 
         return redirect()->to($redirect);
+    }
+
+    public function template()
+    {
+        if (! hasRole('teacher')) {
+            return redirect()->to('/dashboard');
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('MPS');
+
+        $row = 1;
+        foreach (self::PERIOD_MAP as $label) {
+            $sheet->setCellValue("A{$row}", strtoupper($label));
+            $row += 2;
+
+            $sheet->fromArray(array_merge([null], self::SUBJECTS), null, "A{$row}");
+            $row++;
+
+            foreach (self::GRADE_LEVELS as $grade) {
+                $sheet->setCellValue("A{$row}", strtoupper($grade));
+                $row++;
+            }
+
+            $row += 2; // blank separator row before the next section
+        }
+
+        foreach (range('A', chr(ord('A') + count(self::SUBJECTS))) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'mps_template_' . uniqid() . '.xlsx';
+        (new Xlsx($spreadsheet))->save($tempFile);
+
+        return $this->response->download($tempFile, null)->setFileName('mps_scores_template.xlsx');
     }
 }

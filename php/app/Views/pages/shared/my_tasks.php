@@ -100,7 +100,7 @@ $monthEnd   = date('Y-m-t');
     <?php endif; ?>
 
     <?php if ($submission): ?>
-    <div class="p-3 rounded-3 mb-3 task-section" style="background:#f8f9fa;">
+    <div class="p-3 rounded-3 mb-3 task-section" style="background:var(--surface-hover);">
       <div class="task-kicker mb-2" style="color:var(--primary-light);">
         <i class="bi bi-paperclip me-1"></i><?= count($t['files']) ?> file<?= count($t['files']) !== 1 ? 's' : '' ?> submitted
       </div>
@@ -117,7 +117,7 @@ $monthEnd   = date('Y-m-t');
     <?php endif; ?>
 
     <?php if (! empty($t['feedback'])): ?>
-    <div class="p-3 rounded-3 mb-3 task-section" style="background:#fff5f5;border-left:3px solid var(--maroon);">
+    <div class="p-3 rounded-3 mb-3 task-section" style="background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);">
       <div class="task-kicker mb-2" style="color:var(--maroon);">
         <i class="bi bi-chat-dots me-1"></i>Principal Feedback (private)
       </div>

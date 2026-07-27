@@ -56,10 +56,10 @@
           $roleCfg = [
             'admin'      => ['#fff0f0','#800000'],
             'teacher'    => ['#dbeafe','#1e40af'],
-            'adas'       => ['#f3f4f6','#374151'],
+            'adas'       => ['var(--surface-hover)','var(--text-secondary)'],
           ];
           foreach ($users as $i => $u):
-            [$rbg,$rtc] = $roleCfg[$u['role']] ?? ['#f3f4f6','#374151'];
+            [$rbg,$rtc] = $roleCfg[$u['role']] ?? ['var(--surface-hover)','var(--text-secondary)'];
             $isMe = $u['id'] == currentUser()['id'];
           ?>
           <tr>

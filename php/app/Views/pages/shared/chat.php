@@ -58,7 +58,7 @@ include APPPATH . 'Views/layout/header.php';
           <?php foreach ($conversations as $c): ?>
           <?php $otherIsAdmin = $c['type'] === 'direct' && ($c['other_role'] ?? null) === 'admin'; ?>
           <button type="button" class="chat-convo-item w-100 text-start border-0 bg-transparent align-items-center"
-                  style="display:flex;gap:.5rem;padding:.7rem 1rem;border-bottom:1px solid #f3f4f6;cursor:pointer;"
+                  style="display:flex;gap:.5rem;padding:.7rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;"
                   data-id="<?= $c['id'] ?>" data-search="<?= e(mb_strtolower($c['display_name'])) ?>"
                   data-photo="<?= $c['other_photo'] ? e(base_url('uploads/avatars/' . $c['other_photo'])) : '' ?>"
                   data-other-role="<?= e($c['other_role'] ?? '') ?>"
@@ -67,13 +67,13 @@ include APPPATH . 'Views/layout/header.php';
             <img src="<?= e(base_url('uploads/avatars/' . $c['other_photo'])) ?>" alt=""
                  style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;<?= $otherIsAdmin ? 'box-shadow:0 0 0 2px #800000;' : '' ?>">
             <?php else: ?>
-            <div style="width:38px;height:38px;border-radius:50%;background:<?= $c['type']==='group' ? '#fff0f0' : ($otherIsAdmin ? '#fff0f0' : '#f3f4f6') ?>;color:<?= $c['type']==='group' ? '#800000' : ($otherIsAdmin ? '#800000' : '#374151') ?>;font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="width:38px;height:38px;border-radius:50%;background:<?= $c['type']==='group' ? '#fff0f0' : ($otherIsAdmin ? '#fff0f0' : 'var(--surface-hover)') ?>;color:<?= $c['type']==='group' ? '#800000' : ($otherIsAdmin ? '#800000' : 'var(--text-secondary)') ?>;font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <?= $c['type'] === 'group' ? '<i class="bi bi-people-fill"></i>' : e(chatInitials($c['display_name'])) ?>
             </div>
             <?php endif; ?>
             <div class="flex-grow-1" style="min-width:0;">
               <div class="d-flex justify-content-between align-items-center gap-1">
-                <span class="fw-semibold text-truncate" style="font-size:.82rem;<?= $otherIsAdmin ? 'color:#800000;' : '' ?>">
+                <span class="fw-semibold text-truncate" style="font-size:.82rem;color:var(--text);">
                   <?= e($c['display_name']) ?><?= $otherIsAdmin ? ' <span style="font-weight:600;">(Principal)</span>' : '' ?>
                 </span>
                 <span class="text-muted flex-shrink-0" style="font-size:.65rem;"><?= date('M d', strtotime($c['last_time'])) ?></span>
@@ -137,7 +137,7 @@ include APPPATH . 'Views/layout/header.php';
           <span class="badge bg-light text-dark border d-inline-flex align-items-center gap-2" style="font-size:.72rem;font-weight:500;padding:.4rem .6rem;">
             <i class="bi bi-paperclip"></i>
             <span id="attachPreviewName"></span>
-            <button type="button" onclick="clearAttachment()" style="background:none;border:0;padding:0;line-height:1;color:#6b7280;font-size:.9rem;">&times;</button>
+            <button type="button" onclick="clearAttachment()" style="background:none;border:0;padding:0;line-height:1;color:var(--muted);font-size:.9rem;">&times;</button>
           </span>
         </div>
         <form id="sendForm" class="p-2 border-top d-flex gap-2 align-items-center">
@@ -313,7 +313,7 @@ function renderMessages(messages, append) {
         }
 
         const meta = document.createElement('div');
-        meta.style.cssText = 'font-size:.65rem;color:#9ca3af;margin-top:2px;' + (m.is_me ? 'text-align:right;' : 'text-align:left;');
+        meta.style.cssText = 'font-size:.65rem;color:var(--muted);margin-top:2px;' + (m.is_me ? 'text-align:right;' : 'text-align:left;');
 
         if (m.is_me) {
             meta.textContent = m.time;

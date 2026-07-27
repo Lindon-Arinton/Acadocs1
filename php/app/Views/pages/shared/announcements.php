@@ -59,7 +59,7 @@
         'Announcement'   => ['#fff0f0','#800000','bi-megaphone-fill'],
         'Questionnaires' => ['#eff6ff','#1e40af','bi-card-checklist'],
         'Forms'          => ['#f0fdf4','#065f46','bi-file-earmark-text-fill'],
-      ][$a['type']] ?? ['#f9fafb','#374151','bi-bell'];
+      ][$a['type']] ?? ['var(--surface-hover)','var(--text-secondary)','bi-bell'];
       [$bg,$tc,$icon] = $cfg;
       $preview = mb_strlen($a['content']) > 140 ? mb_substr($a['content'], 0, 140) . '…' : $a['content'];
       $modalData = $a + [
@@ -104,7 +104,7 @@
 
   <!-- Right: post form -->
   <?php if (hasRole('admin','adas')): ?>
-  <div class="col-lg-4">
+  <div class="col-lg-4" id="postAnnouncementCard">
     <div class="card sticky-top" style="top:80px;">
       <div class="card-header" style="background:linear-gradient(135deg,var(--pink),var(--primary));color:#fff;">
         <div class="card-title" style="color:#fff;"><i class="bi bi-plus-circle me-2"></i>Post Announcement</div>

@@ -59,7 +59,7 @@ include APPPATH . 'Views/layout/header.php';
 <!-- Link cards grid -->
 <div class="row g-4">
   <?php foreach ($links as $link):
-    [$bg,$tc,$icon] = $catCfg[$link['category']] ?? ['#f9fafb','#374151','bi-link'];
+    [$bg,$tc,$icon] = $catCfg[$link['category']] ?? ['var(--surface-hover)','var(--text-secondary)','bi-link'];
   ?>
   <div class="col-md-6 col-xl-4">
     <div class="doclink-card">
@@ -84,12 +84,12 @@ include APPPATH . 'Views/layout/header.php';
           <h6 class="fw-bold mb-1" style="font-size:.88rem"><?= e($link['title']) ?></h6>
           <p class="text-muted mb-3" style="font-size:.78rem;line-height:1.5;"><?= e($link['description']) ?></p>
           <a href="<?= e($link['url']) ?>" target="_blank" rel="noopener"
-             class="btn btn-sm w-100" style="border:1.5px solid <?= $tc ?>;color:<?= $tc ?>;background:transparent;">
+             class="btn btn-sm w-100" style="border:1.5px solid <?= $tc ?>;color:var(--text);background:transparent;">
             <i class="bi bi-box-arrow-up-right me-1"></i>Open Link
           </a>
         </div>
       </div>
-      <div class="d-flex justify-content-between mt-3 pt-2 border-top" style="font-size:.7rem;color:#9ca3af;">
+      <div class="d-flex justify-content-between mt-3 pt-2 border-top" style="font-size:.7rem;color:var(--muted);">
         <span><i class="bi bi-person me-1"></i><?= e($link['added_by']) ?></span>
         <span><?= date('M d, Y', strtotime($link['date_added'])) ?></span>
       </div>

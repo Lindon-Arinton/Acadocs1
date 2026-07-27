@@ -41,7 +41,7 @@
         <div class="kpi-icon" style="background:<?= $k['color'] ?>">
           <i class="bi <?= $k['icon'] ?>" style="color:<?= $k['icolor'] ?>;font-size:1.3rem;"></i>
         </div>
-        <span class="kpi-value" style="color:#1a1a1a"><?= $k['value'] ?></span>
+        <span class="kpi-value" style="color:var(--text)"><?= $k['value'] ?></span>
       </div>
       <div class="fw-semibold text-muted small text-uppercase tracking-wide"><?= $k['label'] ?></div>
       <div class="text-muted mt-1" style="font-size:.75rem;"><?= $k['sub'] ?></div>
@@ -53,7 +53,7 @@
 <!-- Low Performance Alert -->
 <?php if ($lowest && $lowest['mps'] < 80): ?>
 <div class="alert d-flex align-items-start gap-3 mb-4 p-4 rounded-3 border-0"
-     style="background:#fff5f5;border-left:4px solid #ef4444!important;border-left-width:4px;">
+     style="background:rgba(239,68,68,.08);border-left:4px solid #ef4444!important;border-left-width:4px;">
   <i class="bi bi-exclamation-circle-fill text-danger fs-4 mt-1 flex-shrink-0"></i>
   <div>
     <strong class="text-danger">Performance Alert — Action Required</strong>
@@ -88,7 +88,6 @@
     <div class="card chart-card-sm h-100">
       <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
         <span class="fw-semibold small"><i class="bi bi-graph-up me-2 text-muted"></i>Academic Performance by Level</span>
-        <a href="<?= base_url('performance') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem;">View All</a>
       </div>
       <div class="card-body">
         <canvas id="perfChart" height="190"></canvas>
@@ -218,7 +217,7 @@ new Chart(document.getElementById("enrollChart"), {
       borderRadius: 6,
     }]
   },
-  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }
 });
 
 // Performance Chart
@@ -231,7 +230,7 @@ new Chart(document.getElementById("perfChart"), {
       { label:"NDS", data:' . json_encode(array_column($perfLevel, 'nds')) . ', backgroundColor:maroonLight, borderRadius:4 }
     ]
   },
-  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:60,grid:{color:"#f0f0f0"}},x:{grid:{display:false}}} }
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:60,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }
 });
 
 // Document Pie

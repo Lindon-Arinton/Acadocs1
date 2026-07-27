@@ -26,9 +26,9 @@ include APPPATH . 'Views/layout/header.php';
         <div class="position-relative d-inline-block mb-3">
           <?php if ($photoUrl): ?>
           <img src="<?= e($photoUrl) ?>" alt="Profile photo"
-               style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 0 0 3px var(--primary);">
+               style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--card);box-shadow:0 0 0 3px var(--primary);">
           <?php else: ?>
-          <div style="width:120px;height:120px;border-radius:50%;background:var(--primary);color:#fff;font-size:2.2rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 0 0 3px var(--primary);margin:0 auto;">
+          <div style="width:120px;height:120px;border-radius:50%;background:var(--primary);color:#fff;font-size:2.2rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:3px solid var(--card);box-shadow:0 0 0 3px var(--primary);margin:0 auto;">
             <?= e($initials) ?>
           </div>
           <?php endif; ?>

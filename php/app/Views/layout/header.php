@@ -130,17 +130,12 @@ try {
 
     <!-- ACADEMIC -->
     <div class="sidebar-section">
-      <button class="sidebar-section-btn <?= str_contains($uri,'performance')||str_contains($uri,'enrollment')||str_contains($uri,'announcements')||str_contains($uri,'parent')?'open':'' ?>"
+      <button class="sidebar-section-btn <?= str_contains($uri,'enrollment')||str_contains($uri,'announcements')||str_contains($uri,'parent')?'open':'' ?>"
               onclick="toggleSection(this)">
         <span class="sidebar-section-label">Academic</span>
         <i class="bi bi-chevron-down sidebar-section-arrow"></i>
       </button>
-      <div class="sidebar-section-items <?= str_contains($uri,'performance')||str_contains($uri,'enrollment')||str_contains($uri,'announcements')||str_contains($uri,'parent')?'open':'' ?>">
-        <a href="<?= base_url('performance') ?>"
-           class="nav-link <?= str_contains($uri,'performance')?'active':'' ?>">
-          <i class="bi bi-graph-up-arrow nav-icon"></i>
-          <span class="sidebar-label">Performance Analytics</span>
-        </a>
+      <div class="sidebar-section-items <?= str_contains($uri,'enrollment')||str_contains($uri,'announcements')||str_contains($uri,'parent')?'open':'' ?>">
         <a href="<?= base_url('enrollment-kpis') ?>"
            class="nav-link <?= str_contains($uri,'enrollment')?'active':'' ?>">
           <i class="bi bi-people-fill nav-icon"></i>
@@ -320,11 +315,6 @@ try {
       <?php endif; ?>
     </a>
 
-    <!-- Announcements Shortcut -->
-    <a href="<?= base_url('announcements') ?>" class="notif-btn" title="Announcements">
-      <i class="bi bi-megaphone fs-5"></i>
-    </a>
-
     <!-- Notification Bell -->
     <div class="position-relative">
       <button class="notif-btn" onclick="toggleNotif(event)" title="Notifications">
@@ -340,7 +330,7 @@ try {
           <span class="badge badge-maroon" style="font-size:.65rem;"><?= $unreadNotifCount ?> new</span>
         </div>
         <?php foreach ($notifItems as $n):
-          $ico = $notifTypeIcons[$n['type']] ?? ['bi-bell', '#f9fafb', '#374151'];
+          $ico = $notifTypeIcons[$n['type']] ?? ['bi-bell', 'var(--surface-hover)', 'var(--text-secondary)'];
         ?>
         <a href="<?= e($n['url'] ?? '#') ?>" class="notif-item text-decoration-none <?= $n['is_read'] ? '' : 'notif-unread' ?>"
            style="color:inherit;" data-notif-id="<?= $n['id'] ?>">

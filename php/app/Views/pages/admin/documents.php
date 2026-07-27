@@ -146,7 +146,7 @@ function viewDoc(doc) {
     let fileSection;
     if (doc.files && doc.files.length) {
         const first = doc.files[0];
-        const list = doc.files.map(f => `<div class='d-flex justify-content-between align-items-center gap-2 p-2 rounded-3 mb-1' style='background:#f8f9fa;'>
+        const list = doc.files.map(f => `<div class='d-flex justify-content-between align-items-center gap-2 p-2 rounded-3 mb-1' style='background:var(--surface-hover);'>
              <span class='small text-truncate'><i class='bi bi-paperclip me-1 text-muted'></i>\${f.file_name}</span>
              <div class='d-flex gap-1 flex-shrink-0'>
                <a href='\${DOC_ITEM_FILE_BASE}\${f.id}/preview' target='_blank' rel='noopener' class='btn btn-sm btn-outline-secondary py-0 px-2'><i class='bi bi-eye'></i></a>
@@ -154,12 +154,12 @@ function viewDoc(doc) {
              </div>
            </div>`).join('');
         fileSection = `<div class='mb-2'>\${list}</div>
-           <iframe src='\${DOC_ITEM_FILE_BASE}\${first.id}/preview' style='width:100%;height:420px;border:1px solid #e5e7eb;border-radius:8px;'></iframe>`;
+           <iframe src='\${DOC_ITEM_FILE_BASE}\${first.id}/preview' style='width:100%;height:420px;border:1px solid var(--border);border-radius:8px;'></iframe>`;
     } else if (doc.file_path) {
         fileSection = `<div class='d-flex gap-2 mb-2'>
              <a href='\${DOC_FILE_BASE}\${doc.id}/download' class='btn btn-sm btn-outline-secondary'><i class='bi bi-download me-1'></i>Download</a>
            </div>
-           <iframe src='\${DOC_FILE_BASE}\${doc.id}/file' style='width:100%;height:420px;border:1px solid #e5e7eb;border-radius:8px;'></iframe>`;
+           <iframe src='\${DOC_FILE_BASE}\${doc.id}/file' style='width:100%;height:420px;border:1px solid var(--border);border-radius:8px;'></iframe>`;
     } else {
         fileSection = `<p class='text-muted small mb-0 mt-2'>No file attached.</p>`;
     }

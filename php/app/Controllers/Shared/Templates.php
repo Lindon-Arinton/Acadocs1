@@ -8,6 +8,7 @@ use App\Libraries\OfficeConverter;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\Files\UploadedFile;
 
 class Templates extends BaseController
 {
@@ -82,64 +83,85 @@ class Templates extends BaseController
                 } elseif ($action === 'upload') {
                     $categoryId = (int) $this->request->getPost('category_id');
                     $category   = $categoryModel->find($categoryId);
-                    $title      = trim($this->request->getPost('title') ?? '');
+
+                    // Client extension is trusted rather than PHP's fileinfo mime-sniff,
+                    // which misidentifies some genuine, valid .docx/.xlsx files as
+                    // application/octet-stream on this server. This upload is already
+                    // gated to admins/ADAS, so that trade-off is acceptable here.
+                    $files = array_values(array_filter(
+                        $this->request->getFileMultiple('file') ?? [],
+                        static fn ($f) => $f !== null && $f->isValid(),
+                    ));
 
                     if (! $category) {
                         $error = 'Please choose a valid category.';
-                    } elseif ($title === '') {
-                        $error = 'Please enter a title.';
-                    } elseif ($templateModel->where('title', $title)->first()) {
-                        // Duplicate template names are confusing (which "Certificate" is
-                        // the real one?) and this app's title-based lookups elsewhere
-                        // (e.g. the certificate generator) assume titles are unique.
-                        $error = 'A template named "' . $title . '" already exists. Please use a different name.';
-                    } else {
-                        // ext_in also requires PHP's fileinfo mime-sniff to match the
-                        // extension, which misidentifies some genuine, valid .docx/.xlsx
-                        // files as application/octet-stream on this server and falsely
-                        // rejects them. This upload is already gated to admins/ADAS, so
-                        // trusting the client-reported extension here is an acceptable
-                        // trade-off — checked manually below instead of via ext_in.
-                        $rules = [
-                            'file' => [
-                                'label'  => 'File',
-                                'rules'  => 'uploaded[file]|max_size[file,10240]',
-                                'errors' => [
-                                    'uploaded' => 'Please choose a file to upload.',
-                                    'max_size' => 'File is too large (max 10MB).',
-                                ],
-                            ],
-                        ];
+                    } elseif ($files === []) {
+                        $error = 'Please choose a file to upload.';
+                    } elseif (count($files) === 1) {
+                        $title = trim($this->request->getPost('title') ?? '');
+                        $file  = $files[0];
 
-                        $uploadedExt = strtolower(pathinfo($this->request->getFile('file')?->getClientName() ?? '', PATHINFO_EXTENSION));
-
-                        if (! $this->validate($rules)) {
-                            $error = implode(' ', $this->validator->getErrors());
-                        } elseif (! in_array($uploadedExt, self::ALLOWED_EXT, true)) {
-                            $error = 'Unsupported file type.';
+                        if ($title === '') {
+                            $error = 'Please enter a title.';
+                        } elseif ($templateModel->where('title', $title)->first()) {
+                            // Duplicate template names are confusing (which "Certificate" is
+                            // the real one?) and this app's title-based lookups elsewhere
+                            // (e.g. the certificate generator) assume titles are unique.
+                            $error = 'A template named "' . $title . '" already exists. Please use a different name.';
                         } else {
-                            $file      = $this->request->getFile('file');
-                            $targetDir = WRITEPATH . 'uploads/templates/' . $categoryId;
+                            $ext = strtolower(pathinfo($file->getClientName(), PATHINFO_EXTENSION));
 
-                            if (! is_dir($targetDir)) {
-                                mkdir($targetDir, 0755, true);
+                            if ($file->getSize() > 10240 * 1024) {
+                                $error = 'File is too large (max 10MB).';
+                            } elseif (! in_array($ext, self::ALLOWED_EXT, true)) {
+                                $error = 'Unsupported file type.';
+                            } else {
+                                $this->storeTemplateFile($templateModel, $file, $categoryId, $title, trim($this->request->getPost('description') ?? ''));
+                                $message = 'Template uploaded successfully.';
+                            }
+                        }
+                    } else {
+                        // Batch upload: each file becomes its own template, titled
+                        // after its filename (the Title field is hidden client-side
+                        // once more than one file is selected).
+                        $description = trim($this->request->getPost('description') ?? '');
+                        $skipped     = [];
+                        $usedTitles  = [];
+
+                        foreach ($files as $file) {
+                            $fileName = $file->getClientName();
+                            $ext      = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+                            if ($file->getSize() > 10240 * 1024) {
+                                $skipped[] = $fileName . ' (too large)';
+                                continue;
+                            }
+                            if (! in_array($ext, self::ALLOWED_EXT, true)) {
+                                $skipped[] = $fileName . ' (unsupported type)';
+                                continue;
                             }
 
-                            $newName = $file->getRandomName();
-                            $file->move($targetDir, $newName);
+                            $baseTitle = trim(pathinfo($fileName, PATHINFO_FILENAME));
+                            if ($baseTitle === '') {
+                                $baseTitle = 'Untitled';
+                            }
 
-                            $templateModel->insert([
-                                'category_id' => $categoryId,
-                                'title'       => $title,
-                                'description' => trim($this->request->getPost('description') ?? ''),
-                                'file_path'   => $targetDir . DIRECTORY_SEPARATOR . $newName,
-                                'file_name'   => $file->getClientName(),
-                                'file_ext'    => strtolower(pathinfo($file->getClientName(), PATHINFO_EXTENSION)),
-                                'file_size'   => $file->getSize(),
-                                'uploaded_by' => currentUser()['name'],
-                                'date_added'  => date('Y-m-d'),
-                            ]);
-                            $message = 'Template uploaded successfully.';
+                            $title = $baseTitle;
+                            for ($i = 2; in_array($title, $usedTitles, true) || $templateModel->where('title', $title)->first(); $i++) {
+                                $title = $baseTitle . ' (' . $i . ')';
+                            }
+                            $usedTitles[] = $title;
+
+                            $this->storeTemplateFile($templateModel, $file, $categoryId, $title, $description);
+                        }
+
+                        if ($usedTitles === []) {
+                            $error = 'None of the selected files could be uploaded. Skipped: ' . implode(', ', $skipped);
+                        } else {
+                            $message = 'Uploaded ' . count($usedTitles) . ' of ' . count($files) . ' file(s).';
+                            if ($skipped !== []) {
+                                $message .= ' Skipped: ' . implode(', ', $skipped);
+                            }
                         }
                     }
                 } elseif ($action === 'delete_template') {
@@ -233,6 +255,30 @@ class Templates extends BaseController
             'fileTypes'         => $templateModel->distinctExtensions(),
             'flash'             => session()->getFlashdata('flash'),
             'certificateFields' => $certificateFields,
+        ]);
+    }
+
+    private function storeTemplateFile(TemplateModel $templateModel, UploadedFile $file, int $categoryId, string $title, string $description): void
+    {
+        $targetDir = WRITEPATH . 'uploads/templates/' . $categoryId;
+
+        if (! is_dir($targetDir)) {
+            mkdir($targetDir, 0755, true);
+        }
+
+        $newName = $file->getRandomName();
+        $file->move($targetDir, $newName);
+
+        $templateModel->insert([
+            'category_id' => $categoryId,
+            'title'       => $title,
+            'description' => $description,
+            'file_path'   => $targetDir . DIRECTORY_SEPARATOR . $newName,
+            'file_name'   => $file->getClientName(),
+            'file_ext'    => strtolower(pathinfo($file->getClientName(), PATHINFO_EXTENSION)),
+            'file_size'   => $file->getSize(),
+            'uploaded_by' => currentUser()['name'],
+            'date_added'  => date('Y-m-d'),
         ]);
     }
 

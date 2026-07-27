@@ -92,7 +92,7 @@
         <?php if (! empty($doc['files'])): ?>
         <div class="d-flex flex-column gap-1">
           <?php foreach ($doc['files'] as $f): ?>
-          <div class="d-flex justify-content-between align-items-center gap-2 p-2 rounded-3" style="background:#f8f9fa;">
+          <div class="d-flex justify-content-between align-items-center gap-2 p-2 rounded-3" style="background:var(--surface-hover);">
             <span class="small text-truncate"><i class="bi bi-paperclip me-1 text-muted"></i><?= e($f['file_name']) ?></span>
             <div class="d-flex gap-1 flex-shrink-0">
               <a href="<?= base_url('document-files/' . $f['id'] . '/preview') ?>" target="_blank" rel="noopener"
@@ -114,7 +114,7 @@
         </a>
         <?php endif; ?>
         <?php if ($doc['feedback_comments']): ?>
-        <div class="mt-3 p-3 rounded-3" style="background:#f8f9fa;border-left:3px solid var(--maroon);">
+        <div class="mt-3 p-3 rounded-3" style="background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);">
           <p class="small fw-semibold mb-1 text-muted"><i class="bi bi-chat-dots me-1"></i>Principal Feedback:</p>
           <?php foreach (explode('|||',$doc['feedback_comments']) as $fb): ?>
           <p class="small mb-0"><?= e($fb) ?></p>
@@ -146,7 +146,7 @@ function previewSelectedFiles(input) {
         const ext     = file.name.split('.').pop().toLowerCase();
         const iconCls = IMAGE_EXT.includes(ext) ? 'bi-file-earmark-image' : 'bi-file-earmark-text';
         const size    = (file.size / 1024).toFixed(1) + ' KB';
-        return '<div class=\"d-flex align-items-center gap-2 p-2 rounded-3 mb-1\" style=\"background:#f8f9fa;border:1px solid var(--border);\">'
+        return '<div class=\"d-flex align-items-center gap-2 p-2 rounded-3 mb-1\" style=\"background:var(--surface-hover);border:1px solid var(--border);\">'
             + '<i class=\"bi ' + iconCls + ' fs-5 text-muted flex-shrink-0\"></i>'
             + '<div class=\"flex-grow-1 overflow-hidden\">'
             + '<div class=\"small fw-semibold text-truncate\">' + file.name + '</div>'

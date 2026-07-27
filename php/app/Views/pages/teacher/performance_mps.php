@@ -7,6 +7,9 @@
       <p>Summative Test 1, Summative Test 2 &amp; Term Examination — per grade level &amp; subject</p>
     </div>
     <div class="d-flex gap-2">
+      <a href="<?= base_url('performance/mps/template') ?>" class="btn btn-sm btn-outline-light">
+        <i class="bi bi-download me-1"></i>Download Template
+      </a>
       <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importMpsModal">
         <i class="bi bi-upload me-1"></i>Import from Excel
       </button>
@@ -117,6 +120,7 @@
           <p class="text-muted" style="font-size:.82rem;">
             Upload the school's MPS workbook — the sheet with a grade-level &times; subject grid for each test period
             (Summative Test 1/2, Term Examination), same layout as the printed MPS report.
+            Not sure of the format? <a href="<?= base_url('performance/mps/template') ?>">Download the template</a>.
           </p>
           <div class="row g-2 mb-2">
             <div class="col-6">

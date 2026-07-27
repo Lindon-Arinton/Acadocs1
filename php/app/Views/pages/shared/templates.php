@@ -161,7 +161,7 @@ include APPPATH . 'Views/layout/header.php';
     <?php if (empty($items)): ?>
     <p class="text-muted mb-0 text-center py-3"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No templates uploaded in this section yet.</p>
     <?php else: ?>
-    <div class="row g-3">
+    <div class="list-group list-group-flush">
       <?php foreach ($items as $t):
         [$icon, $tc, $bg] = $extCfg[$t['file_ext']] ?? ['bi-file-earmark-fill', '#374151', '#f3f4f6'];
         $conversions      = \App\Controllers\Shared\Templates::conversionTargets($t['file_ext']);
@@ -170,93 +170,86 @@ include APPPATH . 'Views/layout/header.php';
         // isn't a dropdown, so it keeps its file-type color.
         $downloadColor    = ! empty($conversions) ? 'var(--primary)' : $tc;
       ?>
-      <div class="col-md-6 col-xl-4">
-        <div class="doclink-card h-100">
-          <div class="d-flex gap-3 align-items-start">
-            <div style="width:40px;height:40px;border-radius:10px;background:<?= $bg ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi <?= $icon ?>" style="color:<?= $tc ?>;font-size:1.1rem;"></i>
-            </div>
-            <div class="flex-grow-1" style="min-width:0;">
-              <div class="d-flex justify-content-between align-items-start mb-1">
-                <span class="badge mb-1" style="background:<?= $bg ?>;color:<?= $tc ?>;border:1px solid <?= $tc ?>22;font-size:.68rem;">
-                  <?= strtoupper(e($t['file_ext'])) ?>
-                </span>
-                <?php if ($canManage): ?>
-                <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
-                      data-confirm-title="Delete this template?">
-                  <input type="hidden" name="action" value="delete_template">
-                  <input type="hidden" name="id" value="<?= $t['id'] ?>">
-                  <button class="btn btn-ghost btn-sm text-danger py-0 px-1"><i class="bi bi-x-lg"></i></button>
-                </form>
-                <?php endif; ?>
-              </div>
-              <h6 class="fw-bold mb-1 text-truncate" style="font-size:.88rem" title="<?= e($t['title']) ?>"><?= e($t['title']) ?></h6>
-              <p class="text-muted mb-1 text-truncate" style="font-size:.75rem;" title="<?= e($t['file_name']) ?>">
-                <?= e($t['file_name']) ?> · <?= tplFormatBytes((int) $t['file_size']) ?>
-              </p>
-              <?php if (! empty($t['description'])): ?>
-              <p class="text-muted mb-3" style="font-size:.72rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
-                <?= e($t['description']) ?>
-              </p>
-              <?php else: ?>
-              <div class="mb-3"></div>
-              <?php endif; ?>
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm flex-fill" style="border:1.5px solid <?= $tc ?>;color:<?= $tc ?>;background:transparent;"
-                        onclick='previewTemplate(<?= json_encode([
-                            'id'          => (int) $t['id'],
-                            'title'       => $t['title'],
-                            'description' => $t['description'],
-                            'ext'         => $t['file_ext'],
-                            'category'    => $t['category_name'],
-                            'uploader'    => $t['uploaded_by'],
-                            'date'        => date('M d, Y', strtotime($t['date_added'])),
-                            'fileName'    => $t['file_name'],
-                            'fileSize'    => tplFormatBytes((int) $t['file_size']),
-                            'previewable' => in_array($t['file_ext'], $previewableExt, true),
-                            'conversions' => $conversions,
-                        ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
-                  <i class="bi bi-eye me-1"></i>View
-                </button>
-                <div class="btn-group flex-fill" role="group">
-                  <button type="button" class="btn btn-sm flex-fill" style="background:<?= $downloadColor ?>;color:#fff;"
-                          onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id']) ?>', '<?= e(addslashes($t['file_name'])) ?>')">
-                    <i class="bi bi-download me-1"></i>Download
-                  </button>
-                  <?php if (! empty($conversions)): ?>
-                  <button type="button" class="btn btn-sm dropdown-toggle dropdown-toggle-split" style="background:<?= $downloadColor ?>;color:#fff;"
-                          data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="visually-hidden">Toggle download options</span>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <?php foreach ($conversions as $c): $dlName = pathinfo($t['file_name'], PATHINFO_FILENAME) . '.' . $c; ?>
-                    <li>
-                      <a class="dropdown-item" href="#"
-                         onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id'] . '?as=' . $c) ?>', '<?= e(addslashes($dlName)) ?>'); return false;">
-                        <i class="bi bi-file-earmark-<?= $c === 'pdf' ? 'pdf' : 'word' ?> me-2"></i>Convert to <?= e($formatLabels[$c] ?? strtoupper($c)) ?>
-                      </a>
-                    </li>
-                    <?php endforeach; ?>
-                  </ul>
-                  <?php endif; ?>
-                </div>
-                <?php if ($canManage && $t['file_ext'] === 'docx'): ?>
-                <button type="button" class="btn btn-sm flex-fill" style="background:#15803d;color:#fff;"
-                        onclick='openCertificateModal(<?= json_encode([
-                            'id'     => (int) $t['id'],
-                            'title'  => $t['title'],
-                            'fields' => $certificateFields[$t['id']] ?? [],
-                        ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
-                  <i class="bi bi-file-earmark-spreadsheet me-1"></i>Import Data
-                </button>
-                <?php endif; ?>
-              </div>
-            </div>
+      <div class="list-group-item d-flex align-items-center gap-3 flex-wrap py-3">
+        <div style="width:40px;height:40px;border-radius:10px;background:<?= $bg ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="bi <?= $icon ?>" style="color:<?= $tc ?>;font-size:1.1rem;"></i>
+        </div>
+        <div class="flex-grow-1" style="min-width:220px;">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <h6 class="fw-bold mb-0 text-truncate" style="font-size:.88rem" title="<?= e($t['title']) ?>"><?= e($t['title']) ?></h6>
+            <span class="badge flex-shrink-0" style="background:<?= $bg ?>;color:<?= $tc ?>;border:1px solid <?= $tc ?>22;font-size:.68rem;">
+              <?= strtoupper(e($t['file_ext'])) ?>
+            </span>
           </div>
-          <div class="d-flex justify-content-between mt-3 pt-2 border-top" style="font-size:.7rem;color:#9ca3af;">
-            <span><i class="bi bi-person me-1"></i><?= e($t['uploaded_by']) ?></span>
-            <span><?= date('M d, Y', strtotime($t['date_added'])) ?></span>
+          <p class="text-muted mb-1 text-truncate" style="font-size:.75rem;" title="<?= e($t['file_name']) ?>">
+            <?= e($t['file_name']) ?> · <?= tplFormatBytes((int) $t['file_size']) ?>
+          </p>
+          <?php if (! empty($t['description'])): ?>
+          <p class="text-muted mb-1 text-truncate" style="font-size:.72rem;" title="<?= e($t['description']) ?>">
+            <?= e($t['description']) ?>
+          </p>
+          <?php endif; ?>
+          <p class="mb-0" style="font-size:.7rem;color:var(--muted);">
+            <i class="bi bi-person me-1"></i><?= e($t['uploaded_by']) ?> · <?= date('M d, Y', strtotime($t['date_added'])) ?>
+          </p>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
+          <button type="button" class="btn btn-sm" style="border:1.5px solid <?= $tc ?>;color:var(--text);background:transparent;"
+                  onclick='previewTemplate(<?= json_encode([
+                      'id'          => (int) $t['id'],
+                      'title'       => $t['title'],
+                      'description' => $t['description'],
+                      'ext'         => $t['file_ext'],
+                      'category'    => $t['category_name'],
+                      'uploader'    => $t['uploaded_by'],
+                      'date'        => date('M d, Y', strtotime($t['date_added'])),
+                      'fileName'    => $t['file_name'],
+                      'fileSize'    => tplFormatBytes((int) $t['file_size']),
+                      'previewable' => in_array($t['file_ext'], $previewableExt, true),
+                      'conversions' => $conversions,
+                  ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+            <i class="bi bi-eye me-1"></i>View
+          </button>
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm" style="background:<?= $downloadColor ?>;color:#fff;"
+                    onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id']) ?>', '<?= e(addslashes($t['file_name'])) ?>')">
+              <i class="bi bi-download me-1"></i>Download
+            </button>
+            <?php if (! empty($conversions)): ?>
+            <button type="button" class="btn btn-sm dropdown-toggle dropdown-toggle-split" style="background:<?= $downloadColor ?>;color:#fff;"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="visually-hidden">Toggle download options</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <?php foreach ($conversions as $c): $dlName = pathinfo($t['file_name'], PATHINFO_FILENAME) . '.' . $c; ?>
+              <li>
+                <a class="dropdown-item" href="#"
+                   onclick="downloadTemplate('<?= base_url('templates/download/' . $t['id'] . '?as=' . $c) ?>', '<?= e(addslashes($dlName)) ?>'); return false;">
+                  <i class="bi bi-file-earmark-<?= $c === 'pdf' ? 'pdf' : 'word' ?> me-2"></i>Convert to <?= e($formatLabels[$c] ?? strtoupper($c)) ?>
+                </a>
+              </li>
+              <?php endforeach; ?>
+            </ul>
+            <?php endif; ?>
           </div>
+          <?php if ($canManage && $t['file_ext'] === 'docx'): ?>
+          <button type="button" class="btn btn-sm" style="background:#15803d;color:#fff;"
+                  onclick='openCertificateModal(<?= json_encode([
+                      'id'     => (int) $t['id'],
+                      'title'  => $t['title'],
+                      'fields' => $certificateFields[$t['id']] ?? [],
+                  ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i>Import Data
+          </button>
+          <?php endif; ?>
+          <?php if ($canManage): ?>
+          <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
+                data-confirm-title="Delete this template?">
+            <input type="hidden" name="action" value="delete_template">
+            <input type="hidden" name="id" value="<?= $t['id'] ?>">
+            <button class="btn btn-sm btn-outline-secondary text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+          </form>
+          <?php endif; ?>
         </div>
       </div>
       <?php endforeach; ?>
@@ -324,19 +317,20 @@ include APPPATH . 'Views/layout/header.php';
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label">File</label>
-            <input type="file" name="file" id="uploadFileInput" class="form-control"
+            <label class="form-label">File(s)</label>
+            <input type="file" name="file[]" id="uploadFileInput" class="form-control"
                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png"
-                   onchange="autofillTemplateTitle(this)" required>
-            <p class="text-muted mt-1 mb-0" style="font-size:.75rem;">PDF, Word, Excel, CSV, PowerPoint, images or archives · Max 10MB</p>
+                   onchange="handleTemplateFilesChange(this)" multiple required>
+            <p class="text-muted mt-1 mb-0" style="font-size:.75rem;">PDF, Word, Excel, CSV, PowerPoint, images or archives · Max 10MB each. Select multiple files to upload them all at once.</p>
+            <div id="uploadFilesPreview" class="mt-2 d-none"></div>
           </div>
-          <div class="mb-3">
+          <div class="mb-3" id="uploadTitleGroup">
             <label class="form-label">Title</label>
             <input type="text" name="title" id="uploadTitleInput" class="form-control" placeholder="Select a file to auto-fill, or type your own" required>
           </div>
           <div class="mb-3">
             <label class="form-label">Description <span class="text-muted">(optional)</span></label>
-            <textarea name="description" class="form-control" rows="2" placeholder="What is this template for?"></textarea>
+            <textarea name="description" class="form-control" rows="2" placeholder="What is this template for? (applied to all files if uploading more than one)"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -451,7 +445,7 @@ function previewTemplate(t) {
     } else if (['jpg','jpeg','png'].includes(t.ext)) {
         previewHtml = '<div class=\"text-center\"><img src=\"' + previewUrl + '\" style=\"max-width:100%;max-height:65vh;border-radius:8px;\"></div>';
     } else if (t.ext === 'txt') {
-        previewHtml = '<iframe src=\"' + previewUrl + '\" style=\"width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;background:#fff;\"></iframe>';
+        previewHtml = '<iframe src=\"' + previewUrl + '\" style=\"width:100%;height:65vh;border:1px solid var(--border);border-radius:8px;background:var(--card);\"></iframe>';
     } else {
         previewHtml = '<div class=\"text-center text-muted py-4\"><i class=\"bi bi-file-earmark-fill fs-1 d-block mb-2\"></i>Preview isn\\'t available for this file type. Download it to view the contents.</div>';
     }
@@ -534,11 +528,64 @@ function openUploadModal(categoryId) {
     new bootstrap.Modal(document.getElementById('uploadModal')).show();
 }
 
-function autofillTemplateTitle(fileInput) {
-    if (!fileInput.files || !fileInput.files[0]) return;
-    const name = fileInput.files[0].name;
-    const withoutExt = name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
-    document.getElementById('uploadTitleInput').value = withoutExt;
+function handleTemplateFilesChange(fileInput) {
+    const files = Array.from(fileInput.files || []);
+    const titleGroup = document.getElementById('uploadTitleGroup');
+    const titleInput = document.getElementById('uploadTitleInput');
+    const preview = document.getElementById('uploadFilesPreview');
+
+    if (files.length === 0) {
+        titleGroup.classList.remove('d-none');
+        titleInput.required = true;
+        titleInput.value = '';
+        preview.classList.add('d-none');
+        preview.innerHTML = '';
+        return;
+    }
+
+    if (files.length > 1) {
+        titleGroup.classList.add('d-none');
+        titleInput.required = false;
+        titleInput.value = '';
+    } else {
+        titleGroup.classList.remove('d-none');
+        titleInput.required = true;
+        const name = files[0].name;
+        titleInput.value = name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
+    }
+
+    const summary = files.length > 1
+        ? files.length + ' files selected — each will be uploaded as its own template, named after its file.'
+        : files.length + ' file selected.';
+
+    preview.classList.remove('d-none');
+    preview.innerHTML = '<div class=\"d-flex justify-content-between align-items-center mb-1\">'
+        + '<p class=\"small text-muted mb-0\">' + summary + '</p>'
+        + '<button type=\"button\" class=\"btn btn-sm btn-outline-secondary py-0 px-2\" style=\"font-size:.7rem;\" onclick=\"discardTemplateFiles()\">Discard All</button>'
+        + '</div>'
+        + files.map(function (f, i) {
+            return '<div class=\"d-flex align-items-center gap-2 p-2 rounded-3 mb-1\" style=\"background:var(--surface-hover);\">'
+                + '<i class=\"bi bi-file-earmark text-muted\"></i>'
+                + '<span class=\"small text-truncate flex-grow-1\">' + escapeHtml(f.name) + '</span>'
+                + '<button type=\"button\" class=\"btn btn-sm btn-outline-secondary py-0 px-2\" onclick=\"removeTemplateFile(' + i + ')\" title=\"Remove this file\"><i class=\"bi bi-x-lg\"></i></button>'
+                + '</div>';
+        }).join('');
+}
+
+function removeTemplateFile(index) {
+    const input = document.getElementById('uploadFileInput');
+    const dt = new DataTransfer();
+    Array.from(input.files).forEach(function (file, i) {
+        if (i !== index) dt.items.add(file);
+    });
+    input.files = dt.files;
+    handleTemplateFilesChange(input);
+}
+
+function discardTemplateFiles() {
+    const input = document.getElementById('uploadFileInput');
+    input.value = '';
+    handleTemplateFilesChange(input);
 }
 
 function openCertificateModal(t) {
@@ -549,7 +596,7 @@ function openCertificateModal(t) {
     const fields = t.fields || [];
     const listEl = document.getElementById('certificateFieldsList');
     listEl.innerHTML = fields.map(function (f) {
-        return '<span class=\"badge me-1 mb-1\" style=\"background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;font-weight:500;\">' + escapeHtml(f) + '</span>';
+        return '<span class=\"badge me-1 mb-1\" style=\"background:var(--surface-hover);color:var(--text-secondary);border:1px solid var(--border);font-weight:500;\">' + escapeHtml(f) + '</span>';
     }).join('');
 
     document.getElementById('certificateFieldsWrap').classList.toggle('d-none', fields.length === 0);

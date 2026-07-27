@@ -1,5 +1,11 @@
 </main><!-- /#main-content -->
 
+<?php if (hasRole('admin')): ?>
+<a href="<?= base_url('announcements') ?>#postAnnouncementCard" class="fab-announcement" title="New Announcement">
+  <i class="bi bi-megaphone-fill"></i>
+</a>
+<?php endif; ?>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
@@ -658,7 +664,12 @@ function loadPage(url, { push = true, scroll = true } = {}) {
             reinitPageWidgets(main);
 
             if (push) history.pushState({ ajaxNav: true }, '', finalUrl);
-            if (scroll) window.scrollTo({ top: 0, behavior: 'auto' });
+            if (target.hash) {
+                const hashTarget = document.getElementById(target.hash.slice(1));
+                if (hashTarget) hashTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (scroll) {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }
             closeSidebar();
             finishAjaxProgress();
         })
@@ -683,7 +694,13 @@ document.addEventListener('click', function (e) {
     if (url.origin !== window.location.origin) return;
 
     e.preventDefault();
-    if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search) {
+        if (url.hash) {
+            const hashTarget = document.getElementById(url.hash.slice(1));
+            if (hashTarget) hashTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+    }
     loadPage(url.href);
 });
 
@@ -703,16 +720,25 @@ document.addEventListener('submit', function (e) {
 window.addEventListener('popstate', () => loadPage(window.location.href, { push: false }));
 
 /* ── Chart.js global defaults ─────────────────────────────── */
-Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
-Chart.defaults.font.size   = 12;
-Chart.defaults.color       = '#6b7280';
-Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(255,255,255,.98)';
-Chart.defaults.plugins.tooltip.titleColor = '#111';
-Chart.defaults.plugins.tooltip.bodyColor  = '#374151';
-Chart.defaults.plugins.tooltip.borderColor = '#e5e7eb';
-Chart.defaults.plugins.tooltip.borderWidth = 1;
-Chart.defaults.plugins.tooltip.cornerRadius = 10;
-Chart.defaults.plugins.tooltip.padding = 10;
+(function () {
+    const style   = getComputedStyle(document.documentElement);
+    const cssVar  = (name) => style.getPropertyValue(name).trim();
+
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    Chart.defaults.font.size   = 12;
+    Chart.defaults.color       = cssVar('--muted');
+    Chart.defaults.plugins.tooltip.backgroundColor = cssVar('--card');
+    Chart.defaults.plugins.tooltip.titleColor = cssVar('--text');
+    Chart.defaults.plugins.tooltip.bodyColor  = cssVar('--text-secondary');
+    Chart.defaults.plugins.tooltip.borderColor = cssVar('--border');
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.cornerRadius = 10;
+    Chart.defaults.plugins.tooltip.padding = 10;
+})();
+
+function chartGridColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+}
 </script>
 
 <?php if (isset($extraScript)): ?>
