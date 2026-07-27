@@ -40,9 +40,6 @@ try {
     $unreadChatCount = 0;
 }
 
-$chatNavBadge = $unreadChatCount > 0
-    ? '<span class="badge bg-danger ms-auto" style="font-size:.62rem;">' . $unreadChatCount . '</span>'
-    : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -106,12 +103,6 @@ $chatNavBadge = $unreadChatCount > 0
            class="nav-link <?= str_contains($uri,'dashboard')?'active':'' ?>">
           <i class="bi bi-speedometer2 nav-icon"></i>
           <span class="sidebar-label">Dashboard</span>
-        </a>
-        <a href="<?= base_url('chat') ?>"
-           class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
-          <i class="bi bi-chat-dots-fill nav-icon"></i>
-          <span class="sidebar-label">Chat</span>
-          <?= $chatNavBadge ?>
         </a>
       </div>
     </div>
@@ -228,12 +219,6 @@ $chatNavBadge = $unreadChatCount > 0
           <i class="bi bi-house-fill nav-icon"></i>
           <span class="sidebar-label">My Dashboard</span>
         </a>
-        <a href="<?= base_url('chat') ?>"
-           class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
-          <i class="bi bi-chat-dots-fill nav-icon"></i>
-          <span class="sidebar-label">Chat</span>
-          <?= $chatNavBadge ?>
-        </a>
         <a href="<?= base_url('submit-documents') ?>"
            class="nav-link <?= str_contains($uri,'submit')?'active':'' ?>">
           <i class="bi bi-upload nav-icon"></i>
@@ -271,10 +256,6 @@ $chatNavBadge = $unreadChatCount > 0
       <div class="sidebar-section-items open">
         <a href="<?= base_url('adas-dashboard') ?>" class="nav-link <?= str_contains($uri,'adas-dashboard')?'active':'' ?>">
           <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
-        </a>
-        <a href="<?= base_url('chat') ?>" class="nav-link <?= str_contains($uri,'/chat')?'active':'' ?>">
-          <i class="bi bi-chat-dots-fill nav-icon"></i><span class="sidebar-label">Chat</span>
-          <?= $chatNavBadge ?>
         </a>
         <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
