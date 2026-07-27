@@ -28,7 +28,6 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('performance', 'Admin\Performance::index');
     $routes->match(['get', 'post'], 'performance/mps', 'Teacher\PerformanceMps::index');
     $routes->post('performance/mps/import', 'Teacher\PerformanceMps::import');
-    $routes->get('performance/mps/template', 'Teacher\PerformanceMps::template');
     $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
     $routes->post('enrollment-kpis/import', 'Admin\EnrollmentKpis::import');
     $routes->get('enrollment-kpis/template', 'Admin\EnrollmentKpis::template');

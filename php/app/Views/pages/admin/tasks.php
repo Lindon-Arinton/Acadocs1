@@ -205,7 +205,7 @@
                  data-role="<?= e($u['role']) ?>" data-search="<?= e(mb_strtolower($u['name'])) ?>"
                  data-id="<?= $u['id'] ?>" data-name="<?= e($u['name']) ?>">
             <input type="checkbox" class="task-people-checkbox">
-            <div style="width:30px;height:30px;border-radius:50%;background:#f3f4f6;color:#374151;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <?= e(strtoupper(substr($u['name'], 0, 1))) ?>
             </div>
             <div>

@@ -101,7 +101,7 @@
           <i class="bi <?= $icon ?> me-1"></i><?= $label ?>
         </span>
       </div>
-      <div class="fw-bold" style="font-size:1.8rem;color:#111"><?= $cnt ?></div>
+      <div class="fw-bold" style="font-size:1.8rem;color:var(--text)"><?= $cnt ?></div>
     </div>
   </div>
   <?php endforeach; ?>

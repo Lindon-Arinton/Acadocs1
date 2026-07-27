@@ -91,7 +91,7 @@
       <ul class="list-group list-group-flush">
         <?php foreach ($pendingUsers as $u): ?>
         <li class="list-group-item py-2 px-3 d-flex align-items-center gap-2">
-          <div style="width:26px;height:26px;border-radius:50%;background:#f3f4f6;color:#374151;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <?= strtoupper(substr($u['name'], 0, 1)) ?>
           </div>
           <span class="small"><?= e($u['name']) ?></span>

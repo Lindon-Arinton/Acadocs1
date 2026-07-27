@@ -132,7 +132,7 @@ include APPPATH . 'Views/layout/header.php';
       </div>
       <div id="threadActive" class="d-none h-100 d-flex flex-column" style="min-height:0;">
         <div class="p-3 border-bottom fw-semibold" id="threadHeader" style="font-size:.88rem;"></div>
-        <div class="flex-grow-1 overflow-auto p-3" id="threadMessages" style="background:#f9fafb;"></div>
+        <div class="flex-grow-1 overflow-auto p-3" id="threadMessages" style="background:var(--bg);"></div>
         <div id="attachPreview" class="d-none px-2 pt-2">
           <span class="badge bg-light text-dark border d-inline-flex align-items-center gap-2" style="font-size:.72rem;font-weight:500;padding:.4rem .6rem;">
             <i class="bi bi-paperclip"></i>
@@ -297,7 +297,7 @@ function renderMessages(messages, append) {
             const bubbleInner = document.createElement('div');
             bubbleInner.style.cssText = m.is_me
                 ? 'background:var(--primary);color:#fff;border-radius:14px 14px 2px 14px;padding:.55rem .85rem;font-size:.85rem;'
-                : 'background:#fff;color:#111;border:1px solid #e5e7eb;border-radius:14px 14px 14px 2px;padding:.55rem .85rem;font-size:.85rem;';
+                : 'background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:14px 14px 14px 2px;padding:.55rem .85rem;font-size:.85rem;';
             bubbleInner.textContent = m.body;
             if (m.attachment_url) {
                 bubbleInner.appendChild(buildAttachmentEl(m));
@@ -307,7 +307,7 @@ function renderMessages(messages, append) {
             const bubbleInner = document.createElement('div');
             bubbleInner.style.cssText = m.is_me
                 ? 'background:var(--primary);color:#fff;border-radius:14px 14px 2px 14px;padding:.5rem;'
-                : 'background:#fff;color:#111;border:1px solid #e5e7eb;border-radius:14px 14px 14px 2px;padding:.5rem;';
+                : 'background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:14px 14px 14px 2px;padding:.5rem;';
             bubbleInner.appendChild(buildAttachmentEl(m));
             bubble.appendChild(bubbleInner);
         }
