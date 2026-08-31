@@ -33,6 +33,9 @@ try {
         $chatConvoModel = new \App\Models\ConversationModel();
         $chatMsgModel   = new \App\Models\MessageModel();
         foreach ($chatConvoModel->forUser((int) $user['id']) as $conv) {
+            if ((bool) $conv['muted']) {
+                continue;
+            }
             $unreadChatCount += $chatMsgModel->unreadCount((int) $conv['id'], (int) $user['id'], $conv['last_read_at']);
         }
     }
@@ -104,6 +107,11 @@ try {
           <i class="bi bi-speedometer2 nav-icon"></i>
           <span class="sidebar-label">Dashboard</span>
         </a>
+        <a href="<?= base_url('announcements') ?>"
+           class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
+          <i class="bi bi-megaphone-fill nav-icon"></i>
+          <span class="sidebar-label">Announcements</span>
+        </a>
       </div>
     </div>
 
@@ -124,32 +132,6 @@ try {
            class="nav-link <?= str_contains($uri,'tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i>
           <span class="sidebar-label">Tasks &amp; Assignments</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- ACADEMIC -->
-    <div class="sidebar-section">
-      <button class="sidebar-section-btn <?= str_contains($uri,'enrollment')||str_contains($uri,'announcements')||str_contains($uri,'parent')?'open':'' ?>"
-              onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Academic</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items <?= str_contains($uri,'enrollment')||str_contains($uri,'announcements')||str_contains($uri,'parent')?'open':'' ?>">
-        <a href="<?= base_url('enrollment-kpis') ?>"
-           class="nav-link <?= str_contains($uri,'enrollment')?'active':'' ?>">
-          <i class="bi bi-people-fill nav-icon"></i>
-          <span class="sidebar-label">Enrollment &amp; KPIs</span>
-        </a>
-        <a href="<?= base_url('announcements') ?>"
-           class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
-          <i class="bi bi-megaphone-fill nav-icon"></i>
-          <span class="sidebar-label">Announcements</span>
-        </a>
-        <a href="<?= base_url('parent-meetings') ?>"
-           class="nav-link <?= str_contains($uri,'parent')?'active':'' ?>">
-          <i class="bi bi-calendar3 nav-icon"></i>
-          <span class="sidebar-label">Parent Meetings</span>
         </a>
       </div>
     </div>
@@ -257,9 +239,6 @@ try {
         </a>
         <a href="<?= base_url('announcements') ?>" class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i><span class="sidebar-label">Announcements</span>
-        </a>
-        <a href="<?= base_url('parent-meetings') ?>" class="nav-link <?= str_contains($uri,'parent')?'active':'' ?>">
-          <i class="bi bi-calendar3 nav-icon"></i><span class="sidebar-label">Parent Meetings</span>
         </a>
         <a href="<?= base_url('document-links') ?>" class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
           <i class="bi bi-link-45deg nav-icon"></i><span class="sidebar-label">Document Links</span>
@@ -385,19 +364,6 @@ try {
     </div>
   </div>
 </header>
-
-<!-- ══════════════ BREADCRUMB BAR ══════════════ -->
-<div id="breadcrumb-bar">
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <a href="<?= base_url('dashboard') ?>"><i class="bi bi-house me-1"></i>Home</a>
-      </li>
-      <li class="breadcrumb-sep"><i class="bi bi-chevron-right"></i></li>
-      <li class="breadcrumb-item active"><?= e($pageTitle) ?></li>
-    </ol>
-  </nav>
-</div>
 
 <!-- ══════════════ MAIN CONTENT ══════════════ -->
 <main id="main-content" class="animate-in">

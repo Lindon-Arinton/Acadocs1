@@ -26,7 +26,7 @@ class ConversationModel extends Model
 
     public function forUser(int $userId): array
     {
-        return $this->select('conversations.*, cp.last_read_at')
+        return $this->select('conversations.*, cp.last_read_at, cp.muted')
             ->join('conversation_participants cp', 'cp.conversation_id = conversations.id')
             ->where('cp.user_id', $userId)
             ->orderBy('conversations.id', 'DESC')

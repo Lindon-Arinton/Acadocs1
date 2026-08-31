@@ -4,9 +4,6 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Libraries\EnrollmentKpiDocxImporter;
-use App\Models\DepedKpiReportModel;
-use App\Models\EnrollmentByLevelModel;
-use App\Models\PerformanceByLevelModel;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
 use PhpOffice\PhpWord\IOFactory;
@@ -17,9 +14,6 @@ use PhpOffice\PhpWord\SimpleType\Jc;
 
 class EnrollmentKpis extends BaseController
 {
-    // Hardcoded: the school years covered by the client's provided DepEd KPI reports.
-    private const YEAR_OPTIONS = ['2023-2024', '2022-2023', '2021-2022', '2020-2021'];
-
     /** Display labels for the blank template, in the order the DepEd form uses. */
     private const TEMPLATE_INDICATORS = [
         'Gross Enrolment Rate', 'Net Enrolment Rate', 'Cohort Survival Rate',
@@ -29,138 +23,14 @@ class EnrollmentKpis extends BaseController
 
     private const TEMPLATE_GRADE_LEVELS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
 
-    // Fallback only: MPS isn't reported in the DepEd KPI docs above — it lives
-    // in the same performance_by_level table Performance Analytics reads
-    // from. The actual source year is always resolved dynamically (see
-    // index() below) to whichever year has the most recent scores, so this
-    // never goes stale the way a hardcoded year would.
-    private const MPS_SOURCE_YEAR = '2024-2025';
-
-    public function index()
-    {
-        $years = $this->availableYears();
-
-        $year = $this->request->getGet('year') ?? $years[0];
-        if (!in_array($year, $years, true)) {
-            $year = $years[0];
-        }
-
-        $enrollment = (new EnrollmentByLevelModel())->where('school_year', $year)->orderBy('grade_level')->findAll();
-
-        $data = [
-            'year'       => $year,
-            'enrollment' => $enrollment,
-            'total'      => array_sum(array_column($enrollment, 'students')),
-        ];
-
-        if ($this->request->isAJAX()) {
-            return $this->response->setJSON([
-                'html'       => view('pages/admin/enrollment_kpis_content', $data, ['debug' => false]),
-                'enrollment' => $data['enrollment'],
-            ]);
-        }
-
-        $latestMpsYear = (new PerformanceByLevelModel())->select('school_year')->orderBy('school_year', 'DESC')->first();
-        $mpsSourceYear = $latestMpsYear['school_year'] ?? self::MPS_SOURCE_YEAR;
-
-        $mpsByTerm = (new PerformanceByLevelModel())
-            ->where('school_year', $mpsSourceYear)
-            ->orderBy('term')->orderBy('grade_level')
-            ->findAll();
-
-        $mpsTrend = [];
-        foreach ($mpsByTerm as $row) {
-            $term = (int) $row['term'];
-            $mpsTrend[$term]['term']   = $term;
-            $mpsTrend[$term]['scores'][] = (float) $row['mps'];
-        }
-        foreach ($mpsTrend as &$t) {
-            $t['avg_mps'] = round(array_sum($t['scores']) / count($t['scores']), 2);
-            unset($t['scores']);
-        }
-        unset($t);
-        $mpsTrend = array_values($mpsTrend);
-
-        $mpsOverallAvg = $mpsTrend
-            ? round(array_sum(array_column($mpsTrend, 'avg_mps')) / count($mpsTrend), 2)
-            : null;
-
-        return view('pages/admin/enrollment_kpis', array_merge($data, [
-            'pageTitle'        => 'Enrollment KPIs',
-            'years'            => $years,
-            'depedKpis'        => (new DepedKpiReportModel())->allByYear(),
-            'enrollmentTotals' => $this->enrollmentTotalsByYear(),
-            'mpsTrend'         => $mpsTrend,
-            'mpsSourceYear'    => $mpsSourceYear,
-            'mpsOverallAvg'    => $mpsOverallAvg,
-        ]));
-    }
-
-    /**
-     * School years available to view/import into: the hardcoded starting
-     * list plus whatever years already have KPI or enrollment data, so a
-     * newly imported year shows up without a code change. Newest first.
-     */
-    private function availableYears(): array
-    {
-        $fromKpi        = array_column((new DepedKpiReportModel())->allByYear(), 'school_year');
-        $fromEnrollment = array_column(
-            (new EnrollmentByLevelModel())->select('school_year')->distinct()->findAll(),
-            'school_year'
-        );
-
-        $years = array_unique(array_merge(self::YEAR_OPTIONS, $fromKpi, $fromEnrollment));
-        rsort($years);
-
-        return array_values($years);
-    }
-
-    /**
-     * Total enrollees per school year. DepEd KPI reports capture this two
-     * different ways depending on the document's age: newer ones have a
-     * per-grade-level breakdown table (summed here), older ones have a single
-     * combined "Enrolment: X = male Y female Z" row (captured as
-     * deped_kpi_reports.enrolment_total instead). A given year only ever has
-     * one or the other, never both, so the breakdown table wins when present
-     * and the combined-row figure is used as a fallback.
-     *
-     * @return array<int,array{school_year:string,total:int}>
-     */
-    private function enrollmentTotalsByYear(): array
-    {
-        $totals = [];
-
-        $gradeLevelRows = (new EnrollmentByLevelModel())
-            ->select('school_year, SUM(students) AS total')
-            ->groupBy('school_year')
-            ->findAll();
-
-        foreach ($gradeLevelRows as $row) {
-            $totals[$row['school_year']] = (int) $row['total'];
-        }
-
-        foreach ((new DepedKpiReportModel())->allByYear() as $row) {
-            if (! isset($totals[$row['school_year']]) && $row['enrolment_total'] !== null) {
-                $totals[$row['school_year']] = (int) $row['enrolment_total'];
-            }
-        }
-
-        $result = [];
-        foreach ($totals as $schoolYear => $total) {
-            $result[] = ['school_year' => $schoolYear, 'total' => $total];
-        }
-
-        return $result;
-    }
-
     public function import()
     {
         if (! hasRole('admin')) {
-            return redirect()->to('/enrollment-kpis');
+            return redirect()->to('/dashboard');
         }
 
         $isAjax   = $this->request->isAJAX();
-        $redirect = '/enrollment-kpis';
+        $redirect = '/dashboard';
 
         $year = trim((string) $this->request->getPost('school_year'));
         if (! preg_match('/^(\d{4})-(\d{4})$/', $year, $m) || (int) $m[2] !== (int) $m[1] + 1) {
@@ -169,7 +39,7 @@ class EnrollmentKpis extends BaseController
             return $isAjax ? $this->ajaxError($error) : redirect()->to($redirect)->with('flash', ['type' => 'danger', 'msg' => $error]);
         }
 
-        $redirect = '/enrollment-kpis?year=' . urlencode($year);
+        $redirect = '/dashboard?year=' . urlencode($year);
 
         $file = $this->request->getFile('import_file');
 
@@ -228,7 +98,7 @@ class EnrollmentKpis extends BaseController
     public function template()
     {
         if (! hasRole('admin')) {
-            return redirect()->to('/enrollment-kpis');
+            return redirect()->to('/dashboard');
         }
 
         // Prefer a real DepEd-issued .docx uploaded via Templates (Enrollment

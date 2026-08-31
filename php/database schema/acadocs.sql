@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS `conversation_participants` (
   `conversation_id` int(10) UNSIGNED NOT NULL,
   `user_id` int(10) UNSIGNED NOT NULL,
   `last_read_at` timestamp NULL DEFAULT NULL,
+  `muted` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `conversation_user` (`conversation_id`,`user_id`),
@@ -386,17 +387,59 @@ CREATE TABLE IF NOT EXISTS `messages` (
   `id` int(10) UNSIGNED NOT NULL,
   `conversation_id` int(10) UNSIGNED NOT NULL,
   `sender_id` int(10) UNSIGNED NOT NULL,
+  `reply_to_id` int(10) UNSIGNED DEFAULT NULL,
   `body` text NOT NULL,
   `attachment_path` varchar(500) DEFAULT NULL,
   `attachment_name` varchar(255) DEFAULT NULL,
   `attachment_ext` varchar(20) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `edited_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `conversation_id` (`conversation_id`),
   KEY `sender_id` (`sender_id`),
+  KEY `reply_to_id` (`reply_to_id`),
   CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `messages_reply_to_fk` FOREIGN KEY (`reply_to_id`) REFERENCES `messages` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `message_reactions`
+--
+
+CREATE TABLE IF NOT EXISTS `message_reactions` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `message_id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED NOT NULL,
+  `emoji` varchar(8) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `message_user` (`message_id`,`user_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `message_reactions_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `messages` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `message_reactions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `conversation_typing`
+--
+
+CREATE TABLE IF NOT EXISTS `conversation_typing` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `conversation_id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED NOT NULL,
+  `updated_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `conversation_user` (`conversation_id`,`user_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `conversation_typing_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `conversation_typing_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1208,10 +1251,11 @@ CREATE TABLE IF NOT EXISTS `users` (
   `name` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','teacher','adas') NOT NULL,
+  `role` enum('admin','teacher','secretary','adas') NOT NULL,
   `ac_no` varchar(20) DEFAULT NULL,
   `position` varchar(50) DEFAULT NULL,
   `photo` varchar(255) DEFAULT NULL,
+  `last_active_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),

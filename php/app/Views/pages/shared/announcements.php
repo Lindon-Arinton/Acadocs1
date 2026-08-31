@@ -106,7 +106,7 @@
   <?php if (hasRole('admin','adas')): ?>
   <div class="col-lg-4" id="postAnnouncementCard">
     <div class="card sticky-top" style="top:80px;">
-      <div class="card-header" style="background:linear-gradient(135deg,var(--pink),var(--primary));color:#fff;">
+      <div class="card-header" style="background:var(--primary);color:#fff;">
         <div class="card-title" style="color:#fff;"><i class="bi bi-plus-circle me-2"></i>Post Announcement</div>
       </div>
       <div class="card-body">

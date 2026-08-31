@@ -28,12 +28,10 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'performance/mps', 'Teacher\PerformanceMps::index');
     $routes->post('performance/mps/import', 'Teacher\PerformanceMps::import');
     $routes->get('performance/mps/template', 'Teacher\PerformanceMps::template');
-    $routes->get('enrollment-kpis', 'Admin\EnrollmentKpis::index');
+    $routes->get('enrollment-kpis', static fn () => redirect()->to('/dashboard'));
     $routes->post('enrollment-kpis/import', 'Admin\EnrollmentKpis::import');
     $routes->get('enrollment-kpis/template', 'Admin\EnrollmentKpis::template');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
-    $routes->match(['get', 'post'], 'parent-meetings', 'Shared\ParentMeetings::index');
-    $routes->get('parent-meetings/(:num)/attendance-file', 'Shared\ParentMeetings::downloadAttendance/$1');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
@@ -54,6 +52,15 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'chat', 'Shared\Chat::index');
     $routes->get('chat/(:num)/messages', 'Shared\Chat::messages/$1');
     $routes->post('chat/(:num)/send', 'Shared\Chat::send/$1');
+    $routes->post('chat/(:num)/typing', 'Shared\Chat::typing/$1');
+    $routes->post('chat/(:num)/messages/(:num)/react', 'Shared\Chat::react/$1/$2');
+    $routes->post('chat/(:num)/messages/(:num)/edit', 'Shared\Chat::editMessage/$1/$2');
+    $routes->post('chat/(:num)/messages/(:num)/delete', 'Shared\Chat::deleteMessage/$1/$2');
+    $routes->get('chat/(:num)/members', 'Shared\Chat::members/$1');
+    $routes->post('chat/(:num)/members/add', 'Shared\Chat::addMembers/$1');
+    $routes->post('chat/(:num)/members/remove', 'Shared\Chat::removeMember/$1');
+    $routes->post('chat/(:num)/leave', 'Shared\Chat::leave/$1');
+    $routes->post('chat/(:num)/mute', 'Shared\Chat::mute/$1');
     $routes->get('chat/attachment/(:num)', 'Shared\Chat::attachment/$1');
 });
 

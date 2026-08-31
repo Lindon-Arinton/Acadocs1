@@ -11,11 +11,42 @@ class ConversationParticipantModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['conversation_id', 'user_id', 'last_read_at'];
+    protected $allowedFields = ['conversation_id', 'user_id', 'last_read_at', 'muted'];
 
     public function isParticipant(int $conversationId, int $userId): bool
     {
         return (bool) $this->where('conversation_id', $conversationId)->where('user_id', $userId)->first();
+    }
+
+    public function isMuted(int $conversationId, int $userId): bool
+    {
+        $row = $this->where('conversation_id', $conversationId)->where('user_id', $userId)->first();
+
+        return $row !== null && (bool) $row['muted'];
+    }
+
+    public function setMuted(int $conversationId, int $userId, bool $muted): void
+    {
+        $this->where('conversation_id', $conversationId)
+            ->where('user_id', $userId)
+            ->set('muted', $muted ? 1 : 0)
+            ->update();
+    }
+
+    /** Removes the caller from a conversation (leaving a group). */
+    public function leave(int $conversationId, int $userId): void
+    {
+        $this->where('conversation_id', $conversationId)->where('user_id', $userId)->delete();
+    }
+
+    public function remove(int $conversationId, int $userId): void
+    {
+        $this->where('conversation_id', $conversationId)->where('user_id', $userId)->delete();
+    }
+
+    public function countFor(int $conversationId): int
+    {
+        return $this->where('conversation_id', $conversationId)->countAllResults();
     }
 
     public function forConversation(int $conversationId): array

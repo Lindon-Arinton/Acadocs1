@@ -35,7 +35,6 @@ syncThemeIcon();
 const COLLAPSED_KEY = 'sidebar_collapsed';
 const sidebar = document.getElementById('sidebar');
 const topbar  = document.getElementById('topbar');
-const breadcrumbBar = document.getElementById('breadcrumb-bar');
 const colIcon = document.getElementById('collapse-icon');
 const collapseBtn = document.getElementById('sidebar-collapse-btn');
 const overlay = document.getElementById('sidebar-overlay');
@@ -46,7 +45,6 @@ function applyCollapsed(on, persist = true) {
 
     sidebar.classList.toggle('collapsed', on);
     topbar.classList.toggle('collapsed', on);
-    breadcrumbBar?.classList.toggle('collapsed', on);
     document.body.classList.toggle('sidebar-collapsed', on);
 
     if (colIcon) {
@@ -74,7 +72,6 @@ function syncSidebarState() {
         sidebar?.classList.remove('collapsed');
         document.body.classList.remove('sidebar-collapsed');
         topbar?.classList.remove('collapsed');
-        breadcrumbBar?.classList.remove('collapsed');
         if (overlay) overlay.style.display = 'none';
         return;
     }
@@ -649,10 +646,6 @@ function loadPage(url, { push = true, scroll = true } = {}) {
             main.classList.add('animate-in');
 
             if (doc.title) document.title = doc.title;
-
-            const newCrumb  = doc.querySelector('.breadcrumb-item.active');
-            const liveCrumb = document.querySelector('.breadcrumb-item.active');
-            if (newCrumb && liveCrumb) liveCrumb.textContent = newCrumb.textContent;
 
             const finalPath = new URL(finalUrl, window.location.origin).pathname;
             updateActiveNavLinks(finalPath);

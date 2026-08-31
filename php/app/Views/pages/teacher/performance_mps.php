@@ -64,7 +64,7 @@
 
   <?php foreach ($periods as $shortKey => $label): ?>
   <div class="card mb-4">
-    <div class="card-header py-3 text-white fw-bold" style="background:linear-gradient(135deg,#9d174d,#800000,#c2410c);">
+    <div class="card-header py-3 text-white fw-bold" style="background:#800000;">
       <i class="bi bi-clipboard-data me-2"></i><?= e($label) ?>
     </div>
     <div class="card-body p-0">
