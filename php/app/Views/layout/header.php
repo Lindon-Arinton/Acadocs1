@@ -97,11 +97,8 @@ try {
 
     <!-- MAIN -->
     <div class="sidebar-section">
-      <button class="sidebar-section-btn open" onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Main</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items open">
+      <div class="sidebar-section-label">Main</div>
+      <div class="sidebar-section-items">
         <a href="<?= base_url('dashboard') ?>"
            class="nav-link <?= str_contains($uri,'dashboard')?'active':'' ?>">
           <i class="bi bi-speedometer2 nav-icon"></i>
@@ -117,12 +114,8 @@ try {
 
     <!-- DOCUMENTS -->
     <div class="sidebar-section">
-      <button class="sidebar-section-btn <?= str_contains($uri,'document')||str_contains($uri,'tasks')?'open':'' ?>"
-              onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Documents</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items <?= str_contains($uri,'document')||str_contains($uri,'tasks')?'open':'' ?>">
+      <div class="sidebar-section-label">Documents</div>
+      <div class="sidebar-section-items">
         <a href="<?= base_url('documents') ?>"
            class="nav-link <?= preg_match('#/documents/?$#',$uri)?'active':'' ?>">
           <i class="bi bi-folder2-open nav-icon"></i>
@@ -138,12 +131,8 @@ try {
 
     <!-- OPERATIONS -->
     <div class="sidebar-section">
-      <button class="sidebar-section-btn <?= str_contains($uri,'time-records')||str_contains($uri,'document-links')||str_contains($uri,'property')||str_contains($uri,'templates')?'open':'' ?>"
-              onclick="toggleSection(this)">
-        <span class="sidebar-section-label">Operations</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items <?= str_contains($uri,'time-records')||str_contains($uri,'document-links')||str_contains($uri,'property')||str_contains($uri,'templates')?'open':'' ?>">
+      <div class="sidebar-section-label">Operations</div>
+      <div class="sidebar-section-items">
         <a href="<?= base_url('time-records') ?>"
            class="nav-link <?= str_contains($uri,'time-records')?'active':'' ?>">
           <i class="bi bi-clock nav-icon"></i>
@@ -169,12 +158,8 @@ try {
 
     <!-- SYSTEM -->
     <div class="sidebar-section">
-      <button class="sidebar-section-btn <?= str_contains($uri,'users')?'open':'' ?>"
-              onclick="toggleSection(this)">
-        <span class="sidebar-section-label">System</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items <?= str_contains($uri,'users')?'open':'' ?>">
+      <div class="sidebar-section-label">System</div>
+      <div class="sidebar-section-items">
         <a href="<?= base_url('users') ?>"
            class="nav-link <?= str_contains($uri,'users')?'active':'' ?>">
           <i class="bi bi-person-gear nav-icon"></i>
@@ -186,11 +171,8 @@ try {
     <?php elseif ($role === 'teacher'): ?>
 
     <div class="sidebar-section">
-      <button class="sidebar-section-btn open" onclick="toggleSection(this)">
-        <span class="sidebar-section-label">My Workspace</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items open">
+      <div class="sidebar-section-label">My Workspace</div>
+      <div class="sidebar-section-items">
         <a href="<?= base_url('teacher-dashboard') ?>"
            class="nav-link <?= str_contains($uri,'teacher-dashboard')?'active':'' ?>">
           <i class="bi bi-house-fill nav-icon"></i>
@@ -226,11 +208,8 @@ try {
 
     <?php elseif ($role === 'adas'): ?>
     <div class="sidebar-section">
-      <button class="sidebar-section-btn open" onclick="toggleSection(this)">
-        <span class="sidebar-section-label">ADAS</span>
-        <i class="bi bi-chevron-down sidebar-section-arrow"></i>
-      </button>
-      <div class="sidebar-section-items open">
+      <div class="sidebar-section-label">ADAS</div>
+      <div class="sidebar-section-items">
         <a href="<?= base_url('adas-dashboard') ?>" class="nav-link <?= str_contains($uri,'adas-dashboard')?'active':'' ?>">
           <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
         </a>

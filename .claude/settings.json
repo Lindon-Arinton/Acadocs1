@@ -9,7 +9,8 @@
       "Bash(powershell -NoProfile -Command \"Stop-Process -Id 21404 -Force -ErrorAction SilentlyContinue\")",
       "Bash(/c/xampp1/mysql/bin/mysql.exe -u root -h 127.0.0.1 acadocs -e \"CREATE TABLE test_tbl \\(id INT\\); DROP TABLE test_tbl; SELECT 'write ok';\")",
       "Bash(/c/xampp1/mysql/bin/mysql.exe -u root -h 127.0.0.1 acadocs -e \"SHOW TABLES; DESCRIBE canteen_records;\")",
-      "Bash(grep -n \"CREATE TABLE IF NOT EXISTS \\\\`messages\\\\`\" \"c:/xampp/htdocs/Acadocs1/php/database schema/acadocs.sql\")"
+      "Bash(grep -n \"CREATE TABLE IF NOT EXISTS \\\\`messages\\\\`\" \"c:/xampp/htdocs/Acadocs1/php/database schema/acadocs.sql\")",
+      "Bash(php -l app/Views/auth/login.php)"
     ],
     "additionalDirectories": [
       "C:\\xampp1\\mysql\\bin"
