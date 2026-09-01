@@ -7,7 +7,7 @@
   --primary-deeper: #6b0000;
   --accent:         #c2410c;
   --pink:           #9d174d;
-  --bg:             #f4f6f9;
+  --bg:             #ffe4e9;
   --card:           #ffffff;
   --border:         #e5e7eb;
   --muted:          #6b7280;
@@ -97,8 +97,7 @@ body {
 #sidebar.collapsed .sidebar-label,
 #sidebar.collapsed .sidebar-brand-text,
 #sidebar.collapsed .sidebar-section-label,
-#sidebar.collapsed .sidebar-user-info,
-#sidebar.collapsed .sidebar-section-arrow { display: none !important; }
+#sidebar.collapsed .sidebar-user-info { display: none !important; }
 #sidebar.collapsed .nav-link { justify-content: center; padding: .6rem 0; }
 #sidebar.collapsed .sidebar-brand { justify-content: center; padding: 1rem .5rem; }
 
@@ -210,37 +209,17 @@ body {
   margin-top: .25rem;
 }
 
-.sidebar-section-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  background: none;
-  border: none;
+/* Plain section headers — no toggle/collapse, every link is always visible;
+   this is just a label grouping the links under it. */
+.sidebar-section-label {
   color: rgba(255,255,255,.4);
   font-size: .62rem;
   font-weight: 700;
   letter-spacing: .09em;
   text-transform: uppercase;
   padding: .85rem 1.25rem .3rem;
-  cursor: pointer;
-  gap: .5rem;
 }
 
-.sidebar-section-btn:hover { color: rgba(255,255,255,.6); }
-.sidebar-section-label { flex: 1; text-align: left; }
-.sidebar-section-arrow {
-  transition: transform .2s;
-  font-size: .65rem;
-}
-.sidebar-section-btn.open .sidebar-section-arrow { transform: rotate(180deg); }
-
-.sidebar-section-items {
-  overflow: hidden;
-  transition: max-height .25s ease;
-  max-height: 0;
-}
-.sidebar-section-items.open { max-height: 500px; }
 
 /* Nav links */
 .nav-link {
@@ -1016,16 +995,30 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 .chat-convo-item:hover .chat-convo-delete-btn { display: flex; }
 .chat-convo-delete-btn:hover { background: #fee2e2; color: #dc2626; }
 
-/* ── Chat on small screens: list and thread never share the viewport —
-   whichever one is active takes the full width, with a Back button to
-   return to the list instead of a cramped side-by-side layout. ── */
+/* Right-side "chat details" panel (Messenger's layout) — opened via the info
+   icon or the kebab menu's "View Members", instead of a centered modal. */
+.chat-info-panel {
+  width: 280px; flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  background: var(--card);
+}
+.chat-info-panel.d-none { display: none; }
+
+/* ── Chat on small screens: list, thread, and the info panel never share
+   the viewport — whichever one is active takes the full width, with a Back
+   button to return to the list instead of a cramped side-by-side layout. ── */
 .chat-mobile-back-btn { display: none; }
 @media (max-width: 767.98px) {
   .chat-card { height: calc(100vh - 150px) !important; }
   .chat-left-panel { width: 100% !important; border-right: none !important; }
   .chat-thread-pane { display: none !important; }
+  .chat-info-panel { width: 100% !important; border-left: none !important; }
   .chat-shell.chat-mobile-thread-active .chat-left-panel { display: none !important; }
   .chat-shell.chat-mobile-thread-active .chat-thread-pane { display: flex !important; }
+  .chat-shell.chat-mobile-info-active .chat-thread-pane,
+  .chat-shell.chat-mobile-info-active .chat-left-panel { display: none !important; }
+  .chat-shell.chat-mobile-info-active .chat-info-panel { display: flex !important; }
   .chat-mobile-back-btn { display: inline-flex !important; }
 }
 
@@ -1048,64 +1041,95 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
   background: #fff;
 }
 
-/* Brand / welcome panel */
-.login-brand-panel {
+/* Light full-page background + a plain (non-tinted) shell for the split
+   form/illustration layout, as modifiers on the base .login-wrapper/.login-shell
+   so both stay reusable if a future page wants the original solid-maroon look. */
+/* Hardcoded (not var(--bg)) so the login page's look stays exactly as-is
+   even as the rest of the system's light-mode background changes. */
+.login-wrapper-light { background: #f4f6f9; }
+.login-shell-split { align-items: stretch; }
+.login-form-panel-left { flex: 0 0 46%; }
+
+/* Illustration panel (right) — soft brand-tinted backdrop behind the
+   hand-built animated SVG scene. */
+.login-illustration-panel {
+  flex: 1;
+  background: radial-gradient(circle at 75% 20%, #fff0f0 0%, #ffe4e9 55%, #ffd9e0 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2.5rem 2rem;
   position: relative;
-  flex: 0 0 44%;
-  background: var(--primary);
-  color: #fff;
-  padding: 3rem 2.25rem;
-  display: flex; flex-direction: column; justify-content: center;
-  border-radius: 28px 90px 90px 28px;
   overflow: hidden;
 }
-.login-brand-decor { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.login-brand-decor::before,
-.login-brand-decor::after {
-  content: ''; position: absolute; border-radius: 50%;
-  background: rgba(255,255,255,.08);
+.login-illustration-svg {
+  width: 100%; max-width: 340px; height: auto;
 }
-.login-brand-decor::before { width: 220px; height: 220px; top: -80px; right: -60px; }
-.login-brand-decor::after  { width: 160px; height: 160px; bottom: -60px; left: -40px; background: rgba(255,255,255,.06); }
 
-.login-brand-content { position: relative; z-index: 1; }
-.login-brand-icon {
-  width: 56px; height: 56px; border-radius: 16px;
-  background: rgba(255,255,255,.18);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; margin-bottom: 1.25rem;
+/* The three depth layers (back blobs / mid scene / front floaters) are
+   moved independently by JS on mousemove — this is what makes it smooth. */
+#li-layer-back, #li-layer-mid, #li-layer-front {
+  transition: transform .35s cubic-bezier(.22,1,.36,1);
 }
-.login-brand-icon img {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
-}
-.login-brand-content h2 { font-weight: 800; font-size: 1.9rem; margin-bottom: .4rem; }
-.login-brand-content p  { opacity: .85; font-size: .85rem; line-height: 1.5; margin-bottom: 1.75rem; max-width: 300px; }
 
-.login-clock-widget { margin-bottom: 1.5rem; }
-.login-clock { font-size: 2.1rem; font-weight: 700; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
-.login-date  { font-size: .8rem; opacity: .8; margin-top: .15rem; }
+/* Ambient background blobs — slow, near-imperceptible drift so the scene
+   never looks static, without competing with the foreground objects. */
+@keyframes li-drift-anim {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(6px, -8px) scale(1.04); }
+}
+.li-drift { transform-box: fill-box; transform-origin: center; animation: li-drift-anim 9s ease-in-out infinite; }
+.li-drift-slow { animation-duration: 14s; }
 
-.mini-calendar {
-  background: rgba(255,255,255,.1);
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 16px;
-  padding: .9rem 1rem;
-  max-width: 240px;
-  overflow: hidden;
+/* Entrance choreography: each element fades/scales/rises in on load, staggered
+   via its own inline animation-delay, before its idle loop (float/sway/twinkle,
+   on a separately-animated inner element) takes over. */
+@keyframes li-enter-anim {
+  from { opacity: 0; transform: translateY(22px) scale(.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.mini-calendar-head { font-size: .82rem; font-weight: 700; margin-bottom: .5rem; text-align: center; }
-.mini-calendar-dow, .mini-calendar-grid {
-  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center;
+.li-enter {
+  transform-box: fill-box; transform-origin: center;
+  opacity: 0;
+  animation: li-enter-anim .6s cubic-bezier(.22,1,.36,1) both;
 }
-.mini-calendar-dow span { font-size: .62rem; opacity: .65; padding-bottom: .25rem; }
-.mini-calendar-grid span {
-  font-size: .7rem; padding: .3rem 0; border-radius: 6px; opacity: .9; min-width: 0;
+@keyframes li-enter-bounce-anim {
+  0%   { opacity: 0; transform: translateY(-30px) scale(.7); }
+  60%  { opacity: 1; transform: translateY(6px) scale(1.08); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.mini-calendar-grid span.is-today { background: #fff; color: var(--primary); font-weight: 700; opacity: 1; }
-.mini-calendar-grid span.is-empty { visibility: hidden; }
+.li-enter-bounce {
+  animation: li-enter-bounce-anim .8s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* Foreground objects: a gentle vertical bob once their entrance has settled
+   (each has its own positive animation-delay set inline, timed to pick up
+   right after the matching .li-enter finishes). */
+@keyframes li-float-anim {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.li-float { transform-box: fill-box; transform-origin: center; animation: li-float-anim 3.6s cubic-bezier(.45,0,.55,1) infinite; animation-fill-mode: backwards; }
+
+/* Sparkles: a quick opacity/scale shimmer. */
+@keyframes li-twinkle-anim {
+  0%, 100% { opacity: .35; transform: scale(.8); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+.li-twinkle { transform-box: fill-box; transform-origin: center; animation: li-twinkle-anim 2.2s ease-in-out infinite; animation-fill-mode: backwards; }
+
+/* Plant: a slow pendulum sway. */
+@keyframes li-sway-anim {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+.li-sway { animation: li-sway-anim 4.5s ease-in-out infinite; }
+
+/* Laptop's tiny "it's on" activity dot — a simple continuous pulse (this one
+   doesn't need entrance choreography, it's a 3px accent). */
+@keyframes li-blink-anim {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .25; }
+}
+.li-blink { animation: li-blink-anim 1.6s ease-in-out infinite; }
 
 /* Form panel */
 .login-form-panel {
@@ -1118,7 +1142,7 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 
 .login-input-group { position: relative; margin-bottom: 1.1rem; }
 .login-input-group input {
-  width: 100%; border: 1.5px solid var(--border); background: var(--bg);
+  width: 100%; border: 1.5px solid var(--border); background: #f4f6f9;
   border-radius: 30px; padding: .75rem 2.75rem .75rem 1.25rem;
   font-size: .88rem; transition: border-color .15s, box-shadow .15s;
 }
@@ -1142,13 +1166,12 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 }
 .login-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 30px rgba(128,0,0,.4); color: #fff; }
 
-.login-demo-creds { margin-top: 1.75rem; padding: .9rem 1rem; border-radius: 14px; background: var(--bg); border: 1px solid var(--border); }
-
 @media (max-width: 767.98px) {
   .login-shell { flex-direction: column; max-width: 420px; }
-  .login-brand-panel { border-radius: 28px 28px 60px 60px; flex: none; padding: 2.5rem 1.75rem; }
+  .login-form-panel-left { flex: none; }
   .login-form-panel { padding: 2.25rem 1.75rem; }
-  .mini-calendar { max-width: 100%; }
+  .login-illustration-panel { padding: 1.75rem; order: -1; }
+  .login-illustration-svg { max-width: 220px; }
 }
 
 /* ── Sidebar overlay (mobile) ─────────────────────────────── */

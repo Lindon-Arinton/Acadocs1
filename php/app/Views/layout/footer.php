@@ -87,16 +87,6 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 window.addEventListener('resize', syncSidebarState);
 
-/* ── Sidebar sections accordion ──────────────────────────── */
-function toggleSection(btn) {
-    const items = btn?.nextElementSibling;
-    if (!items) return;
-
-    const isOpen = btn.classList.contains('open');
-    btn.classList.toggle('open', !isOpen);
-    items.classList.toggle('open', !isOpen);
-}
-
 /* ── Mobile sidebar ──────────────────────────────────────── */
 function openSidebar() {
     sidebar?.classList.add('mobile-open');
@@ -563,13 +553,7 @@ function runPageScript(code) {
 
 function updateActiveNavLinks(pathname) {
     document.querySelectorAll('#sidebar .nav-link').forEach(link => {
-        const isActive = link.pathname === pathname;
-        link.classList.toggle('active', isActive);
-        if (isActive) {
-            const items = link.closest('.sidebar-section-items');
-            items?.classList.add('open');
-            items?.previousElementSibling?.classList.add('open');
-        }
+        link.classList.toggle('active', link.pathname === pathname);
     });
 }
 

@@ -144,15 +144,20 @@ include APPPATH . 'Views/layout/header.php';
             </button>
             <div id="threadHeader" class="fw-semibold" style="font-size:.88rem;"></div>
           </div>
-          <div class="dropdown">
-            <button class="btn btn-sm btn-ghost" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Conversation options">
-              <i class="bi bi-three-dots-vertical"></i>
+          <div class="d-flex align-items-center gap-1">
+            <button type="button" class="btn btn-sm btn-ghost" onclick="openInfoPanel()" title="Conversation info">
+              <i class="bi bi-info-circle"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li id="viewMembersItem" class="d-none"><a class="dropdown-item" href="#" onclick="openMembersModal();return false;"><i class="bi bi-people me-2"></i>View Members</a></li>
-              <li><a class="dropdown-item" href="#" id="muteMenuLink" onclick="toggleMute();return false;"><i class="bi bi-bell-slash me-2"></i><span id="muteMenuLabel">Mute Notifications</span></a></li>
-              <li><hr class="dropdown-divider"><a class="dropdown-item text-danger" href="#" onclick="confirmLeaveGroup();return false;"><i class="bi bi-box-arrow-right me-2" id="leaveGroupIcon"></i><span id="leaveGroupLabel">Delete Chat</span></a></li>
-            </ul>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-ghost" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Conversation options">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li id="viewMembersItem" class="d-none"><a class="dropdown-item" href="#" onclick="openInfoPanel();return false;"><i class="bi bi-people me-2"></i>View Members</a></li>
+                <li><a class="dropdown-item" href="#" id="muteMenuLink" onclick="toggleMute();return false;"><i class="bi bi-bell-slash me-2"></i><span id="muteMenuLabel">Mute Notifications</span></a></li>
+                <li><hr class="dropdown-divider"><a class="dropdown-item text-danger" href="#" onclick="confirmLeaveGroup();return false;"><i class="bi bi-box-arrow-right me-2" id="leaveGroupIcon"></i><span id="leaveGroupLabel">Delete Chat</span></a></li>
+              </ul>
+            </div>
           </div>
         </div>
         <div class="flex-grow-1 overflow-auto p-3" id="threadMessages" style="background:var(--bg);"></div>
@@ -184,6 +189,64 @@ include APPPATH . 'Views/layout/header.php';
                  autocomplete="off" maxlength="2000">
           <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-send"></i></button>
         </form>
+      </div>
+    </div>
+
+    <!-- Chat info panel: slides in on the right (Messenger's "chat details"
+         layout) instead of a centered modal — conversation avatar, mute
+         toggle, member list (admins can add/remove), leave/delete action. -->
+    <div class="chat-info-panel d-none" id="chatInfoPanel">
+      <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+        <span class="fw-semibold" style="font-size:.85rem;">Chat Info</span>
+        <button type="button" class="chat-icon-btn" onclick="closeInfoPanel()" title="Close">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="overflow-auto flex-grow-1">
+        <div class="p-3 border-bottom text-center" id="chatInfoHeader"></div>
+
+        <div class="p-2 border-bottom">
+          <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-start" onclick="toggleMute()">
+            <i class="bi bi-bell-slash me-2"></i><span id="panelMuteLabel">Mute Notifications</span>
+          </button>
+        </div>
+
+        <div id="panelMembersSection" class="border-bottom d-none">
+          <button type="button" class="w-100 text-start p-2 fw-semibold d-flex justify-content-between align-items-center bg-transparent border-0"
+                  style="font-size:.8rem;" onclick="togglePanelSection('panelMembersBody', this)">
+            <span><i class="bi bi-people me-2 text-muted"></i>Members</span>
+            <i class="bi bi-chevron-up" id="panelMembersChevron"></i>
+          </button>
+          <div id="panelMembersBody" class="px-3 pb-3">
+            <div id="membersList"><p class="text-muted text-center small mb-0">Loading…</p></div>
+            <?php if (hasRole('admin')): ?>
+            <hr>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label mb-0">Add Members</label>
+              <a href="#" id="showAddMembersLink" onclick="toggleAddMembersPanel();return false;" style="font-size:.78rem;">
+                <i class="bi bi-plus-circle me-1"></i>Add people
+              </a>
+            </div>
+            <div id="addMembersPanel" class="d-none">
+              <div class="input-group input-group-sm mb-2">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="addMemberSearchInput" class="form-control border-start-0 ps-0" placeholder="Search users..." autocomplete="off">
+              </div>
+              <div style="max-height:200px;overflow-y:auto;" id="addMemberList"></div>
+              <button type="button" class="btn btn-sm btn-primary mt-2" onclick="submitAddMembers()">
+                <i class="bi bi-check2 me-1"></i>Add Selected
+              </button>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="p-2">
+          <button type="button" class="btn btn-sm btn-outline-danger w-100 text-start" onclick="confirmLeaveGroup()">
+            <i class="bi bi-box-arrow-right me-2" id="panelLeaveIcon"></i><span id="panelLeaveLabel">Delete Chat</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -253,39 +316,6 @@ include APPPATH . 'Views/layout/header.php';
 </div>
 <?php endif; ?>
 
-<!-- Members Modal (view members; admins can add/remove) -->
-<div class="modal fade" id="membersModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h6 class="modal-title"><i class="bi bi-people me-2"></i>Group Members</h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div id="membersList"><p class="text-muted text-center small mb-0">Loading…</p></div>
-        <?php if (hasRole('admin')): ?>
-        <hr>
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <label class="form-label mb-0">Add Members</label>
-          <a href="#" id="showAddMembersLink" onclick="toggleAddMembersPanel();return false;" style="font-size:.78rem;">
-            <i class="bi bi-plus-circle me-1"></i>Add people
-          </a>
-        </div>
-        <div id="addMembersPanel" class="d-none">
-          <div class="input-group input-group-sm mb-2">
-            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="addMemberSearchInput" class="form-control border-start-0 ps-0" placeholder="Search users..." autocomplete="off">
-          </div>
-          <div style="max-height:200px;overflow-y:auto;" id="addMemberList"></div>
-          <button type="button" class="btn btn-sm btn-primary mt-2" onclick="submitAddMembers()">
-            <i class="bi bi-check2 me-1"></i>Add Selected
-          </button>
-        </div>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
-</div>
 
 <?php
 $extraScript = "<script>
@@ -692,9 +722,20 @@ function openConversation(id) {
     header.appendChild(nameCol);
 
     document.getElementById('viewMembersItem').classList.toggle('d-none', activeConversationType !== 'group');
-    document.getElementById('leaveGroupLabel').textContent = activeConversationType === 'group' ? 'Leave Group' : 'Delete Chat';
-    document.getElementById('leaveGroupIcon').className = 'bi me-2 ' + (activeConversationType === 'group' ? 'bi-box-arrow-right' : 'bi-trash-fill');
-    document.getElementById('muteMenuLabel').textContent = (item && item.dataset.muted === '1') ? 'Unmute Notifications' : 'Mute Notifications';
+    document.getElementById('panelMembersSection').classList.toggle('d-none', activeConversationType !== 'group');
+
+    const leaveLabel = activeConversationType === 'group' ? 'Leave Group' : 'Delete Chat';
+    const leaveIconClass = 'bi me-2 ' + (activeConversationType === 'group' ? 'bi-box-arrow-right' : 'bi-trash-fill');
+    document.getElementById('leaveGroupLabel').textContent = leaveLabel;
+    document.getElementById('leaveGroupIcon').className = leaveIconClass;
+    document.getElementById('panelLeaveLabel').textContent = leaveLabel;
+    document.getElementById('panelLeaveIcon').className = leaveIconClass;
+
+    const muteLabel = (item && item.dataset.muted === '1') ? 'Unmute Notifications' : 'Mute Notifications';
+    document.getElementById('muteMenuLabel').textContent = muteLabel;
+    document.getElementById('panelMuteLabel').textContent = muteLabel;
+
+    closeInfoPanel();
 
     const badge = item ? item.querySelector('.badge') : null;
     if (badge) badge.remove();
@@ -713,6 +754,7 @@ function openConversation(id) {
    just switches which one is visible — no need to lose the open thread's
    state, but stop polling it while it's not on screen. */
 function closeConversationMobile() {
+    closeInfoPanel();
     document.getElementById('chatShell')?.classList.remove('chat-mobile-thread-active');
     if (pollTimer) {
         clearInterval(pollTimer);
@@ -951,7 +993,9 @@ function toggleMute() {
         .then(res => res.json())
         .then(data => {
             if (data.status !== 'success') return;
-            document.getElementById('muteMenuLabel').textContent = data.muted ? 'Unmute Notifications' : 'Mute Notifications';
+            const label = data.muted ? 'Unmute Notifications' : 'Mute Notifications';
+            document.getElementById('muteMenuLabel').textContent = label;
+            document.getElementById('panelMuteLabel').textContent = label;
             const item = document.querySelector('.chat-convo-item[data-id=\"' + activeConversationId + '\"]');
             if (item) item.dataset.muted = data.muted ? '1' : '0';
         })
@@ -1000,15 +1044,45 @@ function deleteConversationFromList(id, type) {
     performLeaveConversation(id, type === 'group');
 }
 
-/* ── Members modal ── */
+/* ── Right-side chat info panel ── */
 let currentMembers = [];
 
-function openMembersModal() {
+function openInfoPanel() {
     if (!activeConversationId) return;
 
-    const modalEl = document.getElementById('membersModal');
-    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    modal.show();
+    const item = document.querySelector('.chat-convo-item[data-id=\"' + activeConversationId + '\"]');
+    const headerEl = document.getElementById('chatInfoHeader');
+    const name = item ? item.querySelector('.fw-semibold').textContent.replace(/\s*\(Principal\)\s*$/, '').trim() : 'Conversation';
+    const photo = item ? item.dataset.photo : '';
+    const colors = CHAT_ROLE_COLORS[item ? item.dataset.otherRole : ''] || ['#f3f4f6', '#374151'];
+
+    headerEl.innerHTML = '';
+    const avatar = document.createElement('div');
+    avatar.style.cssText = 'width:56px;height:56px;border-radius:50%;margin:0 auto .5rem;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;';
+    if (photo) {
+        avatar.innerHTML = '<img src=\"' + photo + '\" style=\"width:100%;height:100%;object-fit:cover;\">';
+    } else {
+        avatar.style.background = colors[0];
+        avatar.style.color = colors[1];
+        avatar.textContent = activeConversationType === 'group' ? '' : chatInitialsJs(name);
+        if (activeConversationType === 'group') avatar.innerHTML = '<i class=\"bi bi-people-fill\"></i>';
+    }
+    const nameEl = document.createElement('div');
+    nameEl.className = 'fw-semibold';
+    nameEl.style.fontSize = '.88rem';
+    nameEl.textContent = name;
+    headerEl.appendChild(avatar);
+    headerEl.appendChild(nameEl);
+    if (activeConversationType === 'group') {
+        const subEl = document.createElement('div');
+        subEl.className = 'text-muted';
+        subEl.style.fontSize = '.72rem';
+        subEl.textContent = (item ? item.dataset.memberCount : '') + ' members';
+        headerEl.appendChild(subEl);
+    }
+
+    document.getElementById('chatInfoPanel').classList.remove('d-none');
+    document.getElementById('chatShell')?.classList.add('chat-mobile-info-active');
 
     document.getElementById('addMembersPanel')?.classList.add('d-none');
     document.getElementById('membersList').innerHTML = '<p class=\"text-muted text-center small mb-0\">Loading…</p>';
@@ -1025,6 +1099,19 @@ function openMembersModal() {
         .catch(() => {
             document.getElementById('membersList').innerHTML = '<p class=\"text-danger text-center small mb-0\">Could not load members.</p>';
         });
+}
+
+function closeInfoPanel() {
+    document.getElementById('chatInfoPanel')?.classList.add('d-none');
+    document.getElementById('chatShell')?.classList.remove('chat-mobile-info-active');
+}
+
+function togglePanelSection(bodyId, btnEl) {
+    const body = document.getElementById(bodyId);
+    if (!body) return;
+    const collapsed = body.classList.toggle('d-none');
+    const chevron = btnEl?.querySelector('.bi');
+    if (chevron) chevron.className = collapsed ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
 }
 
 function renderMembersList(members) {
@@ -1095,7 +1182,7 @@ function removeMemberConfirm(userId, name) {
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    openMembersModal();
+                    openInfoPanel();
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Could not remove member.' });
                 }
@@ -1161,7 +1248,7 @@ function submitAddMembers() {
         .then(data => {
             if (data.status === 'success') {
                 document.getElementById('addMembersPanel').classList.add('d-none');
-                openMembersModal();
+                openInfoPanel();
             } else {
                 Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Could not add members.' });
             }
