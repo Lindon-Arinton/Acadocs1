@@ -240,6 +240,25 @@ body {
 .nav-link:hover { background: rgba(255,255,255,.14); color: #fff; transform: translateX(2px); }
 .nav-link.active { background: rgba(255,255,255,.22); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 .nav-link .nav-icon { width: 18px; text-align: center; font-size: .95rem; flex-shrink: 0; }
+.sidebar-nav-badge {
+  margin-left: auto;
+  background: #fff;
+  color: var(--maroon);
+  font-size: .68rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+/* Amber variant: reserved for the Announcements badge so it reads as a
+   distinct "something new" signal, not confused with the plain white
+   to-do-count badges elsewhere in the sidebar. */
+.sidebar-nav-badge-amber { background: #fbbf24; color: #7c2d12; }
 
 /* Sidebar user strip */
 .sidebar-user {
@@ -575,6 +594,17 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
   border-color: var(--primary);
   box-shadow: 0 0 0 1px var(--primary) inset;
 }
+/* Wraps a whole .card (or .stat-tile) in an <a> for plain "click through to
+   the related page" navigation — distinct from .stat-tile-clickable above,
+   which toggles an in-page chart rather than navigating anywhere. */
+.dashboard-card-link { display: block; color: inherit; text-decoration: none; }
+.dashboard-card-link:hover { color: inherit; }
+.dashboard-card-link:hover .card,
+.dashboard-card-link:hover.stat-tile {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.1);
+}
+a.stat-tile.dashboard-card-link { cursor: pointer; }
 .stat-tile-top { display: flex; align-items: center; gap: .6rem; margin-bottom: .85rem; }
 .stat-tile-icon {
   width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
@@ -854,8 +884,19 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 .balance-card .balance-value { font-size: 2.5rem; font-weight: 700; }
 
 /* Announcement cards */
-.announcement-card { border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); padding: 1.1rem; margin-bottom: .75rem; }
+.announcement-card { border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); padding: 1.1rem; margin-bottom: .75rem; transition: box-shadow .3s ease, border-color .3s ease; }
 .announcement-card .ac-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* Briefly marks the specific announcement a notification link pointed at,
+   so landing on the page doesn't just dump you on the generic list. */
+.announcement-highlight {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(128,0,0,.18);
+  animation: announcementHighlightPulse 1.3s ease-in-out 2;
+}
+@keyframes announcementHighlightPulse {
+  0%, 100% { background: var(--card); }
+  50% { background: rgba(128,0,0,.06); }
+}
 
 /* Document link cards */
 .doclink-card { border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); padding: 1.25rem; height: 100%; transition: box-shadow .2s, transform .2s; }

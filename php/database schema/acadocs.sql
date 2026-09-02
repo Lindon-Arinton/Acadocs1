@@ -1253,6 +1253,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `position` varchar(50) DEFAULT NULL,
   `photo` varchar(255) DEFAULT NULL,
   `last_active_at` timestamp NULL DEFAULT NULL,
+  `last_viewed_announcements_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),

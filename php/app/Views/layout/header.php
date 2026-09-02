@@ -17,6 +17,19 @@ $notifTypeIcons = [
     'parent_meeting'    => ['bi-people-fill', '#fff7ed', '#9a3412'],
 ];
 
+// Safety net for a notification stored (past bug, or old data) without a
+// url — routes it to a sensible page for the type instead of a dead "#",
+// same way the 34 legacy "New announcement: Meeting" rows were backfilled.
+$notifTypeFallbackUrl = static function (string $type) use ($role): string {
+    return match ($type) {
+        'announcement'                    => base_url('announcements'),
+        'task_assigned', 'task_feedback'  => base_url($role === 'teacher' ? 'submit-documents' : 'my-tasks'),
+        'task_submission'                 => base_url('tasks'),
+        'document_feedback'               => base_url('teacher-dashboard') . '#document-feedback',
+        default                           => base_url('announcements'),
+    };
+};
+
 try {
     $notifModel       = new \App\Models\NotificationModel();
     $notifItems       = $user ? $notifModel->forUser((int) $user['id'], 8) : [];
@@ -41,6 +54,54 @@ try {
     }
 } catch (\Throwable $e) {
     $unreadChatCount = 0;
+}
+
+// To Do List sidebar badge: open tasks assigned to this teacher that they
+// haven't submitted anything for yet — vanishes once every task is done.
+try {
+    $pendingTaskCount = 0;
+    if ($user && $role === 'teacher') {
+        $specificTaskIds = (new \App\Models\TaskAssigneeModel())->taskIdsForUser((int) $user['id']);
+        $taskBuilder = (new \App\Models\TaskModel())
+            ->select('id')
+            ->groupStart()->where('assigned_role', 'teacher')->where('status', 'Open');
+        if ($specificTaskIds) {
+            $taskBuilder->orGroupStart()->where('assigned_role', 'specific')->where('status', 'Open')->whereIn('id', $specificTaskIds)->groupEnd();
+        }
+        $openTaskIds = array_column($taskBuilder->groupEnd()->findAll(), 'id');
+
+        if ($openTaskIds) {
+            $submittedTaskIds = array_column(
+                (new \App\Models\TaskSubmissionModel())->select('task_id')
+                    ->where('user_id', (int) $user['id'])
+                    ->whereIn('task_id', $openTaskIds)
+                    ->findAll(),
+                'task_id'
+            );
+            $pendingTaskCount = count(array_diff($openTaskIds, $submittedTaskIds));
+        }
+    }
+} catch (\Throwable $e) {
+    $pendingTaskCount = 0;
+}
+
+// Announcements sidebar badge: same "unread since last visit" logic as the
+// Teacher Dashboard's Announcements card, but computed once here so every
+// role's sidebar link can show it. currentUser() is a login-time session
+// snapshot, so last_viewed_announcements_at needs a fresh DB read.
+try {
+    $unreadAnnouncementsCount = 0;
+    if ($user) {
+        $freshUserRow = (new \App\Models\UserModel())->select('last_viewed_announcements_at')->find((int) $user['id']);
+        $lastViewedAt = $freshUserRow['last_viewed_announcements_at'] ?? null;
+        $annCountQuery = (new \App\Models\AnnouncementModel())->where('status', 'active');
+        if ($lastViewedAt !== null) {
+            $annCountQuery->where('created_at >', $lastViewedAt);
+        }
+        $unreadAnnouncementsCount = $annCountQuery->countAllResults();
+    }
+} catch (\Throwable $e) {
+    $unreadAnnouncementsCount = 0;
 }
 
 ?>
@@ -150,6 +211,9 @@ try {
            class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i>
           <span class="sidebar-label">Announcements</span>
+          <?php if ($unreadAnnouncementsCount > 0): ?>
+          <span class="sidebar-nav-badge sidebar-nav-badge-amber"><?= $unreadAnnouncementsCount ?></span>
+          <?php endif; ?>
         </a>
       </div>
     </div>
@@ -222,13 +286,11 @@ try {
         </a>
         <a href="<?= base_url('submit-documents') ?>"
            class="nav-link <?= str_contains($uri,'submit')?'active':'' ?>">
-          <i class="bi bi-upload nav-icon"></i>
-          <span class="sidebar-label">Submit Documents</span>
-        </a>
-        <a href="<?= base_url('my-tasks') ?>"
-           class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i>
-          <span class="sidebar-label">My Tasks</span>
+          <span class="sidebar-label">To Do List</span>
+          <?php if ($pendingTaskCount > 0): ?>
+          <span class="sidebar-nav-badge"><?= $pendingTaskCount ?></span>
+          <?php endif; ?>
         </a>
         <a href="<?= base_url('performance/mps') ?>"
            class="nav-link <?= str_contains($uri,'performance/mps')?'active':'' ?>">
@@ -239,6 +301,9 @@ try {
            class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i>
           <span class="sidebar-label">Announcements</span>
+          <?php if ($unreadAnnouncementsCount > 0): ?>
+          <span class="sidebar-nav-badge sidebar-nav-badge-amber"><?= $unreadAnnouncementsCount ?></span>
+          <?php endif; ?>
         </a>
         <a href="<?= base_url('document-links') ?>"
            class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
@@ -270,6 +335,9 @@ try {
         </a>
         <a href="<?= base_url('announcements') ?>" class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i><span class="sidebar-label">Announcements</span>
+          <?php if ($unreadAnnouncementsCount > 0): ?>
+          <span class="sidebar-nav-badge sidebar-nav-badge-amber"><?= $unreadAnnouncementsCount ?></span>
+          <?php endif; ?>
         </a>
         <a href="<?= base_url('document-links') ?>" class="nav-link <?= str_contains($uri,'document-links')?'active':'' ?>">
           <i class="bi bi-link-45deg nav-icon"></i><span class="sidebar-label">Document Links</span>
@@ -343,9 +411,10 @@ try {
           <span class="badge badge-maroon" style="font-size:.65rem;"><?= $unreadNotifCount ?> new</span>
         </div>
         <?php foreach ($notifItems as $n):
-          $ico = $notifTypeIcons[$n['type']] ?? ['bi-bell', 'var(--surface-hover)', 'var(--text-secondary)'];
+          $ico     = $notifTypeIcons[$n['type']] ?? ['bi-bell', 'var(--surface-hover)', 'var(--text-secondary)'];
+          $notifUrl = $n['url'] ?: $notifTypeFallbackUrl($n['type']);
         ?>
-        <a href="<?= e($n['url'] ?? '#') ?>" class="notif-item text-decoration-none <?= $n['is_read'] ? '' : 'notif-unread' ?>"
+        <a href="<?= e($notifUrl) ?>" class="notif-item text-decoration-none <?= $n['is_read'] ? '' : 'notif-unread' ?>"
            style="color:inherit;" data-notif-id="<?= $n['id'] ?>">
           <div class="notif-item-icon" style="background:<?= $ico[1] ?>">
             <i class="bi <?= $ico[0] ?>" style="color:<?= $ico[2] ?>;font-size:.85rem;"></i>

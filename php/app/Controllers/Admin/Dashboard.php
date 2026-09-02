@@ -126,6 +126,15 @@ class Dashboard extends BaseController
             $avgMpsByYear
         );
 
+        // Enrollees reads more naturally as a % change (headcount), dropout/MPS
+        // as a point change (they're already percentages). "Good" direction is
+        // metric-specific: up is good for enrollees/MPS, down is good for dropout.
+        $enrolleesDelta = $this->seriesDelta($enrolleesSeries, true);
+        $dropoutDelta   = $this->seriesDelta($dropoutSeries, false);
+        $mpsDelta       = $this->seriesDelta($mpsYearSeries, false);
+
+        $insights = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary);
+
         return view('pages/admin/dashboard', [
             'pageTitle'          => 'Admin Dashboard',
             'avgMps'             => $avgMps,
@@ -149,13 +158,107 @@ class Dashboard extends BaseController
             'enrolleesSparkline' => $this->sparkline(array_column($enrolleesSeries, 'value')),
             'dropoutSparkline'   => $this->sparkline(array_column($dropoutSeries, 'value')),
             'mpsSparkline'       => $this->sparkline(array_column($mpsYearSeries, 'value')),
-            // Enrollees reads more naturally as a % change (headcount), dropout/MPS
-            // as a point change (they're already percentages). "Good" direction is
-            // metric-specific: up is good for enrollees/MPS, down is good for dropout.
-            'enrolleesDelta'     => $this->seriesDelta($enrolleesSeries, true),
-            'dropoutDelta'       => $this->seriesDelta($dropoutSeries, false),
-            'mpsDelta'           => $this->seriesDelta($mpsYearSeries, false),
+            'enrolleesDelta'     => $enrolleesDelta,
+            'dropoutDelta'       => $dropoutDelta,
+            'mpsDelta'           => $mpsDelta,
+            'insights'           => $insights,
         ]);
+    }
+
+    /**
+     * Rule-based, plain-English observations distilled from data already
+     * computed above — no separate query. Ordered most-actionable first
+     * (danger > warning > success > info) and capped so the panel stays
+     * scannable rather than dumping every possible fact.
+     *
+     * @param array{delta:float,vsLabel:string}|null $enrolleesDelta
+     * @param array{delta:float,vsLabel:string}|null $dropoutDelta
+     * @param array{delta:float,vsLabel:string}|null $mpsDelta
+     * @param array<string,mixed>|null                $lowest
+     * @param array<int,array{subject:string,mps:float}> $avgPerf
+     * @param array<string,int>                       $docSummary
+     * @return array<int,array{tone:string,icon:string,text:string}>
+     */
+    private function buildInsights(
+        ?array $enrolleesDelta,
+        ?array $dropoutDelta,
+        ?array $mpsDelta,
+        ?array $lowest,
+        array $avgPerf,
+        ?float $complianceRate,
+        array $docSummary
+    ): array {
+        $insights = [];
+
+        if ($lowest !== null && (float) $lowest['mps'] < 80) {
+            $insights[] = [
+                'tone' => 'danger',
+                'icon' => 'bi-exclamation-triangle-fill',
+                'text' => '<strong>' . e($lowest['subject']) . '</strong> (' . e($lowest['grade_level']) . ') has the lowest MPS at <strong>' . e($lowest['mps']) . '%</strong> — instructor ' . e($lowest['instructor']) . '.',
+            ];
+        }
+
+        if ($complianceRate !== null) {
+            if ($complianceRate < 60) {
+                $insights[] = ['tone' => 'danger', 'icon' => 'bi-clipboard-x-fill', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — well below the 85% target.'];
+            } elseif ($complianceRate < 85) {
+                $insights[] = ['tone' => 'warning', 'icon' => 'bi-clipboard-check', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — below the 85% target.'];
+            } else {
+                $insights[] = ['tone' => 'success', 'icon' => 'bi-clipboard-check-fill', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — on track.'];
+            }
+        }
+
+        if ($dropoutDelta !== null) {
+            $improved   = $dropoutDelta['delta'] <= 0;
+            $insights[] = [
+                'tone' => $improved ? 'success' : 'warning',
+                'icon' => $improved ? 'bi-graph-down-arrow' : 'bi-graph-up-arrow',
+                'text' => 'Drop-out rate ' . ($improved ? 'improved by' : 'rose by') . ' <strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' pts</strong> vs ' . e($dropoutDelta['vsLabel']) . '.',
+            ];
+        }
+
+        if ($mpsDelta !== null) {
+            $improved   = $mpsDelta['delta'] >= 0;
+            $insights[] = [
+                'tone' => $improved ? 'success' : 'warning',
+                'icon' => $improved ? 'bi-arrow-up-circle-fill' : 'bi-arrow-down-circle-fill',
+                'text' => 'Average MPS ' . ($improved ? 'improved by' : 'declined by') . ' <strong>' . number_format(abs($mpsDelta['delta']), 2) . ' pts</strong> vs ' . e($mpsDelta['vsLabel']) . '.',
+            ];
+        }
+
+        if ($avgPerf !== []) {
+            $top = $avgPerf[0]; // avgPerf is already sorted DESC by mps
+            if ($top['mps'] >= 85) {
+                $insights[] = [
+                    'tone' => 'success',
+                    'icon' => 'bi-star-fill',
+                    'text' => '<strong>' . e($top['subject']) . '</strong> is the top-performing subject at <strong>' . e($top['mps']) . '%</strong>.',
+                ];
+            }
+        }
+
+        if ($enrolleesDelta !== null) {
+            $up         = $enrolleesDelta['delta'] >= 0;
+            $insights[] = [
+                'tone' => 'info',
+                'icon' => $up ? 'bi-people-fill' : 'bi-person-dash-fill',
+                'text' => 'Enrollment ' . ($up ? 'rose' : 'fell') . ' <strong>' . number_format(abs($enrolleesDelta['delta']), 1) . '%</strong> vs ' . e($enrolleesDelta['vsLabel']) . '.',
+            ];
+        }
+
+        $pending = $docSummary['Pending'] ?? 0;
+        if ($pending > 0) {
+            $insights[] = [
+                'tone' => $pending >= 10 ? 'warning' : 'info',
+                'icon' => 'bi-hourglass-split',
+                'text' => '<strong>' . $pending . '</strong> document' . ($pending === 1 ? '' : 's') . ' awaiting review.',
+            ];
+        }
+
+        $order = ['danger' => 0, 'warning' => 1, 'success' => 2, 'info' => 3];
+        usort($insights, static fn ($a, $b) => $order[$a['tone']] <=> $order[$b['tone']]);
+
+        return array_slice($insights, 0, 5);
     }
 
     /**

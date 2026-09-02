@@ -11,7 +11,7 @@ class UserModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['name', 'email', 'password', 'role', 'photo', 'last_active_at'];
+    protected $allowedFields = ['name', 'email', 'password', 'role', 'photo', 'last_active_at', 'last_viewed_announcements_at'];
 
     public function findByEmail(string $email): ?array
     {

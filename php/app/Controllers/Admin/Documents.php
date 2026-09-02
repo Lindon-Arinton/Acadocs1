@@ -47,7 +47,7 @@ class Documents extends BaseController
                             'document_feedback',
                             'New feedback on your ' . $doc['type'] . ' submission',
                             mb_strimwidth($comment, 0, 80, '…'),
-                            base_url('submit-documents')
+                            base_url('teacher-dashboard') . '#document-feedback'
                         );
                     }
                 } catch (\Throwable $e) {

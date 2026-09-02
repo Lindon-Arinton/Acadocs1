@@ -82,7 +82,10 @@ class Tasks extends BaseController
                             'type'     => 'task_assigned',
                             'title'    => 'New Task: ' . $title,
                             'sub'      => 'Due ' . date('M d, Y h:i A', strtotime($deadline)),
-                            'url'      => base_url('my-tasks'),
+                            // Teachers now manage tasks on the merged To Do
+                            // List (/submit-documents); ADAS still has its
+                            // own separate My Tasks page.
+                            'url'      => base_url($recipient['role'] === 'teacher' ? 'submit-documents' : 'my-tasks'),
                             'ref_type' => 'task_assigned',
                             'ref_id'   => $taskId,
                             'is_read'  => 0,
@@ -168,6 +171,7 @@ class Tasks extends BaseController
 
                     $submission = $submissionModel->find($submissionId);
                     if ($submission) {
+                        $submitter = (new UserModel())->find((int) $submission['user_id']);
                         (new NotificationModel())->upsertGrouped(
                             (int) $submission['user_id'],
                             'task_feedback',
@@ -175,7 +179,7 @@ class Tasks extends BaseController
                             'task_feedback',
                             'New feedback on: ' . $task['title'],
                             mb_strimwidth($comment, 0, 80, '…'),
-                            base_url('my-tasks')
+                            base_url(($submitter['role'] ?? null) === 'teacher' ? 'submit-documents' : 'my-tasks')
                         );
                     }
                 } catch (\Throwable $e) {
