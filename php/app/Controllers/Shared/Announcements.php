@@ -74,6 +74,10 @@ class Announcements extends BaseController
             return redirect()->to('/announcements');
         }
 
+        // Marks the "new announcements" badge (e.g. on the Teacher Dashboard)
+        // as seen — anything posted before this moment no longer counts.
+        (new UserModel())->update((int) currentUser()['id'], ['last_viewed_announcements_at' => date('Y-m-d H:i:s')]);
+
         $deletedNotice = null;
         $requestedId   = $this->request->getGet('id');
         if ($requestedId && ! $model->find((int) $requestedId)) {
@@ -109,6 +113,7 @@ class Announcements extends BaseController
             'sort'           => $sort,
             'flash'          => session()->getFlashdata('flash'),
             'deletedNotice'  => $deletedNotice,
+            'requestedId'    => $requestedId ? (int) $requestedId : null,
         ]);
     }
 }

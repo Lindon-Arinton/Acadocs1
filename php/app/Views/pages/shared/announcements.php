@@ -67,7 +67,7 @@
           'content_html'   => richText($a['content']),
       ];
     ?>
-    <div class="announcement-card" style="border-left:4px solid <?= $tc ?>;cursor:pointer;"
+    <div class="announcement-card" id="announcement-<?= $a['id'] ?>" style="border-left:4px solid <?= $tc ?>;cursor:pointer;"
          onclick="viewAnnouncement(<?= htmlspecialchars(json_encode($modalData), ENT_QUOTES) ?>, '<?= $bg ?>', '<?= $tc ?>', '<?= $icon ?>')">
       <div class="d-flex gap-3 align-items-start">
         <div class="ac-icon flex-shrink-0" style="background:<?= $bg ?>;">
@@ -212,6 +212,20 @@ function wrapSelection(id, marker) {
     el.selectionEnd = start + marker.length + selected.length;
 }
 initLiveSearch('announcementSearchInput', 'filterForm');
+
+// Landing here from a notification's ?id=X link: don't just dump the user on
+// the generic list — scroll to that specific announcement, highlight it
+// briefly, then open the same detail modal a manual click would.
+const requestedAnnouncementId = " . json_encode($requestedId) . ";
+if (requestedAnnouncementId) {
+    const targetCard = document.getElementById('announcement-' + requestedAnnouncementId);
+    if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetCard.classList.add('announcement-highlight');
+        setTimeout(() => targetCard.click(), 450);
+        setTimeout(() => targetCard.classList.remove('announcement-highlight'), 2800);
+    }
+}
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

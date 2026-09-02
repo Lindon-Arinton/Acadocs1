@@ -3,12 +3,22 @@
 namespace App\Controllers\Teacher;
 
 use App\Controllers\BaseController;
-use App\Models\DocumentFileModel;
-use App\Models\DocumentModel;
+use App\Models\NotificationModel;
 use App\Models\TaskAssigneeModel;
+use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
-use App\Models\TeacherModel;
+use App\Models\TaskSubmissionFileModel;
+use App\Models\TaskSubmissionModel;
+use App\Models\UserModel;
 
+/**
+ * Teacher's "To Do List" — assigned tasks + submissions against them (the
+ * same task_submissions mechanism ADAS uses on Shared\MyTasks). The route
+ * stays /submit-documents (existing bookmarks/notifications keep working);
+ * the formal documents/document_feedback review workflow that used to live
+ * here as a separate tab has been retired for teachers — that table and the
+ * principal-facing Manage Documents page are untouched for historical data.
+ */
 class SubmitDocuments extends BaseController
 {
     public function index()
@@ -18,108 +28,170 @@ class SubmitDocuments extends BaseController
         }
 
         $user = currentUser();
-        $teacherModel = new TeacherModel();
-        $teacher = $teacherModel->resolveForUser($user);
-
-        // A submission must fulfill a task the principal actually assigned —
-        // teachers no longer pick an arbitrary document type on their own.
-        $assigneeModel   = new TaskAssigneeModel();
-        $specificTaskIds = $assigneeModel->taskIdsForUser((int) $user['id']);
-
-        $taskQuery = (new TaskModel())->groupStart()->where('assigned_role', 'teacher')->where('status', 'Open');
-        if ($specificTaskIds) {
-            $taskQuery->orGroupStart()->where('assigned_role', 'specific')->where('status', 'Open')->whereIn('id', $specificTaskIds)->groupEnd();
-        }
-        $openTasks = $taskQuery->groupEnd()->orderBy('deadline', 'ASC')->findAll();
 
         if ($this->request->getMethod() === 'POST') {
-            $isAjax = $this->request->isAJAX();
-
-            if (! $teacher) {
-                return $isAjax ? $this->ajaxError('Your account is not linked to a teacher profile.') : redirect()->to('/submit-documents');
-            }
-
-            $taskId = (int) $this->request->getPost('task_id');
-            $task   = null;
-            foreach ($openTasks as $t) {
-                if ((int) $t['id'] === $taskId) {
-                    $task = $t;
-                    break;
-                }
-            }
-
-            if (! $task) {
-                $error = 'Please select a valid task assigned to you.';
-
-                return $isAjax ? $this->ajaxError($error) : redirect()->to('/submit-documents')->with('flash', ['type' => 'danger', 'msg' => $error]);
-            }
-
-            $files = array_filter(
-                $this->request->getFileMultiple('document_file') ?? [],
-                static fn ($f) => $f && $f->isValid() && ! $f->hasMoved()
-            );
-
-            if (empty($files)) {
-                $error = 'Please choose at least one file to upload.';
-
-                return $isAjax ? $this->ajaxError($error) : redirect()->to('/submit-documents')->with('flash', ['type' => 'danger', 'msg' => $error]);
-            }
-
-            try {
-                $documentId = (new DocumentModel())->insert([
-                    'teacher_id'     => $teacher['id'],
-                    'type'           => $task['title'],
-                    'subject'        => $this->request->getPost('subject'),
-                    'grade_level'    => $this->request->getPost('grade_level'),
-                    'date_submitted' => date('Y-m-d H:i:s'),
-                    'status'         => 'Submitted',
-                ]);
-
-                $uploadPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'documents';
-                if (! is_dir($uploadPath)) {
-                    mkdir($uploadPath, 0777, true);
-                }
-
-                $fileModel = new DocumentFileModel();
-
-                foreach ($files as $file) {
-                    $safeName = preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientName());
-                    $safeName = $safeName ?: 'document_' . time() . '.' . $file->getExtension();
-                    $fileName = date('Ymd_His') . '_' . uniqid() . '_' . $safeName;
-
-                    if ($file->move($uploadPath, $fileName)) {
-                        $fileModel->insert([
-                            'document_id' => $documentId,
-                            'file_path'   => 'writable/uploads/documents/' . $fileName,
-                            'file_name'   => $file->getClientName(),
-                        ]);
-                    }
-                }
-            } catch (\Throwable $e) {
-                return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/submit-documents');
-            }
-
-            if ($isAjax) {
-                return $this->ajaxSuccess('Document submitted successfully.');
-            }
-
-            return redirect()->to('/submit-documents?success=1');
+            return $this->submitTask($user);
         }
 
-        $myDocs = $teacher ? (new DocumentModel())->myDocsWithFeedback($teacher['id']) : [];
-
-        $fileModel     = new DocumentFileModel();
-        $filesGrouped  = $fileModel->forDocuments(array_column($myDocs, 'id'));
-        foreach ($myDocs as &$doc) {
-            $doc['files'] = $filesGrouped[$doc['id']] ?? [];
-        }
-        unset($doc);
+        $specificTaskIds = (new TaskAssigneeModel())->taskIdsForUser((int) $user['id']);
 
         return view('pages/teacher/submit_documents', [
-            'pageTitle' => 'Submit Documents',
-            'teacher'   => $teacher,
-            'myDocs'    => $myDocs,
-            'openTasks' => $openTasks,
+            'pageTitle' => 'To Do List',
+            'myTasks'   => $this->myTasksList($user, $specificTaskIds),
+            'flash'     => session()->getFlashdata('flash'),
         ]);
+    }
+
+    /**
+     * Ported from Shared\MyTasks::index()'s POST branch, unchanged — this is
+     * the same generic notes+files task_submissions mechanism ADAS still
+     * uses on that page.
+     */
+    private function submitTask(array $user)
+    {
+        $isAjax          = $this->request->isAJAX();
+        $taskModel       = new TaskModel();
+        $submissionModel = new TaskSubmissionModel();
+        $assigneeModel   = new TaskAssigneeModel();
+
+        $taskId = (int) $this->request->getPost('task_id');
+        $task   = $taskModel->find($taskId);
+
+        $isEligible = $task && (
+            $task['assigned_role'] === $user['role']
+            || ($task['assigned_role'] === 'specific' && in_array((int) $user['id'], $assigneeModel->userIdsForTask($taskId), true))
+        );
+
+        if (! $isEligible) {
+            return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/submit-documents');
+        }
+
+        $files = array_filter(
+            $this->request->getFileMultiple('file') ?? [],
+            static fn ($f) => $f && $f->isValid() && ! $f->hasMoved()
+        );
+
+        if (empty($files)) {
+            $error = 'Please choose at least one file to upload.';
+
+            return $isAjax ? $this->ajaxError($error) : redirect()->to('/submit-documents')->with('flash', ['type' => 'danger', 'msg' => $error]);
+        }
+
+        $allowedExt = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'];
+        foreach ($files as $f) {
+            if ($f->getSize() > 10240 * 1024) {
+                $error = 'Each file must be 10MB or smaller.';
+
+                return $isAjax ? $this->ajaxError($error) : redirect()->to('/submit-documents')->with('flash', ['type' => 'danger', 'msg' => $error]);
+            }
+            if (! in_array(strtolower($f->getClientExtension()), $allowedExt, true)) {
+                $error = 'Unsupported file type: ' . $f->getClientName();
+
+                return $isAjax ? $this->ajaxError($error) : redirect()->to('/submit-documents')->with('flash', ['type' => 'danger', 'msg' => $error]);
+            }
+        }
+
+        $fileModel = new TaskSubmissionFileModel();
+
+        try {
+            $existing  = $submissionModel->findForTaskAndUser($taskId, (int) $user['id']);
+            $targetDir = WRITEPATH . 'uploads/tasks/' . $taskId;
+
+            if (! is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+
+            $data = [
+                'task_id'      => $taskId,
+                'user_id'      => $user['id'],
+                'notes'        => $this->request->getPost('notes') ?? '',
+                'status'       => 'Submitted',
+                'submitted_at' => date('Y-m-d H:i:s'),
+            ];
+
+            if ($existing) {
+                foreach ($fileModel->forSubmission($existing['id']) as $oldFile) {
+                    if (is_file($oldFile['file_path'])) {
+                        unlink($oldFile['file_path']);
+                    }
+                    $fileModel->delete($oldFile['id']);
+                }
+                $submissionModel->update($existing['id'], $data);
+                $submissionId = $existing['id'];
+            } else {
+                $submissionId = $submissionModel->insert($data);
+            }
+
+            foreach ($files as $f) {
+                $newName = $f->getRandomName();
+                $f->move($targetDir, $newName);
+
+                $fileModel->insert([
+                    'task_submission_id' => $submissionId,
+                    'file_path'           => $targetDir . DIRECTORY_SEPARATOR . $newName,
+                    'file_name'           => $f->getClientName(),
+                ]);
+            }
+
+            $totalSubmitted = $submissionModel->where('task_id', $taskId)->countAllResults();
+            $others         = $totalSubmitted - 1;
+            $notifTitle     = $user['name'] . ($others > 0
+                ? ' and ' . $others . ' other' . ($others > 1 ? 's' : '')
+                : '') . ' submitted';
+
+            $notifModel = new NotificationModel();
+            foreach ((new UserModel())->where('role', 'admin')->findAll() as $admin) {
+                $notifModel->upsertGrouped(
+                    (int) $admin['id'],
+                    'task_submission',
+                    $taskId,
+                    'task_submission',
+                    $notifTitle,
+                    'Task: ' . $task['title'],
+                    base_url('tasks/' . $taskId)
+                );
+            }
+        } catch (\Throwable $e) {
+            return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/submit-documents');
+        }
+
+        if ($isAjax) {
+            return $this->ajaxSuccess('Document submitted successfully.');
+        }
+
+        session()->setFlashdata('flash', ['type' => 'success', 'msg' => 'Document submitted successfully.']);
+
+        return redirect()->to('/submit-documents');
+    }
+
+    /**
+     * Ported from Shared\MyTasks::index()'s GET branch, unchanged.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function myTasksList(array $user, array $specificTaskIds): array
+    {
+        $taskModel       = new TaskModel();
+        $submissionModel = new TaskSubmissionModel();
+        $feedbackModel   = new TaskFeedbackModel();
+        $fileModel       = new TaskSubmissionFileModel();
+
+        $taskQuery = $taskModel->groupStart()->where('assigned_role', $user['role']);
+        if ($specificTaskIds) {
+            $taskQuery->orGroupStart()->where('assigned_role', 'specific')->whereIn('id', $specificTaskIds)->groupEnd();
+        }
+        $tasks = $taskQuery->groupEnd()->orderBy('deadline', 'ASC')->findAll();
+
+        foreach ($tasks as &$task) {
+            $submission         = $submissionModel->findForTaskAndUser($task['id'], (int) $user['id']);
+            $task['submission'] = $submission;
+            $task['files']      = $submission ? $fileModel->forSubmission($submission['id']) : [];
+            $task['feedback']   = $submission
+                ? $feedbackModel->where('task_submission_id', $submission['id'])->orderBy('date', 'DESC')->findAll()
+                : [];
+        }
+        unset($task);
+
+        return $tasks;
     }
 }

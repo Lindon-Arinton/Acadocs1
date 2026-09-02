@@ -15,7 +15,15 @@ class MyTasks extends BaseController
 {
     public function index()
     {
-        if (! hasRole('teacher', 'adas')) {
+        // Teachers now get this same task list merged into Submit Documents
+        // ("My Work") — redirect there instead of serving a second, separate
+        // copy of it. ADAS has no document-submission page, so it keeps this
+        // one as-is.
+        if (hasRole('teacher')) {
+            return redirect()->to('/submit-documents');
+        }
+
+        if (! hasRole('adas')) {
             return redirect()->to('/dashboard');
         }
 

@@ -32,15 +32,16 @@
     <form method="GET" action="<?= base_url('performance/mps') ?>" class="d-flex align-items-center gap-3 flex-wrap">
       <div class="d-flex align-items-center gap-2">
         <label class="small fw-semibold text-muted mb-0">School Year:</label>
-        <div class="maroon-select maroon-select-sm" style="width:auto;">
-          <select name="year" class="maroon-select-native" onchange="this.form.submit()">
-            <?php foreach ($years as $y): ?>
-            <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-            <?php endforeach; ?>
-          </select>
-          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
-          <div class="maroon-select-panel"></div>
-        </div>
+        <input type="text" name="year" value="<?= e($year) ?>" list="mpsYearOptions"
+               pattern="\d{4}-\d{4}" placeholder="e.g. 2026-2027" required
+               class="form-control form-control-sm" style="width:130px;"
+               onblur="if(this.checkValidity() && this.value!==this.defaultValue) this.form.submit()"
+               onkeydown="if(event.key==='Enter'){event.preventDefault(); if(this.checkValidity()) this.form.submit();}">
+        <datalist id="mpsYearOptions">
+          <?php foreach ($years as $y): ?>
+          <option value="<?= e($y) ?>">
+          <?php endforeach; ?>
+        </datalist>
       </div>
       <div class="d-flex align-items-center gap-2">
         <label class="small fw-semibold text-muted mb-0">Term:</label>
@@ -125,15 +126,9 @@
           <div class="row g-2 mb-2">
             <div class="col-6">
               <label class="form-label">School Year</label>
-              <div class="maroon-select maroon-select-sm" style="width:100%;">
-                <select name="school_year" class="maroon-select-native" required>
-                  <?php foreach ($years as $y): ?>
-                  <option value="<?= e($y) ?>" <?= $y === $year ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-                  <?php endforeach; ?>
-                </select>
-                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
-                <div class="maroon-select-panel"></div>
-              </div>
+              <input type="text" name="school_year" value="<?= e($year) ?>" list="mpsYearOptions"
+                     pattern="\d{4}-\d{4}" placeholder="e.g. 2026-2027" required
+                     class="form-control form-control-sm">
             </div>
             <div class="col-6">
               <label class="form-label">Term</label>

@@ -219,19 +219,27 @@ if ($complianceRate === null) {
   </div>
 
   <div class="side-rail-stack">
-    <?php if ($lowest && $lowest['mps'] < 80): ?>
+    <?php if (! empty($insights)):
+      $insightTone = [
+        'danger'  => ['bg' => '#fee2e2', 'fg' => '#ef4444', 'tint' => 'rgba(239,68,68,.08)'],
+        'warning' => ['bg' => '#fef9c3', 'fg' => '#b45309', 'tint' => 'rgba(180,83,9,.08)'],
+        'success' => ['bg' => '#d1fae5', 'fg' => '#059669', 'tint' => 'rgba(5,150,105,.08)'],
+        'info'    => ['bg' => '#fff0f0', 'fg' => '#800000', 'tint' => 'rgba(128,0,0,.06)'],
+      ];
+    ?>
     <div class="card">
-      <div class="card-body card-body-tight d-flex align-items-start gap-2" style="background:rgba(239,68,68,.08);">
-        <div class="stat-tile-icon" style="background:#fee2e2;color:#ef4444;flex-shrink:0;"><i class="bi bi-exclamation-triangle-fill"></i></div>
-        <div class="small">
-          <strong class="text-danger">Performance Alert</strong>
-          <p class="mb-0 mt-1 text-muted">
-            <strong class="text-danger"><?= e($lowest['subject']) ?></strong>
-            (<?= e($lowest['grade_level']) ?>) — lowest MPS at
-            <strong class="text-danger"><?= $lowest['mps'] ?>%</strong>.
-            Instructor: <?= e($lowest['instructor']) ?>.
-          </p>
+      <div class="card-header bg-white py-2">
+        <span class="fw-semibold small"><i class="bi bi-lightbulb-fill me-2 text-muted"></i>Insights</span>
+      </div>
+      <div class="card-body card-body-tight d-flex flex-column gap-2">
+        <?php foreach ($insights as $insight): $t = $insightTone[$insight['tone']]; ?>
+        <div class="d-flex align-items-start gap-2 p-2 rounded-3" style="background:<?= $t['tint'] ?>;">
+          <div class="stat-tile-icon" style="width:28px;height:28px;font-size:.8rem;background:<?= $t['bg'] ?>;color:<?= $t['fg'] ?>;flex-shrink:0;">
+            <i class="bi <?= $insight['icon'] ?>"></i>
+          </div>
+          <p class="small mb-0" style="padding-top:.15rem;"><?= $insight['text'] ?></p>
         </div>
+        <?php endforeach; ?>
       </div>
     </div>
     <?php endif; ?>

@@ -1,10 +1,10 @@
 # ACADOCS — School Management Information System (CodeIgniter 4)
 
-A CodeIgniter 4 MVC application for day-to-day school administration: document
-submission/review, staff time records, enrollment & performance KPIs, a
-Messenger-style internal chat, a document/certificate template library with
-in-browser preview, and room/property inventory — all behind a single
-role-based login.
+A CodeIgniter 4 MVC application built for **Matabungkay National High School**
+for day-to-day school administration: document submission/review, staff time
+records, enrollment & performance KPIs, a Messenger-style internal chat, a
+document/certificate template library with in-browser preview, and
+room/property inventory — all behind a single role-based login.
 
 ---
 
@@ -105,20 +105,9 @@ php spark serve
 
 Navigate to `http://localhost:8080/` — you'll be redirected to the login page.
 
----
-
-## Login Credentials
-
-| Role            | Email                              | Password    |
-|------------------|-------------------------------------|-------------|
-| Admin (Principal)| jorge.bautista002@deped.gov.ph      | admin123    |
-| ADAS             | secretary@school.edu                | sec123      |
-| Teacher (any)    | e.g. judith.abitong@deped.gov.ph    | teacher123  |
-
-All teacher accounts share the same demo password (`teacher123`) — see
-`app/Database/Seeds/UserSeeder.php` for the full seeded roster (~30 teachers).
-
-> Passwords are stored as bcrypt hashes in the `users` table.
+Login accounts (admin/teacher/ADAS) are seeded via
+`app/Database/Seeds/UserSeeder.php`; passwords are stored as bcrypt hashes in
+the `users` table.
 
 ---
 

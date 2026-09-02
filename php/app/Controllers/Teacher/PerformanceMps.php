@@ -27,6 +27,9 @@ class PerformanceMps extends BaseController
         'exam' => 'Term Examination',
     ];
 
+    /** Matches "2025-2026" — the only shape a school year needs to satisfy now that it's freely typed rather than picked from a fixed list. */
+    private const YEAR_PATTERN = '/^\d{4}-\d{4}$/';
+
     public function index()
     {
         if (! hasRole('teacher')) {
@@ -36,10 +39,10 @@ class PerformanceMps extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
-            $year = $this->request->getPost('school_year');
+            $year = trim($this->request->getPost('school_year') ?? '');
             $term = (int) $this->request->getPost('term');
 
-            if (! in_array($year, self::YEAR_OPTIONS, true) || ! in_array($term, self::TERM_OPTIONS, true)) {
+            if (! preg_match(self::YEAR_PATTERN, $year) || ! in_array($term, self::TERM_OPTIONS, true)) {
                 return $isAjax ? $this->ajaxError('Invalid school year or term.') : redirect()->to('/performance/mps');
             }
 
@@ -68,8 +71,8 @@ class PerformanceMps extends BaseController
             return redirect()->to($redirect);
         }
 
-        $year = $this->request->getGet('year') ?? self::YEAR_OPTIONS[0];
-        if (! in_array($year, self::YEAR_OPTIONS, true)) {
+        $year = trim($this->request->getGet('year') ?? '') ?: self::YEAR_OPTIONS[0];
+        if (! preg_match(self::YEAR_PATTERN, $year)) {
             $year = self::YEAR_OPTIONS[0];
         }
 
@@ -94,7 +97,7 @@ class PerformanceMps extends BaseController
             'pageTitle'   => 'Enter MPS Scores',
             'year'        => $year,
             'term'        => $term,
-            'years'       => self::YEAR_OPTIONS,
+            'years'       => $this->availableYears(),
             'terms'       => self::TERM_OPTIONS,
             'gradeLevels' => self::GRADE_LEVELS,
             'subjects'    => self::SUBJECTS,
@@ -102,6 +105,26 @@ class PerformanceMps extends BaseController
             'existing'    => $existing,
             'flash'       => session()->getFlashdata('flash'),
         ]);
+    }
+
+    /**
+     * School years to suggest in the datalist — the hardcoded baseline plus
+     * any year that already has scores entered, newest first. Purely a
+     * convenience list now; typing any other "YYYY-YYYY" year is still valid.
+     *
+     * @return array<int,string>
+     */
+    private function availableYears(): array
+    {
+        $fromScores = array_column(
+            (new MpsTestScoreModel())->select('school_year')->distinct()->findAll(),
+            'school_year'
+        );
+
+        $years = array_unique(array_merge(self::YEAR_OPTIONS, $fromScores));
+        rsort($years);
+
+        return array_values($years);
     }
 
     public function import()
@@ -113,10 +136,10 @@ class PerformanceMps extends BaseController
         $isAjax   = $this->request->isAJAX();
         $redirect = '/performance/mps';
 
-        $year = $this->request->getPost('school_year');
+        $year = trim($this->request->getPost('school_year') ?? '');
         $term = (int) $this->request->getPost('term');
 
-        if (! in_array($year, self::YEAR_OPTIONS, true) || ! in_array($term, self::TERM_OPTIONS, true)) {
+        if (! preg_match(self::YEAR_PATTERN, $year) || ! in_array($term, self::TERM_OPTIONS, true)) {
             return $isAjax ? $this->ajaxError('Invalid school year or term.') : redirect()->to($redirect);
         }
 
