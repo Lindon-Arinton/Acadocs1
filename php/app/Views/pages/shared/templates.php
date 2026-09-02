@@ -434,13 +434,82 @@ function escapeHtml(str) {
 
 var OFFICE_PREVIEW_EXT = ['doc','docx','xls','xlsx','ppt','pptx','csv','odt','ods','odp'];
 var FORMAT_LABELS = { pdf: 'PDF', docx: 'Word' };
+var DOCX_EXACT_EXT = ['doc','docx'];
+
+// docx-preview renders the actual OOXML layout (fonts, tables, images, page
+// breaks) client-side — a much closer match to Word's own rendering than the
+// server's PhpWord-HTML fallback, which is plain unstyled text+tables. Loaded
+// on demand (not a static <script src>) so it still works after AJAX nav,
+// where only this script's own textContent gets re-run, not <script src> tags.
+// docx-preview's CDN bundle expects a global JSZip (it doesn't bundle its own
+// copy), so that has to be loaded first or every render throws inside it.
+function loadExternalScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load ' + src));
+        document.head.appendChild(script);
+    });
+}
+function ensureDocxPreviewLib() {
+    if (window.docx && window.docx.renderAsync) return Promise.resolve();
+    if (!window._docxPreviewLoading) {
+        window._docxPreviewLoading = Promise.resolve()
+            .then(() => (window.JSZip ? null : loadExternalScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js')))
+            .then(() => loadExternalScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.6/dist/docx-preview.min.js'));
+    }
+    return window._docxPreviewLoading;
+}
+
+// docx-preview renders each page at its real paper width (~794-816px for
+// Letter/A4), which is routinely wider than the modal's preview box. Since
+// the wrapper centers pages via flex, an unscaled overflow gets clipped
+// unevenly on both left and right at the box's default scroll position —
+// it reads as \"misaligned\" rather than obviously \"too wide\". Scaling the
+// whole wrapper down to the box's actual width fixes that; the negative
+// margin compensates for the layout space a CSS transform doesn't reclaim.
+function fitDocxToContainer(box) {
+    const wrapper = box.querySelector('.docx-wrapper');
+    const page     = wrapper ? wrapper.querySelector('section.docx, section') : null;
+    if (!wrapper || !page) return;
+
+    const naturalWidth = page.offsetWidth;
+    const available    = box.clientWidth - 8;
+    if (naturalWidth <= available) return;
+
+    const scale = available / naturalWidth;
+    wrapper.style.transformOrigin = 'top center';
+    wrapper.style.transform = 'scale(' + scale + ')';
+    wrapper.style.marginBottom = (wrapper.offsetHeight * (scale - 1)) + 'px';
+}
+
+function renderDocxPreview(fileUrl) {
+    const box = document.getElementById('docxPreviewBox');
+    ensureDocxPreviewLib()
+        .then(() => fetch(fileUrl))
+        .then(res => { if (!res.ok) throw new Error('Could not fetch file'); return res.blob(); })
+        .then(blob => {
+            box.innerHTML = '';
+            return docx.renderAsync(blob, box, undefined, { inWrapper: true, ignoreHeight: true });
+        })
+        .then(() => fitDocxToContainer(box))
+        .catch((e) => {
+            console.error('docx preview render failed:', e);
+            box.innerHTML = '<div class=\"text-center text-muted py-4\"><i class=\"bi bi-exclamation-triangle fs-3 d-block mb-2\"></i>Couldn\\'t render an exact preview of this file. Use the Download button below to view it.</div>';
+        });
+}
 
 function previewTemplate(t) {
     document.getElementById('previewModalTitle').innerHTML = '<i class=\"bi bi-eye me-2\"></i>' + escapeHtml(t.title);
 
-    const previewUrl = TEMPLATES_PREVIEW_BASE + t.id;
+    const previewUrl   = TEMPLATES_PREVIEW_BASE + t.id;
+    const downloadBase = '" . base_url('templates/download/') . "' + t.id;
     let previewHtml;
-    if (t.ext === 'pdf' || OFFICE_PREVIEW_EXT.includes(t.ext)) {
+    if (DOCX_EXACT_EXT.includes(t.ext)) {
+        previewHtml = '<div id=\"docxPreviewBox\" style=\"max-height:65vh;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;\">'
+            + '<div class=\"text-center text-muted py-4\"><span class=\"spinner-border spinner-border-sm me-2\"></span>Rendering document\\u2026</div></div>';
+    } else if (t.ext === 'pdf' || OFFICE_PREVIEW_EXT.includes(t.ext)) {
         previewHtml = '<iframe src=\"' + previewUrl + '\" style=\"width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;\"></iframe>';
     } else if (['jpg','jpeg','png'].includes(t.ext)) {
         previewHtml = '<div class=\"text-center\"><img src=\"' + previewUrl + '\" style=\"max-width:100%;max-height:65vh;border-radius:8px;\"></div>';
@@ -463,7 +532,6 @@ function previewTemplate(t) {
       \${previewHtml}
     `;
 
-    const downloadBase = '" . base_url('templates/download/') . "' + t.id;
     document.getElementById('previewModalDownloadBtn').onclick = () => downloadTemplate(downloadBase, t.fileName);
 
     const caret = document.getElementById('previewModalDownloadCaret');
@@ -485,6 +553,10 @@ function previewTemplate(t) {
     caret.classList.toggle('d-none', conversions.length === 0);
 
     new bootstrap.Modal(document.getElementById('previewModal')).show();
+
+    if (DOCX_EXACT_EXT.includes(t.ext)) {
+        renderDocxPreview(downloadBase);
+    }
 }
 
 function notifyDownloadSuccess(fileName) {

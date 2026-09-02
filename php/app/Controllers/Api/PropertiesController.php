@@ -8,16 +8,16 @@ class PropertiesController extends BaseApiController
 {
     public function index()
     {
-        $model    = new RoomPropertyModel();
-        $building = $this->request->getGet('building');
-        $room     = $this->request->getGet('room');
+        $model   = new RoomPropertyModel();
+        $grade   = $this->request->getGet('grade');
+        $section = $this->request->getGet('section');
 
-        $builder = $model->orderBy('building_name')->orderBy('room_number')->orderBy('item_name');
-        if ($building) {
-            $builder->where('building_name', $building);
+        $builder = $model->orderBy('grade')->orderBy('section')->orderBy('item_name');
+        if ($grade) {
+            $builder->where('grade', $grade);
         }
-        if ($room) {
-            $builder->where('room_number', $room);
+        if ($section) {
+            $builder->where('section', $section);
         }
 
         return $this->jsonResponse($builder->findAll());
@@ -28,13 +28,10 @@ class PropertiesController extends BaseApiController
         $b = $this->body();
 
         $id = (new RoomPropertyModel())->insert([
-            'room_number'      => $b['room_number'] ?? '',
-            'building_name'    => $b['building_name'] ?? '',
+            'section'          => $b['section'] ?? '',
+            'grade'            => $b['grade'] ?? '',
             'item_name'        => $b['item_name'] ?? '',
-            'quantity'         => $b['quantity'] ?? 1,
             'condition_status' => $b['condition_status'] ?? 'Good',
-            'last_inspection'  => $b['last_inspection'] ?? date('Y-m-d'),
-            'remarks'          => $b['remarks'] ?? '',
         ]);
 
         return $this->jsonResponse(['id' => $id, 'message' => 'Created.'], 201);
@@ -49,10 +46,7 @@ class PropertiesController extends BaseApiController
 
         $b = $this->body();
         (new RoomPropertyModel())->update($id, [
-            'quantity'         => $b['quantity'],
             'condition_status' => $b['condition_status'],
-            'last_inspection'  => $b['last_inspection'],
-            'remarks'          => $b['remarks'] ?? '',
         ]);
 
         return $this->jsonResponse(['message' => 'Updated.']);

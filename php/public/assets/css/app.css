@@ -889,6 +889,134 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 }
 #ajax-progress.active { opacity: 1; }
 
+/* ── Upload motion loading overlay ───────────────────────────
+   Shown by ajaxFormSubmit() (footer.php) instead of the plain
+   SweetAlert2 spinner whenever an .ajax-form contains a file input
+   with files selected — driven by real XHR upload progress. ── */
+.upload-loading-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 8, 8, .55);
+  backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s ease;
+}
+.upload-loading-overlay.active { opacity: 1; pointer-events: auto; }
+.upload-loading-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 2rem 2.5rem 1.75rem;
+  min-width: 260px;
+  display: flex; flex-direction: column; align-items: center; gap: .6rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+}
+.upload-loading-text { font-weight: 600; color: var(--text); font-size: .92rem; margin-top: -.5rem; }
+.upload-progress-track {
+  width: 200px; height: 8px; border-radius: 999px;
+  background: var(--border); overflow: hidden;
+}
+.upload-progress-fill {
+  height: 100%; width: 0%; border-radius: 999px;
+  background: var(--primary);
+  transition: width .15s ease;
+}
+.upload-progress-pct { font-size: .76rem; color: var(--muted); font-weight: 600; }
+
+.ul-ring {
+  transform-box: fill-box; transform-origin: center;
+  animation: ulRingPulse 1.8s ease-out infinite;
+}
+.ul-arrow {
+  transform-box: fill-box; transform-origin: center;
+  animation: ulArrowRise 1.4s ease-in-out infinite;
+}
+.ul-dot {
+  transform-box: fill-box; transform-origin: center;
+  animation: ulDotBounce 1.2s ease-in-out infinite;
+}
+.ul-dot-2 { animation-delay: .15s; }
+.ul-dot-3 { animation-delay: .3s; }
+.ul-cloud { animation: ulCloudBreathe 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+@keyframes ulRingPulse {
+  0%   { transform: scale(.82); opacity: .4; }
+  70%  { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+@keyframes ulArrowRise {
+  0%   { transform: translateY(16px); opacity: 0; }
+  20%  { opacity: 1; }
+  65%  { transform: translateY(-10px); opacity: 1; }
+  90%  { transform: translateY(-16px); opacity: 0; }
+  100% { transform: translateY(16px); opacity: 0; }
+}
+@keyframes ulDotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: .5; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+@keyframes ulCloudBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+/* ── Page-navigation motion loading overlay ──────────────────
+   Shown by loadPage() (footer.php) on every AJAX page switch —
+   a continuously flipping "page" reinforces what's actually
+   happening (navigating between pages), unlike the upload overlay's
+   cloud/arrow which is upload-specific. ── */
+.page-loading-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 8, 8, .5);
+  backdrop-filter: blur(3px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s ease;
+}
+.page-loading-overlay.active { opacity: 1; pointer-events: auto; }
+.page-loading-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 1.75rem 2.5rem;
+  min-width: 200px;
+  display: flex; flex-direction: column; align-items: center; gap: .9rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+}
+.page-loading-text {
+  font-weight: 600; color: var(--text); font-size: .9rem;
+}
+.page-loading-text::after {
+  content: '...'; display: inline-block; width: 1.2em; text-align: left;
+  animation: pageLoadingDots 1.2s steps(4) infinite;
+  overflow: hidden; white-space: nowrap; vertical-align: bottom;
+}
+@keyframes pageLoadingDots {
+  0%   { width: 0; }
+  100% { width: 1.2em; }
+}
+
+.page-flip-scene { position: relative; width: 76px; height: 76px; display: flex; align-items: center; justify-content: center; }
+.page-flip-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid var(--primary); opacity: .3;
+  animation: ulRingPulse 1.8s ease-out infinite;
+}
+.page-flip-book {
+  width: 40px; height: 52px;
+  perspective: 220px;
+}
+.page-flip-face {
+  position: absolute; inset: 0; border-radius: 5px;
+  backface-visibility: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
+}
+.page-flip-front { background: linear-gradient(135deg, var(--primary), #4a0000); }
+.page-flip-back { background: var(--card); border: 2px solid var(--primary); transform: rotateY(180deg); }
+.page-flip-book { animation: pageFlipRotate 1.3s linear infinite; transform-style: preserve-3d; position: relative; }
+@keyframes pageFlipRotate {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
 /* ── Chat ─────────────────────────────────────────────────── */
 .chat-filter-pill {
   border: 1px solid var(--border);

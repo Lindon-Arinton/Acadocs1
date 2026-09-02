@@ -350,12 +350,62 @@ class Templates extends BaseController
                     ->setHeader('Content-Disposition', 'inline; filename="' . $inlineName . '"')
                     ->setBody(file_get_contents($pdfPath));
             }
+
+            // LibreOffice isn't installed on every environment this app runs
+            // in — fall back to a pure-PHP HTML render (PhpWord/PhpSpreadsheet,
+            // both already dependencies for certificate generation) so Word/
+            // Excel templates still preview inline instead of just failing.
+            $html = $this->renderOfficeAsHtml($template);
+
+            if ($html !== null) {
+                return $this->response
+                    ->setHeader('Content-Type', 'text/html; charset=UTF-8')
+                    ->setBody($html);
+            }
         }
 
         return $this->response
             ->setHeader('Content-Type', 'text/html; charset=UTF-8')
             ->setBody('<div style="font-family:sans-serif;color:#6b7280;text-align:center;padding:3rem 1rem;">'
                 . 'Preview isn\'t available for this file type. Download it to view the contents.</div>');
+    }
+
+    /**
+     * Renders a Word/Excel/ODF file to a standalone HTML document using
+     * PhpWord/PhpSpreadsheet directly — no LibreOffice binary required.
+     * Lower fidelity than the PDF conversion above (layout/formatting is
+     * approximate), but works everywhere those libraries are installed.
+     * Returns null if the format isn't one either library can read, or the
+     * file fails to parse (e.g. corrupted or password-protected).
+     */
+    private function renderOfficeAsHtml(array $template): ?string
+    {
+        $ext   = $template['file_ext'];
+        $extra = '<style>body{font-family:"Inter",system-ui,sans-serif;padding:1.5rem;color:#1f2937;}'
+            . 'table{border-collapse:collapse;} table td,table th{border:1px solid #d1d5db;padding:.35rem .5rem;}'
+            . 'img{max-width:100%;height:auto;}</style>';
+
+        try {
+            if (in_array($ext, ['doc', 'docx', 'odt'], true)) {
+                $document = \PhpOffice\PhpWord\IOFactory::load($template['file_path']);
+                $writer   = \PhpOffice\PhpWord\IOFactory::createWriter($document, 'HTML');
+            } elseif (in_array($ext, ['xls', 'xlsx', 'csv', 'ods'], true)) {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($template['file_path']);
+                $writer      = new \PhpOffice\PhpSpreadsheet\Writer\Html($spreadsheet);
+            } else {
+                return null;
+            }
+
+            ob_start();
+            $writer->save('php://output');
+            $html = ob_get_clean();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return str_contains($html, '</head>')
+            ? str_replace('</head>', $extra . '</head>', $html)
+            : $extra . $html;
     }
 
     /**

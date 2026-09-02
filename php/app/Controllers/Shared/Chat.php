@@ -72,9 +72,9 @@ class Chat extends BaseController
             static fn (array $a, array $b): int => strtotime($b['last_time']) <=> strtotime($a['last_time'])
         );
 
-        // Everyone with messaging access (admin+adas) can start direct chats and
-        // see "All Users"; only admin can create a *group* chat.
-        $canMessage    = hasRole('admin', 'adas');
+        // Everyone can start direct chats and see "All Users"; only admin
+        // (the principal) can create a *group* chat.
+        $canMessage     = true;
         $canCreateGroup = hasRole('admin');
 
         $users = $canMessage
@@ -106,10 +106,6 @@ class Chat extends BaseController
     {
         $isAjax = $this->request->isAJAX();
         $user   = currentUser();
-
-        if (! hasRole('admin', 'adas')) {
-            return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/chat');
-        }
 
         $action            = $this->request->getPost('action');
         $conversationModel = new ConversationModel();
