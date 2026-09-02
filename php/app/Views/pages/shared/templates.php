@@ -587,7 +587,19 @@ async function downloadTemplate(url, suggestedName) {
             if (err && err.name === 'AbortError') return;
         }
     }
-    window.location.href = url;
+    // window.location.href here would trigger the download fine, but Chrome
+    // can leave the tab's own loading spinner stuck spinning indefinitely
+    // since the navigation never actually completes (it resolves as a file
+    // download instead of a page load). A throwaway <a download> click
+    // triggers the same attachment download without touching page/tab
+    // navigation state at all, so nothing is left \"loading\".
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = suggestedName || '';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
     notifyDownloadSuccess(suggestedName);
 }
 
