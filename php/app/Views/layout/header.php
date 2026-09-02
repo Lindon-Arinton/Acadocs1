@@ -76,6 +76,48 @@ try {
 <!-- Sidebar overlay (mobile) -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
+<!-- Upload motion loading overlay (shown while an ajax-form with a file input is uploading) -->
+<div id="upload-loading-overlay" class="upload-loading-overlay">
+  <div class="upload-loading-card">
+    <svg class="upload-motion-svg" viewBox="0 0 160 160" width="120" height="120" aria-hidden="true">
+      <defs>
+        <linearGradient id="ulCloudGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--primary)"/>
+          <stop offset="100%" stop-color="#4a0000"/>
+        </linearGradient>
+      </defs>
+      <circle class="ul-ring" cx="80" cy="78" r="56" fill="none" stroke="var(--primary)" stroke-width="3"/>
+      <path class="ul-cloud" d="M52,98 a20,20 0 0,1 -2,-39.8 a26,26 0 0,1 50.5,-9.6 a19,19 0 0,1 -3.5,49.4 z" fill="url(#ulCloudGrad)"/>
+      <g class="ul-arrow">
+        <rect x="76" y="72" width="8" height="26" rx="3" fill="#fff"/>
+        <path d="M80,58 L95,75 L65,75 Z" fill="#fff"/>
+      </g>
+      <circle class="ul-dot ul-dot-1" cx="42" cy="134" r="4" fill="var(--primary)"/>
+      <circle class="ul-dot ul-dot-2" cx="80" cy="142" r="4" fill="var(--primary)"/>
+      <circle class="ul-dot ul-dot-3" cx="118" cy="134" r="4" fill="var(--primary)"/>
+    </svg>
+    <div class="upload-loading-text">Uploading document<span class="upload-loading-file-count"></span>&hellip;</div>
+    <div class="upload-progress-track">
+      <div class="upload-progress-fill"></div>
+    </div>
+    <div class="upload-progress-pct">0%</div>
+  </div>
+</div>
+
+<!-- Page-navigation motion loading overlay (shown by loadPage() during AJAX page switches) -->
+<div id="page-loading-overlay" class="page-loading-overlay">
+  <div class="page-loading-card">
+    <div class="page-flip-scene">
+      <div class="page-flip-ring"></div>
+      <div class="page-flip-book">
+        <div class="page-flip-face page-flip-front"></div>
+        <div class="page-flip-face page-flip-back"></div>
+      </div>
+    </div>
+    <div class="page-loading-text">Loading</div>
+  </div>
+</div>
+
 <!-- ══════════════ SIDEBAR ══════════════ -->
 <nav id="sidebar" role="navigation">
 
@@ -203,6 +245,16 @@ try {
           <i class="bi bi-link-45deg nav-icon"></i>
           <span class="sidebar-label">Document Links</span>
         </a>
+        <a href="<?= base_url('templates') ?>"
+           class="nav-link <?= str_contains($uri,'templates')?'active':'' ?>">
+          <i class="bi bi-folder2-open nav-icon"></i>
+          <span class="sidebar-label">Templates</span>
+        </a>
+        <a href="<?= base_url('property-management') ?>"
+           class="nav-link <?= str_contains($uri,'property')?'active':'' ?>">
+          <i class="bi bi-building nav-icon"></i>
+          <span class="sidebar-label">Property Management</span>
+        </a>
       </div>
     </div>
 
@@ -227,6 +279,9 @@ try {
         </a>
         <a href="<?= base_url('templates') ?>" class="nav-link <?= str_contains($uri,'templates')?'active':'' ?>">
           <i class="bi bi-folder2-open nav-icon"></i><span class="sidebar-label">Templates</span>
+        </a>
+        <a href="<?= base_url('property-management') ?>" class="nav-link <?= str_contains($uri,'property')?'active':'' ?>">
+          <i class="bi bi-building nav-icon"></i><span class="sidebar-label">Property Management</span>
         </a>
       </div>
     </div>

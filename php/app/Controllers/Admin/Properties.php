@@ -14,7 +14,7 @@ class Properties extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
-            if (! hasRole('admin', 'adas')) {
+            if (! hasRole('teacher')) {
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/property-management');
             }
 
@@ -24,13 +24,10 @@ class Properties extends BaseController
             try {
                 if ($action === 'add') {
                     $model->insert([
-                        'room_number'      => $this->request->getPost('room_number'),
-                        'building_name'    => $this->request->getPost('building_name'),
+                        'section'          => $this->request->getPost('section'),
+                        'grade'            => $this->request->getPost('grade'),
                         'item_name'        => $this->request->getPost('item_name'),
-                        'quantity'         => (int) $this->request->getPost('quantity'),
                         'condition_status' => $this->request->getPost('condition_status'),
-                        'last_inspection'  => $this->request->getPost('last_inspection') ?: date('Y-m-d'),
-                        'remarks'          => $this->request->getPost('remarks') ?? '',
                     ]);
                     $message = 'Item added successfully.';
                 } elseif ($action === 'delete') {
@@ -50,53 +47,49 @@ class Properties extends BaseController
             return redirect()->to('/property-management');
         }
 
-        $building  = $this->request->getGet('building') ?? 'all';
+        $grade     = $this->request->getGet('grade') ?? 'all';
         $condition = $this->request->getGet('condition') ?? 'all';
         $search    = trim($this->request->getGet('q') ?? '');
-        $sort      = $this->request->getGet('sort') ?? 'building_az';
+        $sort      = $this->request->getGet('sort') ?? 'grade_az';
 
         $builder = $model;
-        if ($building !== 'all') {
-            $builder->where('building_name', $building);
+        if ($grade !== 'all') {
+            $builder->where('grade', $grade);
         }
         if ($condition !== 'all') {
             $builder->where('condition_status', $condition);
         }
         if ($search !== '') {
             $builder->groupStart()
-                ->like('room_number', $search)
+                ->like('section', $search)
                 ->orLike('item_name', $search)
-                ->orLike('remarks', $search)
                 ->groupEnd();
         }
 
         match ($sort) {
             'item_az'   => $builder->orderBy('item_name', 'ASC'),
             'condition' => $builder->orderBy('condition_status', 'ASC')->orderBy('item_name', 'ASC'),
-            'qty_desc'  => $builder->orderBy('quantity', 'DESC'),
-            'inspected' => $builder->orderBy('last_inspection', 'DESC'),
-            default     => $builder->orderBy('building_name', 'ASC')->orderBy('room_number', 'ASC')->orderBy('item_name', 'ASC'),
+            'newest'    => $builder->orderBy('created_at', 'DESC'),
+            default     => $builder->orderBy('grade', 'ASC')->orderBy('section', 'ASC')->orderBy('item_name', 'ASC'),
         };
 
         $items = $builder->findAll();
 
-        $buildings  = array_column((new RoomPropertyModel())->distinct()->select('building_name')->orderBy('building_name')->findAll(), 'building_name');
+        $grades     = array_column((new RoomPropertyModel())->distinct()->select('grade')->orderBy('grade')->findAll(), 'grade');
         $conditions = ['Excellent', 'Good', 'Fair', 'Poor'];
 
-        $condStats  = array_count_values(array_column($items, 'condition_status'));
-        $totalItems = array_sum(array_column($items, 'quantity'));
+        $condStats = array_count_values(array_column($items, 'condition_status'));
 
         return view('pages/admin/properties', [
             'pageTitle'  => 'Property Management',
             'items'      => $items,
-            'building'   => $building,
+            'grade'      => $grade,
             'condition'  => $condition,
             'search'     => $search,
             'sort'       => $sort,
-            'buildings'  => $buildings,
+            'grades'     => $grades,
             'conditions' => $conditions,
             'condStats'  => $condStats,
-            'totalItems' => $totalItems,
             'flash'      => session()->getFlashdata('flash'),
         ]);
     }

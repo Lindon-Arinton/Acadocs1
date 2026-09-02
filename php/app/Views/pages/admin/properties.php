@@ -12,9 +12,9 @@ include APPPATH . 'Views/layout/header.php';
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-3" style="position:relative;z-index:1">
     <div>
       <h4><i class="bi bi-building me-2"></i>Property Management</h4>
-      <p>Room-by-room asset inventory and condition tracking</p>
+      <p>Grade &amp; section asset inventory and condition tracking</p>
     </div>
-    <?php if (hasRole('admin')): ?>
+    <?php if (hasRole('teacher')): ?>
     <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);"
             data-bs-toggle="modal" data-bs-target="#addItemModal">
       <i class="bi bi-plus-lg me-1"></i>Add Item
@@ -54,12 +54,12 @@ include APPPATH . 'Views/layout/header.php';
     <div class="d-flex align-items-center gap-3 flex-wrap">
       <form method="GET" action="<?= base_url('property-management') ?>" id="filterForm" class="d-flex align-items-center gap-3 flex-wrap">
         <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-building text-muted"></i>
+          <i class="bi bi-mortarboard text-muted"></i>
           <div class="maroon-select maroon-select-sm" style="width:auto;">
-            <select name="building" class="maroon-select-native" onchange="this.form.requestSubmit()">
-              <option value="all" <?= $building==='all'?'selected':'' ?>>All Buildings</option>
-              <?php foreach ($buildings as $b): ?>
-              <option value="<?= e($b) ?>" <?= $building===$b?'selected':'' ?>><?= e($b) ?></option>
+            <select name="grade" class="maroon-select-native" onchange="this.form.requestSubmit()">
+              <option value="all" <?= $grade==='all'?'selected':'' ?>>All Grades</option>
+              <?php foreach ($grades as $g): ?>
+              <option value="<?= e($g) ?>" <?= $grade===$g?'selected':'' ?>><?= e($g) ?></option>
               <?php endforeach; ?>
             </select>
             <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
@@ -82,22 +82,21 @@ include APPPATH . 'Views/layout/header.php';
         <div class="input-group input-group-sm" style="max-width:220px;">
           <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
           <input type="text" name="q" id="propSearchInput" value="<?= e($search) ?>"
-                 class="form-control border-start-0 ps-0" placeholder="Search room, item, remarks...">
+                 class="form-control border-start-0 ps-0" placeholder="Search section, item...">
         </div>
         <div class="maroon-select maroon-select-sm" style="width:auto;">
           <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
-            <option value="building_az" <?= $sort==='building_az' ? 'selected' : '' ?>>Building A-Z</option>
-            <option value="item_az"     <?= $sort==='item_az'     ? 'selected' : '' ?>>Item Name A-Z</option>
-            <option value="condition"   <?= $sort==='condition'   ? 'selected' : '' ?>>Condition</option>
-            <option value="qty_desc"    <?= $sort==='qty_desc'    ? 'selected' : '' ?>>Quantity (High-Low)</option>
-            <option value="inspected"   <?= $sort==='inspected'   ? 'selected' : '' ?>>Recently Inspected</option>
+            <option value="grade_az" <?= $sort==='grade_az' ? 'selected' : '' ?>>Grade A-Z</option>
+            <option value="item_az"  <?= $sort==='item_az'  ? 'selected' : '' ?>>Item Name A-Z</option>
+            <option value="condition" <?= $sort==='condition' ? 'selected' : '' ?>>Condition</option>
+            <option value="newest"   <?= $sort==='newest'   ? 'selected' : '' ?>>Recently Added</option>
           </select>
           <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
           <div class="maroon-select-panel"></div>
         </div>
       </form>
       <div class="ms-auto d-flex gap-2 align-items-center">
-        <span class="text-muted" style="font-size:.78rem;"><?= count($items) ?> items · <?= $totalItems ?> total units</span>
+        <span class="text-muted" style="font-size:.78rem;"><?= count($items) ?> items</span>
         <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('prop-table','properties')">
           <i class="bi bi-download me-1"></i>Export
         </button>
@@ -113,11 +112,10 @@ include APPPATH . 'Views/layout/header.php';
       <table class="table mb-0" id="prop-table">
         <thead>
           <tr>
-            <th>Building</th><th>Room</th><th>Item</th>
-            <th class="text-center">Qty</th>
+            <th>Grade</th><th>Section</th><th>Item</th>
             <th class="text-center">Condition</th>
-            <th>Last Inspected</th><th>Remarks</th>
-            <?php if (hasRole('admin')): ?><th></th><?php endif; ?>
+            <th>Date Added</th>
+            <?php if (hasRole('teacher')): ?><th></th><?php endif; ?>
           </tr>
         </thead>
         <tbody>
@@ -125,20 +123,16 @@ include APPPATH . 'Views/layout/header.php';
             [$cls,$ico] = $condCfg[$item['condition_status']] ?? ['cond-good','bi-circle'];
           ?>
           <tr>
-            <td class="text-muted" style="font-size:.78rem"><?= e($item['building_name']) ?></td>
-            <td><?= e($item['room_number']) ?></td>
+            <td class="text-muted" style="font-size:.78rem"><?= e($item['grade']) ?></td>
+            <td><?= e($item['section']) ?></td>
             <td class="fw-semibold"><?= e($item['item_name']) ?></td>
-            <td class="text-center">
-              <span class="badge badge-secondary"><?= $item['quantity'] ?></span>
-            </td>
             <td class="text-center">
               <span class="badge <?= $cls ?>">
                 <i class="bi <?= $ico ?> me-1"></i><?= e($item['condition_status']) ?>
               </span>
             </td>
-            <td class="text-muted" style="font-size:.78rem"><?= date('M d, Y', strtotime($item['last_inspection'])) ?></td>
-            <td class="text-muted" style="font-size:.78rem;max-width:160px" class="truncate"><?= e($item['remarks']) ?></td>
-            <?php if (hasRole('admin')): ?>
+            <td class="text-muted" style="font-size:.78rem"><?= date('M d, Y', strtotime($item['created_at'])) ?></td>
+            <?php if (hasRole('teacher')): ?>
             <td>
               <form method="POST" action="<?= base_url('property-management') ?>" class="ajax-form"
                     data-confirm-title="Delete this item?">
@@ -151,7 +145,7 @@ include APPPATH . 'Views/layout/header.php';
           </tr>
           <?php endforeach; ?>
           <?php if (empty($items)): ?>
-          <tr><td colspan="8" class="text-center py-5">
+          <tr><td colspan="6" class="text-center py-5">
             <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
             <span class="text-muted">No items found.</span>
           </td></tr>
@@ -175,25 +169,21 @@ include APPPATH . 'Views/layout/header.php';
         <div class="modal-body">
           <div class="row g-3">
             <div class="col-6">
-              <label class="form-label">Building</label>
-              <input type="text" name="building_name" class="form-control" list="buildingList" required>
-              <datalist id="buildingList">
-                <?php foreach ($buildings as $b): ?><option value="<?= e($b) ?>"><?php endforeach; ?>
+              <label class="form-label">Grade</label>
+              <input type="text" name="grade" class="form-control" list="gradeList" required>
+              <datalist id="gradeList">
+                <?php foreach ($grades as $g): ?><option value="<?= e($g) ?>"><?php endforeach; ?>
               </datalist>
             </div>
             <div class="col-6">
-              <label class="form-label">Room / Location</label>
-              <input type="text" name="room_number" class="form-control" required>
+              <label class="form-label">Section</label>
+              <input type="text" name="section" class="form-control" required>
             </div>
             <div class="col-12">
               <label class="form-label">Item Name</label>
               <input type="text" name="item_name" class="form-control" required>
             </div>
-            <div class="col-6">
-              <label class="form-label">Quantity</label>
-              <input type="number" name="quantity" class="form-control" value="1" min="1" required>
-            </div>
-            <div class="col-6">
+            <div class="col-12">
               <label class="form-label">Condition</label>
               <div class="maroon-select" style="width:100%;">
                 <select name="condition_status" class="maroon-select-native">
@@ -202,26 +192,6 @@ include APPPATH . 'Views/layout/header.php';
                 <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
                 <div class="maroon-select-panel"></div>
               </div>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Last Inspection</label>
-              <div class="maroon-dp">
-                <input type="text" class="form-control maroon-dp-display" placeholder="Select date" readonly>
-                <input type="hidden" name="last_inspection" value="<?= date('Y-m-d') ?>">
-                <div class="maroon-dp-panel">
-                  <div class="maroon-dp-header">
-                    <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
-                    <span class="maroon-dp-month-label"></span>
-                    <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
-                  </div>
-                  <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
-                  <div class="maroon-dp-grid"></div>
-                </div>
-              </div>
-            </div>
-            <div class="col-12">
-              <label class="form-label">Remarks</label>
-              <input type="text" name="remarks" class="form-control">
             </div>
           </div>
         </div>

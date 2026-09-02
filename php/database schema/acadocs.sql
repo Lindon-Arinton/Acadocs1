@@ -727,13 +727,10 @@ INSERT IGNORE INTO `performance_by_subject` (`id`, `school_year`, `term`, `subje
 
 CREATE TABLE IF NOT EXISTS `room_properties` (
   `id` int(10) UNSIGNED NOT NULL,
-  `room_number` varchar(50) NOT NULL,
-  `building_name` varchar(100) NOT NULL,
+  `section` varchar(50) NOT NULL,
+  `grade` varchar(100) NOT NULL,
   `item_name` varchar(150) NOT NULL,
-  `quantity` int(10) UNSIGNED NOT NULL DEFAULT 1,
   `condition_status` enum('Excellent','Good','Fair','Poor') NOT NULL,
-  `last_inspection` date NOT NULL,
-  `remarks` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

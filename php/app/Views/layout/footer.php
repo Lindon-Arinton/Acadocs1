@@ -179,44 +179,98 @@ const AJAX_ACTION_LABELS = {
     default:   { title: 'Proceed with this action?', confirmText: 'Yes, proceed', icon: 'question' },
 };
 
-function ajaxFormSubmit(form) {
-    const formData = new FormData(form);
+function handleAjaxFormResult(data) {
+    if (data.status === 'success') {
+        return Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: data.message || 'Action completed successfully.',
+            timer: 1600,
+            showConfirmButton: false,
+        }).then(() => {
+            if (data.redirect) {
+                loadPage(data.redirect, { scroll: true });
+            } else {
+                loadPage(window.location.href, { push: false, scroll: false });
+            }
+        });
+    }
+    Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Something went wrong. Please try again.' });
+}
 
-    Swal.fire({
-        title: form.dataset.loadingText || 'Processing...',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: () => Swal.showLoading(),
+/* ── Upload motion overlay controls (see app.css for the animation) ── */
+function setUploadProgress(pct) {
+    const overlay = document.getElementById('upload-loading-overlay');
+    if (!overlay) return;
+    overlay.querySelector('.upload-progress-fill').style.width = pct + '%';
+    overlay.querySelector('.upload-progress-pct').textContent = Math.round(pct) + '%';
+}
+function showUploadOverlay(fileCount) {
+    const overlay = document.getElementById('upload-loading-overlay');
+    if (!overlay) return;
+    const countLabel = overlay.querySelector('.upload-loading-file-count');
+    if (countLabel) countLabel.textContent = fileCount > 1 ? 's (' + fileCount + ' files)' : '';
+    setUploadProgress(0);
+    overlay.classList.add('active');
+}
+function hideUploadOverlay() {
+    document.getElementById('upload-loading-overlay')?.classList.remove('active');
+}
+
+function ajaxFormSubmit(form) {
+    const formData  = new FormData(form);
+    const fileCount = [...form.querySelectorAll('input[type="file"]')]
+        .reduce((sum, input) => sum + (input.files ? input.files.length : 0), 0);
+
+    // A plain confirm/save action gets the quick SweetAlert2 spinner; an
+    // actual file upload gets the motion overlay wired to real XHR progress
+    // instead, since those can take long enough that users need to see it
+    // moving rather than a generic "Processing..." spinner.
+    if (fileCount === 0) {
+        Swal.fire({
+            title: form.dataset.loadingText || 'Processing...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then(res => res.json().catch(() => ({ status: 'error', message: 'Unexpected server response.' })))
+            .then(handleAjaxFormResult)
+            .catch(() => {
+                Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server. Please check your connection and try again.' });
+            });
+        return;
+    }
+
+    showUploadOverlay(fileCount);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', form.getAttribute('action'));
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) setUploadProgress((e.loaded / e.total) * 100);
     });
 
-    fetch(form.getAttribute('action'), {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    })
-        .then(res => res.json().catch(() => ({ status: 'error', message: 'Unexpected server response.' })))
-        .then(data => {
-            if (data.status === 'success') {
-                return Swal.fire({
-                    icon: 'success',
-                    title: 'Success',
-                    text: data.message || 'Action completed successfully.',
-                    timer: 1600,
-                    showConfirmButton: false,
-                }).then(() => {
-                    if (data.redirect) {
-                        loadPage(data.redirect, { scroll: true });
-                    } else {
-                        loadPage(window.location.href, { push: false, scroll: false });
-                    }
-                });
-            }
-            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Something went wrong. Please try again.' });
-        })
-        .catch(() => {
-            Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server. Please check your connection and try again.' });
-        });
+    xhr.addEventListener('load', () => {
+        hideUploadOverlay();
+        let data;
+        try { data = JSON.parse(xhr.responseText); } catch { data = { status: 'error', message: 'Unexpected server response.' }; }
+        handleAjaxFormResult(data);
+    });
+
+    xhr.addEventListener('error', () => {
+        hideUploadOverlay();
+        Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server. Please check your connection and try again.' });
+    });
+
+    xhr.send(formData);
 }
 
 document.addEventListener('submit', function (e) {
@@ -514,6 +568,20 @@ function startAjaxProgress() {
     ajaxProgressBar.classList.add('active');
     ajaxProgressBar.style.width = '70%';
 }
+/* Full-screen motion overlay layers on top of the thin bar above, but only
+   for loads slow enough to notice — delayed so a fast swap never flickers it. */
+let pageLoadingShowTimer = null;
+function showPageLoadingOverlay() {
+    clearTimeout(pageLoadingShowTimer);
+    pageLoadingShowTimer = setTimeout(() => {
+        document.getElementById('page-loading-overlay')?.classList.add('active');
+    }, 150);
+}
+function hidePageLoadingOverlay() {
+    clearTimeout(pageLoadingShowTimer);
+    document.getElementById('page-loading-overlay')?.classList.remove('active');
+}
+
 function finishAjaxProgress() {
     if (!ajaxProgressBar) return;
     ajaxProgressBar.style.width = '100%';
@@ -606,6 +674,7 @@ function loadPage(url, { push = true, scroll = true } = {}) {
     const token = ++ajaxNavToken;
     const main = document.getElementById('main-content');
     startAjaxProgress();
+    showPageLoadingOverlay();
 
     fetch(target.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => {
@@ -649,9 +718,11 @@ function loadPage(url, { push = true, scroll = true } = {}) {
             }
             closeSidebar();
             finishAjaxProgress();
+            hidePageLoadingOverlay();
         })
         .catch(err => {
             console.error('AJAX navigation failed, falling back to a full page load:', err);
+            hidePageLoadingOverlay();
             window.location.href = target.href;
         });
 }
