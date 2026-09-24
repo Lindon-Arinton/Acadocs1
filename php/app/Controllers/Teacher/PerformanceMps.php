@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Libraries\MpsCalculator;
 use App\Libraries\MpsScoreImporter;
 use App\Models\MpsTestScoreModel;
+use App\Models\TeacherModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -27,8 +28,43 @@ class PerformanceMps extends BaseController
         'exam' => 'Term Examination',
     ];
 
+    /**
+     * Maps the free-text codes found in teachers.subject_handle-style data
+     * (e.g. "MAPEH 9 (5)", "V.E 9 (1)", "MATH 9 (4)") to the fixed subject
+     * vocabulary above. Anything not listed here (HG, RESEARCH, SPFL, ...)
+     * isn't an MPS-tracked subject and is intentionally left unmapped.
+     */
+    private const SUBJECT_ALIASES = [
+        'ENGLISH'     => 'English',
+        'ENG'         => 'English',
+        'FILIPINO'    => 'Filipino',
+        'FIL'         => 'Filipino',
+        'SCIENCE'     => 'Science',
+        'SCI'         => 'Science',
+        'MATHEMATICS' => 'Mathematics',
+        'MATH'        => 'Mathematics',
+        'AP'          => 'AP',
+        'TLE'         => 'TLE',
+        'MAPEH'       => 'MAPEH',
+        'MUSIC'       => 'Music',
+        'ARTS'        => 'Arts',
+        'PE'          => 'PE',
+        'HEALTH'      => 'Health',
+        'ESP'         => 'ESP',
+        'VE'          => 'ESP',
+    ];
+
     /** Matches "2025-2026" — the only shape a school year needs to satisfy now that it's freely typed rather than picked from a fixed list. */
     private const YEAR_PATTERN = '/^\d{4}-\d{4}$/';
+
+    /**
+     * Placeholder section label for a cell with no real section on record (an
+     * Excel import, or a legacy teacher_subjects row with no section column
+     * set). Never an empty string: `name="scores[...][]"` in HTML parses as a
+     * numeric array index, not the string key '', which would break the
+     * grade|subject|section lookup this constant is used to build.
+     */
+    private const NO_SECTION = '_none_';
 
     public function index()
     {
@@ -48,14 +84,43 @@ class PerformanceMps extends BaseController
 
             $redirect = '/performance/mps?year=' . urlencode($year) . '&term=' . $term;
 
-            $rawScores = $this->request->getPost('scores') ?? [];
-            $scoresByPeriod = [];
+            $rawScores    = $this->request->getPost('scores') ?? [];
+            $handledCells = $this->handledCells($this->currentTeacherRow());
+
+            // Belt-and-suspenders: the form only ever renders inputs for the
+            // signed-in teacher's own grade/subject/section cells, but a crafted
+            // POST could still try to smuggle in someone else's — resolve every
+            // posted value against handledCells and drop anything that isn't
+            // actually theirs before it ever reaches the DB.
+            $entries = [];
             foreach (self::PERIOD_MAP as $shortKey => $label) {
-                $scoresByPeriod[$label] = $rawScores[$shortKey] ?? [];
+                foreach ($rawScores[$shortKey] ?? [] as $grade => $bySubject) {
+                    foreach ($bySubject as $subject => $byLabel) {
+                        foreach ($byLabel as $sectionLabel => $value) {
+                            $value = trim((string) $value);
+                            if ($value === '') {
+                                continue;
+                            }
+
+                            $cell = $handledCells[$grade . '|' . $subject . '|' . $sectionLabel] ?? null;
+                            if ($cell === null) {
+                                continue;
+                            }
+
+                            $entries[] = [
+                                'period'  => $label,
+                                'grade'   => $grade,
+                                'subject' => $subject,
+                                'section' => $cell['section'],
+                                'mps'     => (float) $value,
+                            ];
+                        }
+                    }
+                }
             }
 
             try {
-                (new MpsCalculator())->saveScores($year, $term, $scoresByPeriod);
+                (new MpsCalculator())->saveSectionScores($year, $term, $entries);
             } catch (\Throwable $e) {
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to($redirect);
             }
@@ -83,6 +148,10 @@ class PerformanceMps extends BaseController
 
         $existingRows = (new MpsTestScoreModel())->forYearTerm($year, $term);
 
+        // Keyed by the same "section label" handledCells/the form use — the real
+        // section name, or NO_SECTION for a blended value with no section on record
+        // (an Excel import, or a legacy teacher_subjects row) — so the view can look
+        // a saved value up with exactly the label it's about to render.
         $existing = [];
         $periodByLabel = array_flip(self::PERIOD_MAP);
         foreach ($existingRows as $row) {
@@ -90,8 +159,11 @@ class PerformanceMps extends BaseController
             if ($shortKey === null) {
                 continue;
             }
-            $existing[$shortKey][$row['grade_level']][$row['subject']] = $row['mps'];
+            $sectionLabel = $row['section'] ?? self::NO_SECTION;
+            $existing[$shortKey][$row['grade_level']][$row['subject']][$sectionLabel] = $row['mps'];
         }
+
+        $handledCells = $this->handledCells($this->currentTeacherRow());
 
         return view('pages/teacher/performance_mps', [
             'pageTitle'   => 'Enter MPS Scores',
@@ -99,10 +171,12 @@ class PerformanceMps extends BaseController
             'term'        => $term,
             'years'       => $this->availableYears(),
             'terms'       => self::TERM_OPTIONS,
-            'gradeLevels' => self::GRADE_LEVELS,
-            'subjects'    => self::SUBJECTS,
+            'gradeLevels' => $this->gradesFromCells($handledCells),
+            'subjects'    => $this->subjectsFromCells($handledCells),
+            'sectionTree' => $this->sectionTree($handledCells),
             'periods'     => self::PERIOD_MAP,
             'existing'    => $existing,
+            'handledCells' => $handledCells,
             'flash'       => session()->getFlashdata('flash'),
         ]);
     }
@@ -167,7 +241,12 @@ class PerformanceMps extends BaseController
         }
 
         try {
-            $summary = (new MpsScoreImporter())->import($uploadPath . DIRECTORY_SEPARATOR . $fileName, $year, $term);
+            $summary = (new MpsScoreImporter())->import(
+                $uploadPath . DIRECTORY_SEPARATOR . $fileName,
+                $year,
+                $term,
+                $this->gradeSubjectOnly($this->handledCells($this->currentTeacherRow()))
+            );
         } catch (\Throwable $e) {
             return $isAjax ? $this->ajaxError('Import failed: ' . $e->getMessage()) : redirect()->to($redirect);
         }
@@ -211,6 +290,19 @@ class PerformanceMps extends BaseController
             return redirect()->to('/dashboard');
         }
 
+        $handledCells = $this->handledCells($this->currentTeacherRow());
+        $subjects     = $this->subjectsFromCells($handledCells);
+        $gradeLevels  = $this->gradesFromCells($handledCells);
+
+        if ($subjects === [] || $gradeLevels === []) {
+            session()->setFlashdata('flash', [
+                'type' => 'danger',
+                'msg'  => 'You have no assigned subjects yet — please ask the admin to set your subject load.',
+            ]);
+
+            return redirect()->to('/performance/mps');
+        }
+
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
         $sheet->setTitle('MPS');
@@ -220,10 +312,10 @@ class PerformanceMps extends BaseController
             $sheet->setCellValue("A{$row}", strtoupper($label));
             $row += 2;
 
-            $sheet->fromArray(array_merge([null], self::SUBJECTS), null, "A{$row}");
+            $sheet->fromArray(array_merge([null], $subjects), null, "A{$row}");
             $row++;
 
-            foreach (self::GRADE_LEVELS as $grade) {
+            foreach ($gradeLevels as $grade) {
                 $sheet->setCellValue("A{$row}", strtoupper($grade));
                 $row++;
             }
@@ -231,7 +323,7 @@ class PerformanceMps extends BaseController
             $row += 2; // blank separator row before the next section
         }
 
-        foreach (range('A', chr(ord('A') + count(self::SUBJECTS))) as $col) {
+        foreach (range('A', chr(ord('A') + count($subjects))) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -239,5 +331,187 @@ class PerformanceMps extends BaseController
         (new Xlsx($spreadsheet))->save($tempFile);
 
         return $this->response->download($tempFile, null)->setFileName('mps_scores_template.xlsx');
+    }
+
+    /** The current session's teacher row, joined with its subjects (see TeacherModel::findWithSubjects()). */
+    private function currentTeacherRow(): ?array
+    {
+        $teacherModel = new TeacherModel();
+        $teacher      = $teacherModel->resolveForUser(currentUser());
+
+        if (! $teacher) {
+            return null;
+        }
+
+        return $teacherModel->findWithSubjects((int) $teacher['id']) ?? $teacher;
+    }
+
+    /**
+     * Resolves a teacher's row into the exact set of Grade+Subject+Section
+     * cells they're allowed to enter MPS for, from their structured
+     * teacher_subjects rows (subject code, grade_level, section — one row
+     * per section actually handled, see TeacherSeeder). A row created before
+     * sections existed, or via a path that doesn't set grade_level/section
+     * (e.g. the mobile app's flat subject-string API), falls back to parsing
+     * its free-text subject (e.g. "MAPEH 9 (5)") the same way this used to
+     * work — those collapse into a single section-less cell per grade+subject,
+     * since no real section breakdown is on record for them.
+     *
+     * @return array<string,array{grade:string,subject:string,section:?string}>
+     *   keyed by "Grade X|Subject|SectionLabel" — SectionLabel is the real
+     *   section name, or NO_SECTION for a section-less (legacy) cell.
+     */
+    private function handledCells(?array $teacher): array
+    {
+        if (! $teacher) {
+            return [];
+        }
+
+        $fallbackGrades = $this->parseGradeTokens($teacher['grade_level'] ?? null);
+        $cells          = [];
+
+        foreach ($teacher['subjects'] ?? [] as $row) {
+            $rawSubject = trim((string) ($row['subject'] ?? ''));
+            if ($rawSubject === '') {
+                continue;
+            }
+
+            $gradeLevel = $row['grade_level'] ?? null;
+
+            if ($gradeLevel !== null) {
+                $subject = $this->resolveMpsSubject($rawSubject);
+                if ($subject === null) {
+                    continue;
+                }
+
+                $section = $row['section'] ?? null;
+                $label   = $section ?? self::NO_SECTION;
+                $cells[$gradeLevel . '|' . $subject . '|' . $label] = [
+                    'grade'   => $gradeLevel,
+                    'subject' => $subject,
+                    'section' => $section,
+                ];
+
+                continue;
+            }
+
+            // Legacy free-text row — no grade_level/section columns set.
+            $parsed = $this->parseSubjectEntry($rawSubject);
+            if ($parsed === null) {
+                continue;
+            }
+
+            $grades = $parsed['grade'] !== null ? [$parsed['grade']] : $fallbackGrades;
+            foreach ($grades as $grade) {
+                $cells[$grade . '|' . $parsed['subject'] . '|' . self::NO_SECTION] = [
+                    'grade'   => $grade,
+                    'subject' => $parsed['subject'],
+                    'section' => null,
+                ];
+            }
+        }
+
+        return $cells;
+    }
+
+    private function resolveMpsSubject(string $rawCode): ?string
+    {
+        $code = strtoupper((string) preg_replace('/[^A-Za-z]/', '', $rawCode));
+
+        return self::SUBJECT_ALIASES[$code] ?? null;
+    }
+
+    /** @param array<string,array{grade:string,subject:string,section:?string}> $cells */
+    private function gradesFromCells(array $cells): array
+    {
+        $found = array_unique(array_map(static fn (array $cell) => $cell['grade'], $cells));
+
+        return array_values(array_intersect(self::GRADE_LEVELS, $found));
+    }
+
+    /** @param array<string,array{grade:string,subject:string,section:?string}> $cells */
+    private function subjectsFromCells(array $cells): array
+    {
+        $found = array_unique(array_map(static fn (array $cell) => $cell['subject'], $cells));
+
+        return array_values(array_intersect(self::SUBJECTS, $found));
+    }
+
+    /** Collapses handledCells down to "Grade X|Subject" => true — for the Excel importer/template, which don't break scores out by section. */
+    private function gradeSubjectOnly(array $cells): array
+    {
+        $out = [];
+        foreach ($cells as $cell) {
+            $out[$cell['grade'] . '|' . $cell['subject']] = true;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Nests handledCells into Grade -> Subject -> [section cells] for the entry
+     * grid, with sections sorted alphabetically so the form renders in a stable
+     * order across page loads.
+     *
+     * @param array<string,array{grade:string,subject:string,section:?string}> $cells
+     * @return array<string,array<string,array<int,array{label:string,section:?string}>>>
+     */
+    private function sectionTree(array $cells): array
+    {
+        $tree = [];
+        foreach ($cells as $cell) {
+            $tree[$cell['grade']][$cell['subject']][] = [
+                'label'   => $cell['section'] ?? '(no section on record)',
+                'section' => $cell['section'] ?? self::NO_SECTION,
+            ];
+        }
+
+        foreach ($tree as &$bySubject) {
+            foreach ($bySubject as &$sectionCells) {
+                usort($sectionCells, static fn (array $a, array $b) => strcmp($a['label'], $b['label']));
+            }
+        }
+
+        return $tree;
+    }
+
+    /** Extracts every "Grade N" token (7/8/9/10) found in free text like "8 AND 10" or "8 and 9". */
+    private function parseGradeTokens(?string $raw): array
+    {
+        if (! $raw || ! preg_match_all('/\b(7|8|9|10)\b/', $raw, $matches)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_map(static fn (string $n) => 'Grade ' . $n, $matches[1])));
+    }
+
+    /**
+     * Parses one free-text subject-handle entry (e.g. "MAPEH 9 (5)",
+     * "V.E 9 (1)", "ENGLISH (3)") into a canonical subject + optional grade.
+     * Returns null when the leading code doesn't match any MPS-tracked
+     * subject (HG, RESEARCH, SPFL, ...). Only used as a fallback for
+     * teacher_subjects rows with no structured grade_level/section.
+     *
+     * @return array{subject:string,grade:?string}|null
+     */
+    private function parseSubjectEntry(string $raw): ?array
+    {
+        $clean = trim((string) preg_replace('/\([^)]*\)/', '', $raw));
+
+        if (! preg_match('/^([A-Za-z.\-]+)/', $clean, $codeMatch)) {
+            return null;
+        }
+
+        $subject = $this->resolveMpsSubject($codeMatch[1]);
+        if ($subject === null) {
+            return null;
+        }
+
+        $grade = null;
+        if (preg_match('/\b(7|8|9|10)\b/', $clean, $gradeMatch)) {
+            $grade = 'Grade ' . $gradeMatch[1];
+        }
+
+        return ['subject' => $subject, 'grade' => $grade];
     }
 }

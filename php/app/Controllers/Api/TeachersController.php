@@ -30,12 +30,13 @@ class TeachersController extends BaseApiController
             'name'            => $b['name'] ?? '',
             'email'           => $b['email'] ?? '',
             'grade_level'     => $b['grade_level'] ?? '',
+            'advisory'        => $b['advisory'] ?? null,
             'submission_rate' => $b['submission_rate'] ?? 0,
         ]);
 
         $subjectModel = new TeacherSubjectModel();
         foreach (($b['subjects'] ?? []) as $subject) {
-            $subjectModel->insert(['teacher_id' => $teacherId, 'subject' => $subject]);
+            $subjectModel->insert(array_merge(['teacher_id' => $teacherId], $this->normalizeSubject($subject)));
         }
 
         return $this->jsonResponse(['id' => $teacherId, 'message' => 'Created.'], 201);
@@ -54,16 +55,39 @@ class TeachersController extends BaseApiController
             'name'            => $b['name'],
             'email'           => $b['email'],
             'grade_level'     => $b['grade_level'] ?? null,
+            'advisory'        => $b['advisory'] ?? null,
             'submission_rate' => $b['submission_rate'],
         ]);
 
         $subjectModel = new TeacherSubjectModel();
         $subjectModel->where('teacher_id', $id)->delete();
         foreach (($b['subjects'] ?? []) as $subject) {
-            $subjectModel->insert(['teacher_id' => $id, 'subject' => $subject]);
+            $subjectModel->insert(array_merge(['teacher_id' => $id], $this->normalizeSubject($subject)));
         }
 
         return $this->jsonResponse(['message' => 'Updated.']);
+    }
+
+    /**
+     * Accepts either a structured subject (['subject'=>,'grade_level'=>,'section'=>])
+     * or a legacy flat string (e.g. "MAPEH 9 (5)") for backward compatibility with
+     * older API clients that don't yet send grade/section — see PerformanceMps::
+     * handledCells(), which already falls back to parsing that flat form.
+     *
+     * @param array<string,mixed>|string $subject
+     * @return array{subject:string,grade_level:?string,section:?string}
+     */
+    private function normalizeSubject($subject): array
+    {
+        if (is_array($subject)) {
+            return [
+                'subject'     => (string) ($subject['subject'] ?? ''),
+                'grade_level' => $subject['grade_level'] ?? null,
+                'section'     => $subject['section'] ?? null,
+            ];
+        }
+
+        return ['subject' => (string) $subject, 'grade_level' => null, 'section' => null];
     }
 
     public function delete()

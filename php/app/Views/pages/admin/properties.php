@@ -113,8 +113,10 @@ include APPPATH . 'Views/layout/header.php';
         <thead>
           <tr>
             <th>Grade</th><th>Section</th><th>Item</th>
+            <th class="text-center">Quantity</th>
             <th class="text-center">Condition</th>
             <th>Date Added</th>
+            <th>Uploaded By</th>
             <?php if (hasRole('teacher')): ?><th></th><?php endif; ?>
           </tr>
         </thead>
@@ -126,12 +128,14 @@ include APPPATH . 'Views/layout/header.php';
             <td class="text-muted" style="font-size:.78rem"><?= e($item['grade']) ?></td>
             <td><?= e($item['section']) ?></td>
             <td class="fw-semibold"><?= e($item['item_name']) ?></td>
+            <td class="text-center"><?= e($item['quantity'] ?? 1) ?></td>
             <td class="text-center">
               <span class="badge <?= $cls ?>">
                 <i class="bi <?= $ico ?> me-1"></i><?= e($item['condition_status']) ?>
               </span>
             </td>
             <td class="text-muted" style="font-size:.78rem"><?= date('M d, Y', strtotime($item['created_at'])) ?></td>
+            <td class="text-muted" style="font-size:.78rem"><?= e($item['uploaded_by'] ?? '—') ?></td>
             <?php if (hasRole('teacher')): ?>
             <td>
               <form method="POST" action="<?= base_url('property-management') ?>" class="ajax-form"
@@ -145,7 +149,7 @@ include APPPATH . 'Views/layout/header.php';
           </tr>
           <?php endforeach; ?>
           <?php if (empty($items)): ?>
-          <tr><td colspan="6" class="text-center py-5">
+          <tr><td colspan="8" class="text-center py-5">
             <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
             <span class="text-muted">No items found.</span>
           </td></tr>
@@ -183,7 +187,11 @@ include APPPATH . 'Views/layout/header.php';
               <label class="form-label">Item Name</label>
               <input type="text" name="item_name" class="form-control" required>
             </div>
-            <div class="col-12">
+            <div class="col-6">
+              <label class="form-label">Quantity</label>
+              <input type="number" name="quantity" class="form-control" min="1" value="1" required>
+            </div>
+            <div class="col-6">
               <label class="form-label">Condition</label>
               <div class="maroon-select" style="width:100%;">
                 <select name="condition_status" class="maroon-select-native">

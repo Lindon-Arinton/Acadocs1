@@ -28,7 +28,9 @@ class MpsCalculator
 
     /**
      * @param array<string,array<string,array<string,mixed>>> $scoresByPeriod
-     *   [testPeriodLabel => [gradeLevel => [subject => mps]]]
+     *   [testPeriodLabel => [gradeLevel => [subject => mps]]] — one already-blended
+     *   value per grade+subject, e.g. from the Excel importer's grade-level grid,
+     *   which doesn't break scores out by section. Saved with section = null.
      */
     public function saveScores(string $schoolYear, int $term, array $scoresByPeriod): void
     {
@@ -40,7 +42,7 @@ class MpsCalculator
                         continue;
                     }
 
-                    $this->upsertScore($schoolYear, $term, $gradeLevel, $subject, $testPeriod, (float) $value);
+                    $this->upsertScore($schoolYear, $term, $gradeLevel, $subject, null, $testPeriod, (float) $value);
                 }
             }
         }
@@ -48,13 +50,29 @@ class MpsCalculator
         $this->recompute($schoolYear, $term);
     }
 
-    private function upsertScore(string $schoolYear, int $term, string $gradeLevel, string $subject, string $testPeriod, float $mps): void
+    /**
+     * @param array<int,array{period:string,grade:string,subject:string,section:?string,mps:float}> $entries
+     *   Per-section scores from the manual MPS entry form (see PerformanceMps::handledCells()).
+     *   $entry['section'] is null for a teacher's legacy grade+subject-only rows
+     *   (no real section name on record), same as an imported blended value.
+     */
+    public function saveSectionScores(string $schoolYear, int $term, array $entries): void
+    {
+        foreach ($entries as $entry) {
+            $this->upsertScore($schoolYear, $term, $entry['grade'], $entry['subject'], $entry['section'], $entry['period'], $entry['mps']);
+        }
+
+        $this->recompute($schoolYear, $term);
+    }
+
+    private function upsertScore(string $schoolYear, int $term, string $gradeLevel, string $subject, ?string $section, string $testPeriod, float $mps): void
     {
         $existing = $this->scores
             ->where('school_year', $schoolYear)
             ->where('term', $term)
             ->where('grade_level', $gradeLevel)
             ->where('subject', $subject)
+            ->where('section', $section)
             ->where('test_period', $testPeriod)
             ->first();
 
@@ -63,6 +81,7 @@ class MpsCalculator
             'term'        => $term,
             'grade_level' => $gradeLevel,
             'subject'     => $subject,
+            'section'     => $section,
             'test_period' => $testPeriod,
             'mps'         => $mps,
         ];

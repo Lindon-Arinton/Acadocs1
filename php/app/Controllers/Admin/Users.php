@@ -3,10 +3,14 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\TeacherModel;
+use App\Models\TeacherSubjectModel;
 use App\Models\UserModel;
 
 class Users extends BaseController
 {
+    public const GRADE_LEVELS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+
     public function index()
     {
         if (! hasRole('admin', 'adas')) {
@@ -22,13 +26,35 @@ class Users extends BaseController
 
             try {
                 if ($action === 'add') {
-                    $model->insert([
+                    $role = $this->request->getPost('role');
+
+                    $userId = $model->insert([
                         'name'     => $this->request->getPost('name'),
                         'email'    => $this->request->getPost('email'),
                         'password' => password_hash($this->request->getPost('password'), PASSWORD_BCRYPT),
-                        'role'     => $this->request->getPost('role'),
+                        'role'     => $role,
                     ]);
+
+                    if ($role === 'teacher') {
+                        $this->syncTeacherProfile((int) $userId, $model->find($userId));
+                    }
+
                     $message = 'User created successfully.';
+                } elseif ($action === 'edit') {
+                    $userId = (int) $this->request->getPost('id');
+                    $role   = $this->request->getPost('role');
+
+                    $model->update($userId, [
+                        'name'  => $this->request->getPost('name'),
+                        'email' => $this->request->getPost('email'),
+                        'role'  => $role,
+                    ]);
+
+                    if ($role === 'teacher') {
+                        $this->syncTeacherProfile($userId, $model->find($userId));
+                    }
+
+                    $message = 'User updated successfully.';
                 } elseif ($action === 'delete') {
                     if ((int) $this->request->getPost('id') === (int) currentUser()['id']) {
                         return $isAjax ? $this->ajaxError('You cannot delete your own account.') : redirect()->to('/users');
@@ -72,12 +98,87 @@ class Users extends BaseController
 
         $users = $builder->findAll();
 
+        // Attach each teacher-role user's advisory/grade/subjects so the Edit
+        // modal can be pre-filled without a separate round trip.
+        $teachersByUserId = [];
+        foreach ((new TeacherModel())->allWithSubjects() as $teacher) {
+            if ($teacher['user_id'] !== null) {
+                $teachersByUserId[(int) $teacher['user_id']] = $teacher;
+            }
+        }
+        foreach ($users as &$u) {
+            $u['teacher'] = $teachersByUserId[(int) $u['id']] ?? null;
+        }
+        unset($u);
+
         return view('pages/admin/users', [
-            'pageTitle' => 'User Management',
-            'users'     => $users,
-            'search'    => $search,
-            'sort'      => $sort,
-            'flash'     => session()->getFlashdata('flash'),
+            'pageTitle'   => 'User Management',
+            'users'       => $users,
+            'search'      => $search,
+            'sort'        => $sort,
+            'gradeLevels' => self::GRADE_LEVELS,
+            'flash'       => session()->getFlashdata('flash'),
         ]);
+    }
+
+    /**
+     * Creates or updates the teachers row tied to a user, and resyncs its
+     * teacher_subjects rows, from the Add/Edit User form's teacher-only
+     * fields (advisory_status, advisory_section, grade_level, subjects[]).
+     */
+    private function syncTeacherProfile(int $userId, ?array $user): void
+    {
+        if (! $user) {
+            return;
+        }
+
+        $teacherModel = new TeacherModel();
+        $teacher      = $teacherModel->findByUserId($userId) ?? $teacherModel->findByEmail($user['email']);
+
+        $advisoryStatus  = $this->request->getPost('advisory_status');
+        $advisorySection = trim((string) $this->request->getPost('advisory_section'));
+        $advisory        = null;
+        if ($advisorySection !== '' && $advisoryStatus === 'adviser') {
+            $advisory = $advisorySection;
+        } elseif ($advisorySection !== '' && $advisoryStatus === 'co_adviser') {
+            $advisory = $advisorySection . ' (Co-Adviser)';
+        }
+
+        $payload = [
+            'name'        => $user['name'],
+            'email'       => $user['email'],
+            'grade_level' => trim((string) $this->request->getPost('grade_level')) ?: null,
+            'advisory'    => $advisory,
+            'user_id'     => $userId,
+        ];
+
+        if ($teacher) {
+            $teacherModel->update($teacher['id'], $payload);
+            $teacherId = (int) $teacher['id'];
+        } else {
+            $payload['employee_id']     = 'T-' . str_pad((string) $userId, 3, '0', STR_PAD_LEFT);
+            $payload['submission_rate'] = 0.00;
+            $teacherId                  = (int) $teacherModel->insert($payload);
+        }
+
+        $subjectModel = new TeacherSubjectModel();
+        $subjectModel->where('teacher_id', $teacherId)->delete();
+
+        $subjects = $this->request->getPost('subjects') ?? [];
+        foreach ($subjects as $row) {
+            $subject = trim((string) ($row['subject'] ?? ''));
+            $grade   = trim((string) ($row['grade'] ?? ''));
+            $section = trim((string) ($row['section'] ?? ''));
+            if ($subject === '' || $grade === '' || $section === '') {
+                continue;
+            }
+
+            $subjectModel->insert([
+                'teacher_id'  => $teacherId,
+                'subject'     => $subject,
+                'grade_level' => $grade,
+                'section'     => $section,
+            ]);
+        }
     }
 }

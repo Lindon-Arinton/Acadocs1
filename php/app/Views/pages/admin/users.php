@@ -61,6 +61,34 @@
           foreach ($users as $i => $u):
             [$rbg,$rtc] = $roleCfg[$u['role']] ?? ['var(--surface-hover)','var(--text-secondary)'];
             $isMe = $u['id'] == currentUser()['id'];
+
+            // Fed to editUser() as JSON so the Edit modal can be pre-filled
+            // client-side with no extra round trip — includes the linked
+            // teachers row (advisory/grade/subjects) when this user is a teacher.
+            $teacher = $u['teacher'] ?? null;
+            $advisoryStatus = 'none';
+            $advisorySection = '';
+            if (! empty($teacher['advisory'])) {
+                if (preg_match('/^(.*)\s*\(Co-Adviser\)$/i', $teacher['advisory'], $m)) {
+                    $advisoryStatus  = 'co_adviser';
+                    $advisorySection = trim($m[1]);
+                } else {
+                    $advisoryStatus  = 'adviser';
+                    $advisorySection = $teacher['advisory'];
+                }
+            }
+            $editPayload = [
+                'id'    => $u['id'],
+                'name'  => $u['name'],
+                'email' => $u['email'],
+                'role'  => $u['role'],
+                'gradeLevel' => $teacher['grade_level'] ?? '',
+                'advisoryStatus' => $advisoryStatus,
+                'advisorySection' => $advisorySection,
+                'subjects' => array_map(static fn ($s) => [
+                    'subject' => $s['subject'], 'grade' => $s['grade_level'], 'section' => $s['section'],
+                ], $teacher['subjects'] ?? []),
+            ];
           ?>
           <tr>
             <td class="text-muted"><?= $i+1 ?></td>
@@ -83,6 +111,11 @@
             </td>
             <td class="text-muted" style="font-size:.78rem"><?= date('M d, Y', strtotime($u['created_at'])) ?></td>
             <td class="text-center">
+              <button class="btn btn-ghost btn-sm"
+                      onclick='editUser(<?= json_encode($editPayload) ?>)'
+                      title="Edit user">
+                <i class="bi bi-pencil"></i>
+              </button>
               <button class="btn btn-ghost btn-sm"
                       onclick="resetPw(<?= $u['id'] ?>, '<?= e(addslashes($u['name'])) ?>')"
                       title="Reset Password">
@@ -111,6 +144,52 @@
   </div>
 </div>
 
+<?php
+/**
+ * Teacher-only fields shared by the Add and Edit modals: grade level,
+ * advisory status (Adviser / Co-Adviser / Non-Advisory) + section name, and
+ * a repeatable subject/grade/section list — the data PerformanceMps's MPS
+ * entry grid needs (see TeacherSeeder.php for the same subject/grade/section
+ * shape). $idPrefix keeps element ids unique between the two modals.
+ */
+function teacherFieldsBlock(string $idPrefix, array $gradeLevels): void { ?>
+<div id="<?= $idPrefix ?>TeacherFields" class="d-none">
+  <hr class="my-3">
+  <div class="small fw-semibold text-muted mb-2"><i class="bi bi-mortarboard me-1"></i>Teacher Details</div>
+  <div class="row g-3 mb-2">
+    <div class="col-6">
+      <label class="form-label">Grade Level <span class="text-muted fw-normal">(summary)</span></label>
+      <input type="text" name="grade_level" id="<?= $idPrefix ?>GradeLevel" class="form-control form-control-sm" placeholder="e.g. 9 or 8 AND 10">
+    </div>
+    <div class="col-6">
+      <label class="form-label">Advisory Status</label>
+      <div class="maroon-select maroon-select-sm" style="width:100%;">
+        <select name="advisory_status" id="<?= $idPrefix ?>AdvisoryStatus" class="maroon-select-native" onchange="toggleAdvisorySection('<?= $idPrefix ?>')">
+          <option value="none">Non-Advisory</option>
+          <option value="adviser">Adviser</option>
+          <option value="co_adviser">Co-Adviser</option>
+        </select>
+        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+        <div class="maroon-select-panel"></div>
+      </div>
+    </div>
+    <div class="col-12 d-none" id="<?= $idPrefix ?>AdvisorySectionWrap">
+      <label class="form-label">Advisory Section</label>
+      <input type="text" name="advisory_section" id="<?= $idPrefix ?>AdvisorySection" class="form-control form-control-sm" placeholder="e.g. MATATAG">
+    </div>
+  </div>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <label class="form-label mb-0">Subject Load</label>
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addSubjectRow('<?= $idPrefix ?>')">
+      <i class="bi bi-plus-lg me-1"></i>Add Subject
+    </button>
+  </div>
+  <div id="<?= $idPrefix ?>SubjectsList" class="d-flex flex-column gap-2"></div>
+  <p class="text-muted mb-0 mt-1" style="font-size:.72rem;" id="<?= $idPrefix ?>SubjectsEmpty">No subjects assigned yet — each one needs its own section, since MPS scores are entered per section.</p>
+</div>
+<?php }
+?>
+
 <!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1">
   <div class="modal-dialog">
@@ -135,7 +214,7 @@
             <div class="col-6">
               <label class="form-label">Role</label>
               <div class="maroon-select" style="width:100%;">
-                <select name="role" class="maroon-select-native">
+                <select name="role" class="maroon-select-native" onchange="toggleTeacherFields('add', this.value)">
                   <option value="teacher">Teacher</option>
                   <option value="adas">ADAS</option>
                   <option value="admin">Admin</option>
@@ -149,10 +228,57 @@
               <input type="password" name="password" class="form-control" required minlength="6">
             </div>
           </div>
+          <?php teacherFieldsBlock('add', $gradeLevels); ?>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit User</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="<?= base_url('users') ?>" class="ajax-form"
+            data-confirm-text="Changes to this account take effect immediately.">
+        <input type="hidden" name="action" value="edit">
+        <input type="hidden" name="id" id="editUserId">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Full Name</label>
+              <input type="text" name="name" id="editUserName" class="form-control" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Email Address</label>
+              <input type="email" name="email" id="editUserEmail" class="form-control" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Role</label>
+              <div class="maroon-select" style="width:100%;">
+                <select name="role" id="editUserRole" class="maroon-select-native" onchange="toggleTeacherFields('edit', this.value)">
+                  <option value="teacher">Teacher</option>
+                  <option value="adas">ADAS</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
+            </div>
+          </div>
+          <?php teacherFieldsBlock('edit', $gradeLevels); ?>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
     </div>
@@ -188,13 +314,101 @@
 </div>
 
 <?php
-$extraScript = <<<'HTML'
+$gradeLevelsJson = json_encode($gradeLevels);
+$extraScript = <<<HTML
 <script>
+const USER_GRADE_LEVELS = {$gradeLevelsJson};
+let subjectRowSeq = 0;
+
 function resetPw(id, name) {
     document.getElementById('resetUserId').value = id;
     document.getElementById('resetUserName').textContent = name;
     new bootstrap.Modal(document.getElementById('resetPwModal')).show();
 }
+
+// Shows/hides the Teacher Details block on role change (both Add and Edit
+// modals use the same 'teacher'/'adas'/'admin' role select).
+function toggleTeacherFields(prefix, role) {
+    document.getElementById(prefix + 'TeacherFields').classList.toggle('d-none', role !== 'teacher');
+}
+
+function toggleAdvisorySection(prefix) {
+    const status = document.getElementById(prefix + 'AdvisoryStatus').value;
+    document.getElementById(prefix + 'AdvisorySectionWrap').classList.toggle('d-none', status === 'none');
+}
+
+function subjectRowHtml(prefix, idx, subject, grade, section) {
+    const gradeOptions = USER_GRADE_LEVELS.map(function (g) {
+        return '<option value="' + g + '"' + (g === grade ? ' selected' : '') + '>' + g + '</option>';
+    }).join('');
+
+    return '<div class="d-flex gap-2 align-items-center subject-row">' +
+        '<input type="text" class="form-control form-control-sm" style="flex:1.2;" placeholder="Subject (e.g. AP)" ' +
+            'name="subjects[' + idx + '][subject]" value="' + subject.replace(/"/g, '&quot;') + '">' +
+        '<select class="form-select form-select-sm" style="flex:1;" name="subjects[' + idx + '][grade]">' +
+            '<option value="">Grade</option>' + gradeOptions +
+        '</select>' +
+        '<input type="text" class="form-control form-control-sm" style="flex:1.2;" placeholder="Section (e.g. Matatag)" ' +
+            'name="subjects[' + idx + '][section]" value="' + section.replace(/"/g, '&quot;') + '">' +
+        '<button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest(\\'.subject-row\\').remove(); updateSubjectsEmptyState(\\'' + prefix + '\\');" title="Remove">' +
+            '<i class="bi bi-x-lg"></i></button>' +
+        '</div>';
+}
+
+function updateSubjectsEmptyState(prefix) {
+    const list  = document.getElementById(prefix + 'SubjectsList');
+    const empty = document.getElementById(prefix + 'SubjectsEmpty');
+    empty.classList.toggle('d-none', list.children.length > 0);
+}
+
+function addSubjectRow(prefix, subject, grade, section) {
+    const list = document.getElementById(prefix + 'SubjectsList');
+    list.insertAdjacentHTML('beforeend', subjectRowHtml(prefix, subjectRowSeq++, subject || '', grade || '', section || ''));
+    updateSubjectsEmptyState(prefix);
+}
+
+function resetTeacherFields(prefix) {
+    document.getElementById(prefix + 'GradeLevel').value = '';
+    document.getElementById(prefix + 'AdvisoryStatus').value = 'none';
+    const statusRoot = document.getElementById(prefix + 'AdvisoryStatus').closest('.maroon-select');
+    if (statusRoot && statusRoot.maroonSelectSync) statusRoot.maroonSelectSync();
+    toggleAdvisorySection(prefix);
+    document.getElementById(prefix + 'AdvisorySection').value = '';
+    document.getElementById(prefix + 'SubjectsList').innerHTML = '';
+    updateSubjectsEmptyState(prefix);
+}
+
+function editUser(data) {
+    document.getElementById('editUserId').value = data.id;
+    document.getElementById('editUserName').value = data.name;
+    document.getElementById('editUserEmail').value = data.email;
+
+    const roleSelect = document.getElementById('editUserRole');
+    roleSelect.value = data.role;
+    roleSelect.dispatchEvent(new Event('change'));
+    const roleRoot = roleSelect.closest('.maroon-select');
+    if (roleRoot && roleRoot.maroonSelectSync) roleRoot.maroonSelectSync();
+
+    resetTeacherFields('edit');
+    document.getElementById('editGradeLevel').value = data.gradeLevel || '';
+    document.getElementById('editAdvisoryStatus').value = data.advisoryStatus || 'none';
+    const advRoot = document.getElementById('editAdvisoryStatus').closest('.maroon-select');
+    if (advRoot && advRoot.maroonSelectSync) advRoot.maroonSelectSync();
+    toggleAdvisorySection('edit');
+    document.getElementById('editAdvisorySection').value = data.advisorySection || '';
+
+    (data.subjects || []).forEach(function (s) {
+        addSubjectRow('edit', s.subject, s.grade, s.section);
+    });
+
+    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+}
+
+document.getElementById('addUserModal').addEventListener('show.bs.modal', function () {
+    resetTeacherFields('add');
+    toggleTeacherFields('add', document.querySelector('#addUserModal select[name="role"]').value);
+});
+
 initInstantFilter('userSearchInput', 'users-table', {
     emptyText: 'No users found matching your search.',
     counterId: 'users-count',

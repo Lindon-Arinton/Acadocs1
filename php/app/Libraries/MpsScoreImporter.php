@@ -28,12 +28,17 @@ class MpsScoreImporter
     private const MIN_SUBJECT_MATCHES = 3;
 
     /**
+     * @param array<string,true>|null $allowedCells Restrict saved scores to
+     *   these "Grade X|Subject" cells (see PerformanceMps::handledCells()).
+     *   Null means no restriction — every recognized cell in the sheet is
+     *   saved, which is how the school's full multi-subject MPS workbook is
+     *   meant to be imported in one go.
      * @return array{
      *   periods_found: string[], saved: int,
      *   warnings: string[], errors: string[],
      * }
      */
-    public function import(string $filePath, string $schoolYear, int $term): array
+    public function import(string $filePath, string $schoolYear, int $term, ?array $allowedCells = null): array
     {
         $summary = [
             'periods_found' => [],
@@ -63,8 +68,9 @@ class MpsScoreImporter
             $gradeByTitle[strtoupper($grade)] = $grade;
         }
 
-        $rowCount       = count($rows);
-        $scoresByPeriod = [];
+        $rowCount        = count($rows);
+        $scoresByPeriod  = [];
+        $restrictedSkips = 0;
 
         for ($i = 0; $i < $rowCount; $i++) {
             $label = $periodByTitle[strtoupper(trim((string) ($rows[$i][0] ?? '')))] ?? null;
@@ -109,6 +115,11 @@ class MpsScoreImporter
                         continue;
                     }
 
+                    if ($allowedCells !== null && ! isset($allowedCells[$gradeLevel . '|' . $subject])) {
+                        $restrictedSkips++;
+                        continue;
+                    }
+
                     $value = round((float) $raw, 2);
                     if ($value < 0 || $value > 100) {
                         $summary['warnings'][] = "Skipped {$gradeLevel} {$subject} ({$label}): value '{$raw}' out of range.";
@@ -122,6 +133,10 @@ class MpsScoreImporter
         }
 
         $summary['periods_found'] = array_values(array_unique($summary['periods_found']));
+
+        if ($restrictedSkips > 0) {
+            $summary['warnings'][] = "Skipped {$restrictedSkips} score(s) outside your assigned subjects.";
+        }
 
         if ($scoresByPeriod === []) {
             $summary['errors'][] = 'No recognizable MPS grade/subject grid was found in the uploaded file.';
