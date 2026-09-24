@@ -4,7 +4,7 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
     <div>
       <h4><i class="bi bi-pencil-square me-2"></i>Enter MPS Scores</h4>
-      <p>Summative Test 1, Summative Test 2 &amp; Term Examination — per grade level &amp; subject</p>
+      <p>Summative Test 1, Summative Test 2 &amp; Term Examination — per grade level, subject &amp; section</p>
     </div>
     <div class="d-flex gap-2">
       <a href="<?= base_url('performance/mps/template') ?>" class="btn btn-sm btn-outline-light">
@@ -59,6 +59,15 @@
   </div>
 </div>
 
+<?php if (empty($handledCells)): ?>
+<div class="card mb-4">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-clipboard-x fs-1 d-block mb-3"></i>
+    You have no assigned subjects yet — please ask the admin to set your subject load
+    before entering MPS scores.
+  </div>
+</div>
+<?php else: ?>
 <form method="POST" action="<?= base_url('performance/mps') ?>">
   <input type="hidden" name="school_year" value="<?= e($year) ?>">
   <input type="hidden" name="term" value="<?= (int) $term ?>">
@@ -68,34 +77,42 @@
     <div class="card-header py-3 text-white fw-bold" style="background:#800000;">
       <i class="bi bi-clipboard-data me-2"></i><?= e($label) ?>
     </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-sm table-bordered mb-0 align-middle">
-          <thead>
-            <tr>
-              <th style="min-width:90px;">Grade</th>
-              <?php foreach ($subjects as $subject): ?>
-              <th class="text-center" style="min-width:90px;"><?= e($subject) ?></th>
-              <?php endforeach; ?>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($gradeLevels as $grade): ?>
-            <tr>
-              <td class="fw-semibold text-muted"><?= e($grade) ?></td>
-              <?php foreach ($subjects as $subject): ?>
-              <td>
-                <input type="number" step="0.01" min="0" max="100"
-                       name="scores[<?= e($shortKey) ?>][<?= e($grade) ?>][<?= e($subject) ?>]"
-                       value="<?= e($existing[$shortKey][$grade][$subject] ?? '') ?>"
-                       class="form-control form-control-sm text-center" placeholder="—">
-              </td>
-              <?php endforeach; ?>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+    <div class="card-body">
+      <?php foreach ($gradeLevels as $grade): ?>
+      <?php if (empty($sectionTree[$grade])) continue; ?>
+      <h6 class="fw-bold text-muted mb-2 mt-2"><?= e($grade) ?></h6>
+      <div class="row g-3 mb-3">
+        <?php foreach ($subjects as $subject): ?>
+        <?php if (empty($sectionTree[$grade][$subject])) continue; ?>
+        <div class="col-sm-6 col-lg-4">
+          <div class="border rounded-3 p-2 h-100">
+            <div class="small fw-semibold text-muted mb-2"><?= e($subject) ?></div>
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th class="small text-muted fw-normal p-1">Section</th>
+                  <th class="small text-muted fw-normal p-1 text-end" style="width:96px;">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($sectionTree[$grade][$subject] as $cell): ?>
+                <tr>
+                  <td class="small p-1 align-middle text-truncate" style="max-width:0;" title="<?= e($cell['label']) ?>"><?= e($cell['label']) ?></td>
+                  <td class="p-1">
+                    <input type="number" step="0.01" min="0" max="100"
+                           name="scores[<?= e($shortKey) ?>][<?= e($grade) ?>][<?= e($subject) ?>][<?= e($cell['section']) ?>]"
+                           value="<?= e($existing[$shortKey][$grade][$subject][$cell['section']] ?? '') ?>"
+                           class="form-control form-control-sm text-center" placeholder="—">
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <?php endforeach; ?>
       </div>
+      <?php endforeach; ?>
     </div>
   </div>
   <?php endforeach; ?>
@@ -106,6 +123,7 @@
     </button>
   </div>
 </form>
+<?php endif; ?>
 
 
 <!-- Import from Excel Modal -->

@@ -626,7 +626,10 @@ function updateActiveNavLinks(pathname) {
 }
 
 function isAjaxNavExempt(url) {
-    return /\/(download|logout|login)(\/|$|\?)/.test(url.pathname) || /\/(file|preview)(\/|$|\?)/.test(url.pathname);
+    // "template" (singular) covers file-download endpoints like
+    // enrollment-kpis/template and performance/mps/template — not the
+    // plural /templates list page, which is a normal AJAX-navigable view.
+    return /\/(download|logout|login|template)(\/|$|\?)/.test(url.pathname) || /\/(file|preview)(\/|$|\?)/.test(url.pathname);
 }
 
 /*
@@ -686,7 +689,16 @@ function loadPage(url, { push = true, scroll = true } = {}) {
 
             const doc = new DOMParser().parseFromString(html, 'text/html');
             const newMain = doc.getElementById('main-content');
-            if (!newMain) { window.location.href = finalUrl; return; }
+            if (!newMain) {
+                // Not an app page (e.g. a file download that slipped past
+                // isAjaxNavExempt) — clear the loading state before falling
+                // back, or it's stuck on screen forever since this tab never
+                // actually navigates away for a Content-Disposition response.
+                finishAjaxProgress();
+                hidePageLoadingOverlay();
+                window.location.href = finalUrl;
+                return;
+            }
 
             closeAnyOpenModals();
             main.innerHTML = newMain.innerHTML;

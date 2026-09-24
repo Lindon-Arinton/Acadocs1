@@ -11,7 +11,7 @@ class MpsTestScoreModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['school_year', 'term', 'grade_level', 'subject', 'test_period', 'mps'];
+    protected $allowedFields = ['school_year', 'term', 'grade_level', 'subject', 'section', 'test_period', 'mps'];
 
     public function forYearTerm(string $schoolYear, int $term): array
     {

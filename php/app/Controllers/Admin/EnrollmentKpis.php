@@ -101,13 +101,29 @@ class EnrollmentKpis extends BaseController
             return redirect()->to('/dashboard');
         }
 
+        // The template has no school year of its own by default — it takes
+        // whatever year the admin currently has entered in the Import modal's
+        // School Year field (see admin/dashboard.php, which keeps this link's
+        // href in sync with that field as the admin types).
+        $year      = trim((string) $this->request->getGet('year'));
+        $yearValid = (bool) preg_match('/^\d{4}-\d{4}$/', $year);
+
         // Prefer a real DepEd-issued .docx uploaded via Templates (Enrollment
         // category) — guarantees exact letterhead/pagination fidelity. Only
         // fall back to generating an approximation if nothing's been uploaded.
         $uploaded = $this->findUploadedKpiTemplate();
         if ($uploaded !== null && is_file($uploaded['file_path'])) {
+            if ($yearValid) {
+                $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kpi_report_template_' . uniqid() . '.docx';
+                if ($this->stampYearInDocx($uploaded['file_path'], $tempFile, $year)) {
+                    return $this->response->download($tempFile, null)->setFileName($uploaded['file_name']);
+                }
+            }
+
             return $this->response->download($uploaded['file_path'], null)->setFileName($uploaded['file_name']);
         }
+
+        $yearLabel = $yearValid ? 'SY ' . $year : '(School Year)';
 
         $center = ['alignment' => Jc::CENTER];
 
@@ -132,7 +148,7 @@ class EnrollmentKpis extends BaseController
 
         $section->addTextBreak(1);
         $section->addText('KEY PERFORMANCE INDICATOR', ['bold' => true, 'size' => 12], $center);
-        $section->addText('(School Year)', ['bold' => true, 'size' => 12], $center);
+        $section->addText($yearLabel, ['bold' => true, 'size' => 12], $center);
         $section->addTextBreak(1);
 
         $indicatorTable = $section->addTable(['borderSize' => 6, 'borderColor' => '000000']);
@@ -190,6 +206,57 @@ class EnrollmentKpis extends BaseController
             ->orderBy('date_added', 'DESC')
             ->orderBy('id', 'DESC')
             ->first();
+    }
+
+    /**
+     * Copies an uploaded KPI template and swaps its "YYYY-YYYY" school-year
+     * run for $year, so the real DepEd-formatted template also reflects the
+     * year the admin has entered — never touches the uploaded original.
+     *
+     * Only rewrites a text run whose *entire* content is a bare year range
+     * (the regex has no wildcard around \d{4}-\d{4}, so it can't partially
+     * match inside a longer run like "Form No. 2024-2025-001"), which is how
+     * Word actually stored the title's year in the template on file. If nothing
+     * matches that shape, the copy is left untouched and the caller falls
+     * back to serving the original — better an unstamped year than a
+     * corrupted document.
+     */
+    private function stampYearInDocx(string $srcPath, string $destPath, string $year): bool
+    {
+        if (! copy($srcPath, $destPath)) {
+            return false;
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($destPath) !== true) {
+            return false;
+        }
+
+        $xml = $zip->getFromName('word/document.xml');
+        if ($xml === false) {
+            $zip->close();
+
+            return false;
+        }
+
+        // ${1}/${2} (not $1/$2): $year starts with a digit, and PCRE greedily
+        // reads backreference digits, so "$1" . "2026-2027" would parse as
+        // backreference 12 (nonexistent → empty) followed by "026-2027" —
+        // silently truncating the year and eating the opening <w:t> tag.
+        $stamped = preg_replace('/(<w:t[^>]*>)\d{4}-\d{4}(<\/w:t>)/', '${1}' . $year . '${2}', $xml, -1, $count);
+
+        if ($stamped === null || $count === 0) {
+            $zip->close();
+            unlink($destPath);
+
+            return false;
+        }
+
+        $zip->deleteName('word/document.xml');
+        $zip->addFromString('word/document.xml', $stamped);
+        $zip->close();
+
+        return true;
     }
 
     /**

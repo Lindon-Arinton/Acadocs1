@@ -31,7 +31,9 @@ class PropertiesController extends BaseApiController
             'section'          => $b['section'] ?? '',
             'grade'            => $b['grade'] ?? '',
             'item_name'        => $b['item_name'] ?? '',
+            'quantity'         => (int) ($b['quantity'] ?? 1),
             'condition_status' => $b['condition_status'] ?? 'Good',
+            'uploaded_by'      => $b['uploaded_by'] ?? (currentUser()['name'] ?? null),
         ]);
 
         return $this->jsonResponse(['id' => $id, 'message' => 'Created.'], 201);

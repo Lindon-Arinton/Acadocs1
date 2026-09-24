@@ -27,7 +27,9 @@ class Properties extends BaseController
                         'section'          => $this->request->getPost('section'),
                         'grade'            => $this->request->getPost('grade'),
                         'item_name'        => $this->request->getPost('item_name'),
+                        'quantity'         => (int) ($this->request->getPost('quantity') ?: 1),
                         'condition_status' => $this->request->getPost('condition_status'),
+                        'uploaded_by'      => currentUser()['name'] ?? null,
                     ]);
                     $message = 'Item added successfully.';
                 } elseif ($action === 'delete') {

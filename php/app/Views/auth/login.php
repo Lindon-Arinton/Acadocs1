@@ -21,6 +21,10 @@
         <div class="d-flex align-items-center gap-2">
           <img src="<?= base_url('assets/img/logo-icon.png') ?>" alt="ACADOCS" style="width:34px;height:34px;object-fit:contain;">
           <span class="fw-bold" style="font-size:1.05rem;color:var(--text);">ACADOCS</span>
+          <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" style="line-height:1;font-size:1rem;"
+                  title="About the developer" data-bs-toggle="modal" data-bs-target="#aboutDeveloperModal">
+            <i class="bi bi-info-circle"></i>
+          </button>
         </div>
         <span class="text-muted" id="liveClock" style="font-size:.78rem;font-variant-numeric:tabular-nums;">--:--:--</span>
       </div>
@@ -206,6 +210,48 @@
         <div class="fw-bold" style="color:var(--primary);font-size:1.05rem;">Manage your school, effortlessly</div>
         <p class="text-muted mb-0" style="font-size:.82rem;max-width:280px;margin:0 auto;">
           Documents, performance records, and day-to-day operations — all organized in one place.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- About Developer Modal -->
+<?php
+$appDevelopers = [
+    ['name' => 'Niel Francis Benedict Betita', 'role' => 'Main Developer',            'email' => 'betitaniel9@gmail.com'],
+    ['name' => 'Lindon Arinton',                'role' => 'System Analyst/Developer', 'email' => 'donarinton@gmail.com'],
+    ['name' => 'Margarette Perez',              'role' => 'Librarian/Developer',      'email' => 'margaretteperez73@gmail.com'],
+];
+?>
+<div class="modal fade" id="aboutDeveloperModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-code-slash me-2"></i>About the Developers</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body py-4">
+        <?php foreach ($appDevelopers as $i => $dev): ?>
+        <div class="d-flex align-items-center gap-3<?= $i < count($appDevelopers) - 1 ? ' mb-3 pb-3' : '' ?>"
+             style="<?= $i < count($appDevelopers) - 1 ? 'border-bottom:1px solid var(--border);' : '' ?>">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width:52px;height:52px;border-radius:50%;background:var(--surface-hover);color:var(--primary);font-size:1.3rem;">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <div class="flex-grow-1 min-width-0">
+            <div class="fw-bold" style="font-size:.92rem;"><?= e($dev['name']) ?></div>
+            <div class="text-muted mb-1" style="font-size:.78rem;"><?= e($dev['role']) ?></div>
+            <a href="mailto:<?= e($dev['email']) ?>" class="small text-decoration-none" style="color:var(--primary);">
+              <i class="bi bi-envelope me-1"></i><?= e($dev['email']) ?>
+            </a>
+          </div>
+        </div>
+        <?php endforeach; ?>
+        <hr class="my-3">
+        <p class="text-muted mb-0 text-center" style="font-size:.72rem;">
+          ACADOCS — built for Matabungkay National High School<br>
+          CodeIgniter 4 · Bootstrap 5 · MySQL
         </p>
       </div>
     </div>

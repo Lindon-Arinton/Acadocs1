@@ -11,5 +11,5 @@ class RoomPropertyModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['section', 'grade', 'item_name', 'condition_status'];
+    protected $allowedFields = ['section', 'grade', 'item_name', 'quantity', 'condition_status', 'uploaded_by'];
 }

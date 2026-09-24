@@ -472,18 +472,19 @@ if ($complianceRate === null) {
             Upload the DepEd "Key Performance Indicator" Word report (Indicator table plus the
             "Enrolment per Grade Level" table). The document doesn't state its own school year, so
             enter it below. Not sure of the format?
-            <a href="<?= base_url('enrollment-kpis/template') ?>">Download the template</a>.
+            <a href="<?= base_url('enrollment-kpis/template') ?>?year=<?= urlencode($currentYear) ?>" id="kpiTemplateLink">Download the template</a>.
           </p>
           <div class="mb-3">
             <label class="form-label">School Year</label>
             <input type="text" name="school_year" class="form-control form-control-sm" list="kpiYearOptions"
-                   value="<?= e($currentYear) ?>" placeholder="e.g. 2025-2026" pattern="\d{4}-\d{4}" required>
+                   value="<?= e($currentYear) ?>" placeholder="e.g. 2025-2026" pattern="\d{4}-\d{4}" required
+                   oninput="document.getElementById('kpiTemplateLink').href = '<?= base_url('enrollment-kpis/template') ?>?year=' + encodeURIComponent(this.value)">
             <datalist id="kpiYearOptions">
               <?php foreach ($years as $y): ?>
               <option value="<?= e($y) ?>"></option>
               <?php endforeach; ?>
             </datalist>
-            <div class="form-text">Type a new school year (YYYY-YYYY) or pick an existing one.</div>
+            <div class="form-text">Type a new school year (YYYY-YYYY) or pick an existing one. The template above will use this year.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Word file (.docx)</label>
