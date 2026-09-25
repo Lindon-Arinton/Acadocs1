@@ -214,7 +214,7 @@ class Dashboard extends BaseController
             $insights[] = [
                 'tone' => $improved ? 'success' : 'warning',
                 'icon' => $improved ? 'bi-graph-down-arrow' : 'bi-graph-up-arrow',
-                'text' => 'Drop-out rate ' . ($improved ? 'improved by' : 'rose by') . ' <strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' pts</strong> vs ' . e($dropoutDelta['vsLabel']) . '.',
+                'text' => 'Drop-out rate ' . ($improved ? 'decreased by' : 'rose by') . ' <strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' pts</strong> vs ' . e($dropoutDelta['vsLabel']) . '.',
             ];
         }
 

@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Libraries\MpsCalculator;
 use App\Libraries\MpsScoreImporter;
 use App\Models\MpsTestScoreModel;
+use App\Models\TeacherModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -27,8 +28,43 @@ class PerformanceMps extends BaseController
         'exam' => 'Term Examination',
     ];
 
+    /**
+     * Maps the free-text codes found in teachers.subject_handle-style data
+     * (e.g. "MAPEH 9 (5)", "V.E 9 (1)", "MATH 9 (4)") to the fixed subject
+     * vocabulary above. Anything not listed here (HG, RESEARCH, SPFL, ...)
+     * isn't an MPS-tracked subject and is intentionally left unmapped.
+     */
+    private const SUBJECT_ALIASES = [
+        'ENGLISH'     => 'English',
+        'ENG'         => 'English',
+        'FILIPINO'    => 'Filipino',
+        'FIL'         => 'Filipino',
+        'SCIENCE'     => 'Science',
+        'SCI'         => 'Science',
+        'MATHEMATICS' => 'Mathematics',
+        'MATH'        => 'Mathematics',
+        'AP'          => 'AP',
+        'TLE'         => 'TLE',
+        'MAPEH'       => 'MAPEH',
+        'MUSIC'       => 'Music',
+        'ARTS'        => 'Arts',
+        'PE'          => 'PE',
+        'HEALTH'      => 'Health',
+        'ESP'         => 'ESP',
+        'VE'          => 'ESP',
+    ];
+
     /** Matches "2025-2026" — the only shape a school year needs to satisfy now that it's freely typed rather than picked from a fixed list. */
     private const YEAR_PATTERN = '/^\d{4}-\d{4}$/';
+
+    /**
+     * Placeholder section label for a cell with no real section on record (an
+     * Excel import, or a legacy teacher_subjects row with no section column
+     * set). Never an empty string: `name="scores[...][]"` in HTML parses as a
+     * numeric array index, not the string key '', which would break the
+     * grade|subject|section lookup this constant is used to build.
+     */
+    private const NO_SECTION = '_none_';
 
     public function index()
     {
@@ -48,10 +84,6 @@ class PerformanceMps extends BaseController
 
             $redirect = '/performance/mps?year=' . urlencode($year) . '&term=' . $term;
 
-<<<<<<< Updated upstream
-            $rawScores = $this->request->getPost('scores') ?? [];
-            $scoresByPeriod = [];
-=======
             $rawScores    = $this->request->getPost('scores') ?? [];
             $handledCells = $this->handledCells($this->currentTeacherRow($year, $term));
 
@@ -61,13 +93,34 @@ class PerformanceMps extends BaseController
             // posted value against handledCells and drop anything that isn't
             // actually theirs before it ever reaches the DB.
             $entries = [];
->>>>>>> Stashed changes
             foreach (self::PERIOD_MAP as $shortKey => $label) {
-                $scoresByPeriod[$label] = $rawScores[$shortKey] ?? [];
+                foreach ($rawScores[$shortKey] ?? [] as $grade => $bySubject) {
+                    foreach ($bySubject as $subject => $byLabel) {
+                        foreach ($byLabel as $sectionLabel => $value) {
+                            $value = trim((string) $value);
+                            if ($value === '') {
+                                continue;
+                            }
+
+                            $cell = $handledCells[$grade . '|' . $subject . '|' . $sectionLabel] ?? null;
+                            if ($cell === null) {
+                                continue;
+                            }
+
+                            $entries[] = [
+                                'period'  => $label,
+                                'grade'   => $grade,
+                                'subject' => $subject,
+                                'section' => $cell['section'],
+                                'mps'     => (float) $value,
+                            ];
+                        }
+                    }
+                }
             }
 
             try {
-                (new MpsCalculator())->saveScores($year, $term, $scoresByPeriod);
+                (new MpsCalculator())->saveSectionScores($year, $term, $entries);
             } catch (\Throwable $e) {
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to($redirect);
             }
@@ -95,6 +148,10 @@ class PerformanceMps extends BaseController
 
         $existingRows = (new MpsTestScoreModel())->forYearTerm($year, $term);
 
+        // Keyed by the same "section label" handledCells/the form use — the real
+        // section name, or NO_SECTION for a blended value with no section on record
+        // (an Excel import, or a legacy teacher_subjects row) — so the view can look
+        // a saved value up with exactly the label it's about to render.
         $existing = [];
         $periodByLabel = array_flip(self::PERIOD_MAP);
         foreach ($existingRows as $row) {
@@ -102,24 +159,24 @@ class PerformanceMps extends BaseController
             if ($shortKey === null) {
                 continue;
             }
-            $existing[$shortKey][$row['grade_level']][$row['subject']] = $row['mps'];
+            $sectionLabel = $row['section'] ?? self::NO_SECTION;
+            $existing[$shortKey][$row['grade_level']][$row['subject']][$sectionLabel] = $row['mps'];
         }
 
-<<<<<<< Updated upstream
-=======
         $handledCells = $this->handledCells($this->currentTeacherRow($year, $term));
 
->>>>>>> Stashed changes
         return view('pages/teacher/performance_mps', [
             'pageTitle'   => 'Enter MPS Scores',
             'year'        => $year,
             'term'        => $term,
             'years'       => $this->availableYears(),
             'terms'       => self::TERM_OPTIONS,
-            'gradeLevels' => self::GRADE_LEVELS,
-            'subjects'    => self::SUBJECTS,
+            'gradeLevels' => $this->gradesFromCells($handledCells),
+            'subjects'    => $this->subjectsFromCells($handledCells),
+            'sectionTree' => $this->sectionTree($handledCells),
             'periods'     => self::PERIOD_MAP,
             'existing'    => $existing,
+            'handledCells' => $handledCells,
             'flash'       => session()->getFlashdata('flash'),
         ]);
     }
@@ -184,16 +241,12 @@ class PerformanceMps extends BaseController
         }
 
         try {
-<<<<<<< Updated upstream
-            $summary = (new MpsScoreImporter())->import($uploadPath . DIRECTORY_SEPARATOR . $fileName, $year, $term);
-=======
             $summary = (new MpsScoreImporter())->import(
                 $uploadPath . DIRECTORY_SEPARATOR . $fileName,
                 $year,
                 $term,
                 $this->gradeSubjectOnly($this->handledCells($this->currentTeacherRow($year, $term)))
             );
->>>>>>> Stashed changes
         } catch (\Throwable $e) {
             return $isAjax ? $this->ajaxError('Import failed: ' . $e->getMessage()) : redirect()->to($redirect);
         }
@@ -237,8 +290,6 @@ class PerformanceMps extends BaseController
             return redirect()->to('/dashboard');
         }
 
-<<<<<<< Updated upstream
-=======
         $year = trim($this->request->getGet('year') ?? '');
         $term = (int) $this->request->getGet('term');
         if (! preg_match(self::YEAR_PATTERN, $year) || ! in_array($term, self::TERM_OPTIONS, true)) {
@@ -258,7 +309,6 @@ class PerformanceMps extends BaseController
             return redirect()->to('/performance/mps');
         }
 
->>>>>>> Stashed changes
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
         $sheet->setTitle('MPS');
@@ -268,10 +318,10 @@ class PerformanceMps extends BaseController
             $sheet->setCellValue("A{$row}", strtoupper($label));
             $row += 2;
 
-            $sheet->fromArray(array_merge([null], self::SUBJECTS), null, "A{$row}");
+            $sheet->fromArray(array_merge([null], $subjects), null, "A{$row}");
             $row++;
 
-            foreach (self::GRADE_LEVELS as $grade) {
+            foreach ($gradeLevels as $grade) {
                 $sheet->setCellValue("A{$row}", strtoupper($grade));
                 $row++;
             }
@@ -279,7 +329,7 @@ class PerformanceMps extends BaseController
             $row += 2; // blank separator row before the next section
         }
 
-        foreach (range('A', chr(ord('A') + count(self::SUBJECTS))) as $col) {
+        foreach (range('A', chr(ord('A') + count($subjects))) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -288,8 +338,6 @@ class PerformanceMps extends BaseController
 
         return $this->response->download($tempFile, null)->setFileName('mps_scores_template.xlsx');
     }
-<<<<<<< Updated upstream
-=======
 
     /**
      * The current session's teacher row, joined with their subject load for
@@ -475,5 +523,4 @@ class PerformanceMps extends BaseController
 
         return ['subject' => $subject, 'grade' => $grade];
     }
->>>>>>> Stashed changes
 }

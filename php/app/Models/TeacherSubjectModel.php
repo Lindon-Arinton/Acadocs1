@@ -17,9 +17,6 @@ class TeacherSubjectModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-<<<<<<< Updated upstream
-    protected $allowedFields = ['teacher_id', 'subject'];
-=======
     protected $allowedFields = ['teacher_id', 'subject', 'grade_level', 'section', 'school_year', 'term'];
 
     /**
@@ -111,5 +108,4 @@ class TeacherSubjectModel extends Model
 
         return $grouped;
     }
->>>>>>> Stashed changes
 }

@@ -226,4 +226,75 @@ class Tasks extends BaseController
             'flash'        => session()->getFlashdata('flash'),
         ]);
     }
+
+    /**
+     * JSON version of view()'s data, fed to the "expand a row" modal on the
+     * tasks list so a submission can be inspected without leaving the list
+     * (the tasks/{id} page itself stays as-is for notification deep links).
+     */
+    public function data(int $id)
+    {
+        if (! hasRole('admin', 'adas')) {
+            return $this->ajaxError('You are not authorized to do this.', 403);
+        }
+
+        $taskModel = new TaskModel();
+        $task      = $taskModel->find($id);
+
+        if (! $task) {
+            return $this->ajaxError('Task not found.', 404);
+        }
+
+        $submissionModel = new TaskSubmissionModel();
+        $feedbackModel   = new TaskFeedbackModel();
+        $fileModel       = new TaskSubmissionFileModel();
+
+        $submissions = $submissionModel->forTask($id);
+        foreach ($submissions as &$submission) {
+            $submission['feedback'] = $feedbackModel->where('task_submission_id', $submission['id'])
+                ->orderBy('date', 'DESC')->findAll();
+            $submission['files'] = $fileModel->forSubmission($submission['id']);
+        }
+        unset($submission);
+
+        $submittedUserIds = array_column($submissions, 'user_id');
+        $pendingUsers      = $task['assigned_role'] === 'specific'
+            ? (new TaskAssigneeModel())->usersForTask($id)
+            : (new UserModel())->where('role', $task['assigned_role'])->orderBy('name')->findAll();
+        $pendingUsers      = array_values(array_filter(
+            $pendingUsers,
+            static fn (array $u) => ! in_array($u['id'], $submittedUserIds, true)
+        ));
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'task'   => [
+                'id'            => (int) $task['id'],
+                'title'         => $task['title'],
+                'description'   => $task['description'],
+                'assignedRole'  => $task['assigned_role'],
+                'status'        => $task['status'],
+                'createdAt'     => date('M d, Y', strtotime($task['created_at'])),
+                'deadline'      => date('M d, Y h:i A', strtotime($task['deadline'])),
+                'assigneeCount' => count($pendingUsers) + count($submissions),
+            ],
+            'submissions' => array_map(static fn (array $s) => [
+                'id'            => (int) $s['id'],
+                'submitterName' => $s['submitter_name'],
+                'status'        => $s['status'],
+                'notes'         => $s['notes'],
+                'submittedAt'   => date('M d, Y h:i A', strtotime($s['submitted_at'])),
+                'files'         => array_map(static fn (array $f) => [
+                    'id'   => (int) $f['id'],
+                    'name' => $f['file_name'],
+                    'ext'  => strtolower(pathinfo($f['file_name'], PATHINFO_EXTENSION)),
+                ], $s['files']),
+                'feedback' => array_map(static fn (array $fb) => [
+                    'comment' => $fb['comment'],
+                    'date'    => date('M d, Y', strtotime($fb['date'])),
+                ], $s['feedback']),
+            ], $submissions),
+            'pendingUsers' => array_map(static fn (array $u) => ['name' => $u['name']], $pendingUsers),
+        ]);
+    }
 }

@@ -3,8 +3,36 @@
 <div class="page-header">
   <div>
     <h4><i class="bi bi-house-fill me-2"></i>Welcome back, <?= e($user['name']) ?></h4>
-    <?php $subjects = $teacher ? implode(', ', json_decode($teacher['subjects'] ?? '[]', true) ?: []) : ''; ?>
-    <p class="mb-0"><?= $teacher ? e($teacher['grade_level'] ?: 'Not set') . ($subjects !== '' ? ' · ' . e($subjects) : '') : 'Teacher Dashboard' ?></p>
+    <?php
+    // teacher['subjects'] is now a list of structured rows (subject/grade_level/section,
+    // one per section — see TeacherModel::findWithSubjects()); collapse them into a
+    // short "SUBJECT (n sections)" summary for this one-line header, same idea as the
+    // old flat "MAPEH 9 (5)" strings this replaced.
+    $subjectCounts = [];
+    foreach ($teacher['subjects'] ?? [] as $subjectRow) {
+        $label = trim((string) ($subjectRow['subject'] ?? ''));
+        if ($label === '') {
+            continue;
+        }
+        $subjectCounts[$label] = ($subjectCounts[$label] ?? 0) + 1;
+    }
+    $subjectParts = [];
+    foreach ($subjectCounts as $label => $count) {
+        $subjectParts[] = $count > 1 ? "{$label} ({$count})" : $label;
+    }
+    $subjects = implode(', ', $subjectParts);
+    $metaParts = [];
+    if ($teacher) {
+        $metaParts[] = $teacher['grade_level'] ?: 'Not set';
+        if (! empty($teacher['advisory'])) {
+            $metaParts[] = 'Adviser, ' . $teacher['advisory'];
+        }
+        if ($subjects !== '') {
+            $metaParts[] = $subjects;
+        }
+    }
+    ?>
+    <p class="mb-0"><?= $teacher ? e(implode(' · ', $metaParts)) : 'Teacher Dashboard' ?></p>
   </div>
 </div>
 

@@ -20,6 +20,9 @@ class TeacherDashboard extends BaseController
         $user         = currentUser();
         $teacherModel = new TeacherModel();
         $teacher      = $teacherModel->resolveForUser($user);
+        if ($teacher) {
+            $teacher = $teacherModel->findWithSubjects((int) $teacher['id']) ?? $teacher;
+        }
 
         $myAttendance       = ['Present' => 0, 'Absent' => 0];
         $myAttendanceMonths = [];

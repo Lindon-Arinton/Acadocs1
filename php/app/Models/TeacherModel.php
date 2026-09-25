@@ -11,14 +11,7 @@ class TeacherModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['employee_id', 'name', 'email', 'grade_level', 'submission_rate', 'user_id'];
-
-    private function withSubjectsQuery()
-    {
-        return $this->select('teachers.*, GROUP_CONCAT(teacher_subjects.subject ORDER BY teacher_subjects.subject SEPARATOR ",") AS subjects')
-            ->join('teacher_subjects', 'teacher_subjects.teacher_id = teachers.id', 'left')
-            ->groupBy('teachers.id');
-    }
+    protected $allowedFields = ['employee_id', 'name', 'email', 'grade_level', 'advisory', 'submission_rate', 'user_id'];
 
     public static function buildProfilePayload(array $user): array
     {
@@ -30,20 +23,26 @@ class TeacherModel extends Model
             'name'            => $name ?: ($user['email'] ?? 'Teacher'),
             'email'           => $email,
             'grade_level'     => 'All Levels',
+            'advisory'        => null,
             'submission_rate' => 0.00,
             'user_id'         => (int) ($user['id'] ?? 0),
         ];
     }
 
+    /**
+     * @return array<int,array<string,mixed>> each row's 'subjects' is a list of
+     *   ['id','teacher_id','subject','grade_level','section'] rows (see TeacherSubjectModel).
+     */
     public function allWithSubjects(): array
     {
-        $rows = $this->withSubjectsQuery()->orderBy('teachers.name')->findAll();
+        $rows              = $this->orderBy('name')->findAll();
+        $subjectsByTeacher = (new TeacherSubjectModel())->groupedByTeacherId();
 
-        return array_map(static function (array $row) {
-            $row['subjects'] = $row['subjects'] ? explode(',', $row['subjects']) : [];
+        foreach ($rows as &$row) {
+            $row['subjects'] = $subjectsByTeacher[(int) $row['id']] ?? [];
+        }
 
-            return $row;
-        }, $rows);
+        return $rows;
     }
 
     /**
@@ -52,16 +51,12 @@ class TeacherModel extends Model
      */
     public function findWithSubjects(int $id, ?string $schoolYear = null, ?int $term = null): ?array
     {
-        $row = $this->withSubjectsQuery()->where('teachers.id', $id)->first();
+        $row = $this->find($id);
         if (! $row) {
             return null;
         }
 
-<<<<<<< Updated upstream
-        $row['subjects'] = $row['subjects'] ? explode(',', $row['subjects']) : [];
-=======
         $row['subjects'] = (new TeacherSubjectModel())->forTeacher($id, $schoolYear, $term);
->>>>>>> Stashed changes
 
         return $row;
     }

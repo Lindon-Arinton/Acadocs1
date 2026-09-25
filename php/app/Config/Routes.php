@@ -46,6 +46,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'users', 'Admin\Users::index');
     $routes->match(['get', 'post'], 'tasks', 'Admin\Tasks::index');
     $routes->match(['get', 'post'], 'tasks/(:num)', 'Admin\Tasks::view/$1');
+    $routes->get('tasks/(:num)/data', 'Admin\Tasks::data/$1');
     $routes->match(['get', 'post'], 'my-tasks', 'Shared\MyTasks::index');
     $routes->get('task-submissions/(:num)/download', 'Shared\TaskDownload::show/$1');
     $routes->get('task-submissions/(:num)/preview', 'Shared\TaskDownload::preview/$1');

@@ -624,6 +624,12 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 @media (max-width: 767.98px) {
   .stat-tile-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* Two squeezed columns on a phone leave each tile ~150px wide — too narrow
+   for icon + name + value + sparkline, so text wraps and tiles balloon to
+   mismatched heights. Below ~576px, stack tiles one per row instead. */
+@media (max-width: 575.98px) {
+  .stat-tile-row { grid-template-columns: 1fr; gap: .65rem; }
+}
 
 .stat-tile {
   background: var(--card);
@@ -664,6 +670,11 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
 .stat-tile-caption { font-size: .72rem; color: var(--muted); margin-top: .35rem; }
 .stat-tile-visual { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
 .stat-tile-empty-icon { font-size: 1.9rem; color: var(--border); line-height: 1; }
+
+@media (max-width: 575.98px) {
+  .stat-tile { padding: .85rem 1rem; }
+  .stat-tile-value { font-size: 1.3rem; }
+}
 
 /* Sparkline: line + soft area wash both carry the tile's own accent color
    (set inline per tile), so each metric reads as its own color story at a
@@ -1406,6 +1417,10 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
   #sidebar.mobile-open { transform: translateX(0); }
   #topbar { left: 0 !important; }
   #main-content { margin-left: 0 !important; }
+}
+@media (max-width: 575.98px) {
+  #main-content { padding: 1rem; }
+  .page-header { padding: 1.25rem 1.35rem; }
 }
 
 /* ── Utility ──────────────────────────────────────────────── */

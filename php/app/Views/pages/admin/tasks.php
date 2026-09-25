@@ -37,7 +37,7 @@
             $overdue = $t['status'] === 'Open' && strtotime($t['deadline']) < time();
             $pct     = $t['eligible_count'] > 0 ? round($t['submitted_count'] / $t['eligible_count'] * 100) : 0;
           ?>
-          <tr>
+          <tr style="cursor:pointer;" onclick="openTaskDetailModal(<?= (int) $t['id'] ?>)" title="Click to view details">
             <td class="fw-semibold">
               <?= e($t['title']) ?>
               <div class="text-muted fw-normal" style="font-size:.7rem;">Posted <?= date('M d, Y', strtotime($t['created_at'])) ?></div>
@@ -65,10 +65,10 @@
                 <div class="progress-bar" style="width:<?= $pct ?>%;background:var(--maroon)!important;"></div>
               </div>
             </td>
-            <td class="text-center">
-              <a href="<?= base_url('tasks/' . $t['id']) ?>" class="btn btn-sm btn-outline-secondary" title="View submissions">
+            <td class="text-center" onclick="event.stopPropagation()">
+              <button type="button" class="btn btn-sm btn-outline-secondary" title="View submissions" onclick="openTaskDetailModal(<?= (int) $t['id'] ?>)">
                 <i class="bi bi-eye"></i>
-              </a>
+              </button>
               <?php if ($t['status'] === 'Open'): ?>
               <form method="POST" action="<?= base_url('tasks') ?>" class="d-inline ajax-form"
                     data-confirm-title="Close this task?" data-confirm-text="Assignees will no longer be able to submit against it.">
@@ -225,6 +225,82 @@
   </div>
 </div>
 
+<!-- Task Detail Modal (opened by clicking a row) -->
+<div class="modal fade" id="taskDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--maroon);color:#fff;">
+        <h6 class="modal-title fw-bold" id="taskDetailTitle"><i class="bi bi-list-task me-2"></i>Task</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3" id="taskDetailMeta"></p>
+        <div id="taskDetailDescriptionWrap" class="mb-4" style="display:none;">
+          <p class="text-muted small mb-1 fw-semibold">Instructions</p>
+          <p class="mb-0" id="taskDetailDescription"></p>
+        </div>
+
+        <div id="taskDetailLoading" class="text-center text-muted py-5">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading task details&hellip;
+        </div>
+
+        <div id="taskDetailContent" style="display:none;">
+          <div class="row g-4">
+            <div class="col-lg-8">
+              <h6 class="fw-bold mb-3 text-muted">Submissions (<span id="taskDetailSubCount">0</span>)</h6>
+              <div id="taskDetailSubmissions"></div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card">
+                <div class="card-header bg-white py-3 fw-semibold">
+                  <i class="bi bi-hourglass-split me-2 text-muted"></i>Not Yet Submitted
+                </div>
+                <ul class="list-group list-group-flush" id="taskDetailPending"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Submission Modal (files + preview + feedback) — nested inside the Task Detail modal -->
+<div class="modal fade" id="viewSubmissionModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--maroon);color:#fff;">
+        <h6 class="modal-title fw-bold"><i class="bi bi-eye me-2"></i>Submission — <span id="viewSubmitterName"></span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small fw-semibold mb-2">Files</p>
+        <div id="viewFilesList" class="mb-3"></div>
+
+        <div id="viewFilePreviewWrap" class="mb-3" style="display:none;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small fw-semibold" id="viewPreviewFileName"></span>
+            <button type="button" class="btn-close" onclick="closeSubmissionPreview()"></button>
+          </div>
+          <div id="viewFilePreviewBody" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;"></div>
+        </div>
+
+        <div id="viewFeedbackThread"></div>
+
+        <hr>
+        <form method="POST" action="" id="taskFeedbackForm" class="ajax-form"
+              data-confirm-action="update" data-confirm-title="Send this feedback?"
+              data-confirm-text="Only the submitter will be able to see it.">
+          <input type="hidden" name="submission_id" id="viewSubmissionId">
+          <label class="form-label fw-semibold small">Private Comment</label>
+          <textarea name="comment" class="form-control mb-2" rows="3" required placeholder="Only this person will see your feedback..."></textarea>
+          <button type="submit" class="btn btn-maroon btn-sm"><i class="bi bi-send me-2"></i>Send Feedback</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php
 $extraScript = "<script>
 let taskSelectedPeople = new Map();
@@ -347,8 +423,6 @@ document.getElementById('taskPeopleSelectAll')?.addEventListener('change', funct
         }
     });
 });
-<<<<<<< Updated upstream
-=======
 
 /* ── Row-click task detail modal ── */
 const TASKS_BASE = '" . base_url('tasks/') . "';
@@ -508,7 +582,6 @@ function closeSubmissionPreview() {
 document.getElementById('viewSubmissionModal').addEventListener('hidden.bs.modal', function () {
     new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
 });
->>>>>>> Stashed changes
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

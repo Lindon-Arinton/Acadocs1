@@ -3,10 +3,14 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\TeacherModel;
+use App\Models\TeacherSubjectModel;
 use App\Models\UserModel;
 
 class Users extends BaseController
 {
+    public const GRADE_LEVELS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+
     public function index()
     {
         if (! hasRole('admin', 'adas')) {
@@ -22,13 +26,35 @@ class Users extends BaseController
 
             try {
                 if ($action === 'add') {
-                    $model->insert([
+                    $role = $this->request->getPost('role');
+
+                    $userId = $model->insert([
                         'name'     => $this->request->getPost('name'),
                         'email'    => $this->request->getPost('email'),
                         'password' => password_hash($this->request->getPost('password'), PASSWORD_BCRYPT),
-                        'role'     => $this->request->getPost('role'),
+                        'role'     => $role,
                     ]);
+
+                    if ($role === 'teacher') {
+                        $this->syncTeacherProfile((int) $userId, $model->find($userId));
+                    }
+
                     $message = 'User created successfully.';
+                } elseif ($action === 'edit') {
+                    $userId = (int) $this->request->getPost('id');
+                    $role   = $this->request->getPost('role');
+
+                    $model->update($userId, [
+                        'name'  => $this->request->getPost('name'),
+                        'email' => $this->request->getPost('email'),
+                        'role'  => $role,
+                    ]);
+
+                    if ($role === 'teacher') {
+                        $this->syncTeacherProfile($userId, $model->find($userId));
+                    }
+
+                    $message = 'User updated successfully.';
                 } elseif ($action === 'delete') {
                     if ((int) $this->request->getPost('id') === (int) currentUser()['id']) {
                         return $isAjax ? $this->ajaxError('You cannot delete your own account.') : redirect()->to('/users');
@@ -72,16 +98,28 @@ class Users extends BaseController
 
         $users = $builder->findAll();
 
+        // Attach each teacher-role user's advisory/grade/subjects so the Edit
+        // modal can be pre-filled without a separate round trip.
+        $teachersByUserId = [];
+        foreach ((new TeacherModel())->allWithSubjects() as $teacher) {
+            if ($teacher['user_id'] !== null) {
+                $teachersByUserId[(int) $teacher['user_id']] = $teacher;
+            }
+        }
+        foreach ($users as &$u) {
+            $u['teacher'] = $teachersByUserId[(int) $u['id']] ?? null;
+        }
+        unset($u);
+
         return view('pages/admin/users', [
-            'pageTitle' => 'User Management',
-            'users'     => $users,
-            'search'    => $search,
-            'sort'      => $sort,
-            'flash'     => session()->getFlashdata('flash'),
+            'pageTitle'   => 'User Management',
+            'users'       => $users,
+            'search'      => $search,
+            'sort'        => $sort,
+            'gradeLevels' => self::GRADE_LEVELS,
+            'flash'       => session()->getFlashdata('flash'),
         ]);
     }
-<<<<<<< Updated upstream
-=======
 
     /**
      * Creates or updates the teachers row tied to a user, and resyncs its
@@ -144,5 +182,4 @@ class Users extends BaseController
             ]);
         }
     }
->>>>>>> Stashed changes
 }
