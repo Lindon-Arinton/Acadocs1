@@ -258,7 +258,7 @@ if ($complianceRate === null) {
           </div>
         </div>
         <div class="w-100">
-          <?php foreach (['Submitted'=>'rgba(128,0,0,1)','Reviewed'=>'rgba(128,0,0,.75)','Pending'=>'rgba(128,0,0,.5)','Returned'=>'rgba(128,0,0,.3)'] as $status=>$dotColor): ?>
+          <?php foreach (['Submitted'=>'rgba(var(--chart-rgb),1)','Reviewed'=>'rgba(var(--chart-rgb),.75)','Pending'=>'rgba(var(--chart-rgb),.5)','Returned'=>'rgba(var(--chart-rgb),.3)'] as $status=>$dotColor): ?>
           <div class="d-flex justify-content-between small mb-1">
             <span><span class="d-inline-block rounded-circle me-1" style="width:9px;height:9px;background:<?= $dotColor ?>;"></span><?= $status ?></span>
             <strong><?= $docSummary[$status] ?? 0 ?></strong>
@@ -502,7 +502,7 @@ if ($complianceRate === null) {
 
 <?php
 $extraScript = '<script>
-const maroon = "#800000", maroonLight = "#a52a2a", maroonDark = "#560000", crimson = "#dc143c";
+const maroon = chartColor(), maroonLight = chartColorAlt(), maroonDark = "#560000", crimson = "#dc143c";
 
 function togglePerfBreakdown() {
   const summary = document.getElementById("perfSummaryBody");
@@ -542,7 +542,7 @@ if (enrollChartEl) {
       datasets: [{
         label: "Students",
         data: ' . json_encode(array_column($enrollment, 'students')) . ',
-        backgroundColor: maroon + "40",
+        backgroundColor: chartColor(.25),
         borderColor: maroon,
         borderWidth: 1,
         borderRadius: 4,
@@ -579,7 +579,7 @@ new Chart(document.getElementById("docChart"), {
       $docSummary['Reviewed']  ?? 0,
       $docSummary['Pending']   ?? 0,
       $docSummary['Returned']  ?? 0,
-    ]) . '], backgroundColor:["rgba(128,0,0,1)","rgba(128,0,0,.75)","rgba(128,0,0,.5)","rgba(128,0,0,.3)"], borderWidth:0 }]
+    ]) . '], backgroundColor:[chartColor(1),chartColor(.75),chartColor(.5),chartColor(.3)], borderWidth:0 }]
   },
   options: { responsive:true, maintainAspectRatio:false, cutout:"64%", plugins:{legend:{display:false}} }
 });
@@ -645,7 +645,8 @@ function renderKpiCards(year) {
 }
 
 function buildKpiChart() {
-  const cfg = KPI_METRIC_CONFIG[currentMetric];
+  const cfg = Object.assign({}, KPI_METRIC_CONFIG[currentMetric]);
+  cfg.color = chartColor();
   document.getElementById("kpiChartTitle").textContent = cfg.label;
 
   let labels, values;
@@ -691,7 +692,7 @@ function buildKpiChart() {
         // Line: a ~10% wash under a 2px line, never a saturated block.
         // Bar: a solid fill, but thin and capped (maxBarThickness) so it
         // reads as a mark, not a wall of color.
-        backgroundColor: type === "line" ? cfg.color + "1a" : cfg.color,
+        backgroundColor: type === "line" ? chartColor(.1) : cfg.color,
         borderColor: cfg.color,
         borderRadius: type === "bar" ? 6 : undefined,
         maxBarThickness: type === "bar" ? 40 : undefined,

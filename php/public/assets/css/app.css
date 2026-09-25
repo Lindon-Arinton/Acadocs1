@@ -1,11 +1,11 @@
 /* ── Design Tokens (mirrors React theme) ──────────────────── */
 :root {
-  --primary:        #800000;
-  --maroon:         #800000;
-  --primary-dark:   #560000;
-  --primary-light:  #a52a2a;
-  --primary-deeper: #6b0000;
-  --accent:         #c2410c;
+  --primary:        #5c0a0a;
+  --maroon:         #5c0a0a;
+  --primary-dark:   #3d0505;
+  --primary-light:  #7f1d1d;
+  --primary-deeper: #4a0808;
+  --accent:        #c2410c;
   --pink:           #9d174d;
   --bg:             #ffe4e9;
   --card:           #ffffff;
@@ -25,26 +25,74 @@
   --s-late-bg:      #ff9999; --s-late-tx:    #2b0000; --s-late-bd:    #ff6b6b;
   --s-absent-bg:    #2b0000; --s-absent-tx:  #ffffff; --s-absent-bd:  #400000;
   --s-leave-bg:     #e0e7ff; --s-leave-tx:   #3730a3; --s-leave-bd:   #a5b4fc;
+  /* chart palette — read by the chartColor() helpers in footer.php */
+  --chart-rgb:      92, 10, 10;
+  --chart-2:        #9b3b3b;
 }
 
 /* ── Dark mode (toggled via data-bs-theme on <html>, same attribute
    Bootstrap 5.3's own color modes use — so Bootstrap's built-in dark
    styling for modals/dropdowns/forms applies automatically too) ───── */
 [data-bs-theme="dark"] {
-  --bg:             #14151b;
-  --card:           #1e2029;
-  --border:         #2f313d;
-  --muted:          #99a0b3;
-  --text:           #e8e9ee;
-  --text-secondary: #c7cad6;
-  --surface-hover:  #262835;
-  --input-bg:       #1a1c24;
-  --input-border:   #3a3d4c;
+  --bg:             #0b0b0d;
+  --card:           #131316;
+  --border:         #26262c;
+  --muted:          #8d8d98;
+  --text:           #ececf0;
+  --text-secondary: #c4c4cc;
+  --surface-hover:  #1b1b20;
+  --input-bg:       #101013;
+  --input-border:   #2f2f37;
+  --sidebar-bg:     #0d0d10;
+  --primary:        #800000;
+  --maroon:         #800000;
+  --primary-dark:   #560000;
+  --primary-light:  #a52a2a;
+  --primary-deeper: #6b0000;
+  --dark-glow:     rgba(220, 38, 38, .38);
+  /* soft gold graphs on dark surfaces */
+  --chart-rgb:      212, 178, 106;
+  --chart-2:        #ecd9a8;
 }
 
 [data-bs-theme="dark"] body {
   color-scheme: dark;
 }
+
+/* Near-black surfaces with red accents: glowing red-outlined banner, a
+   red-tinted active nav pill, and subtle bordered cards. */
+[data-bs-theme="dark"] #sidebar { border-right: 1px solid var(--border); }
+[data-bs-theme="dark"] #sidebar::after { opacity: .08; }
+[data-bs-theme="dark"] .nav-link:hover { background: rgba(255,255,255,.06); }
+[data-bs-theme="dark"] .nav-link.active {
+  background: linear-gradient(90deg, rgba(128,0,0,.55), rgba(90,10,10,.55));
+  box-shadow: 0 0 14px rgba(128,0,0,.25);
+}
+[data-bs-theme="dark"] .page-header {
+  background: linear-gradient(135deg, #1a0a0b 0%, #110809 100%);
+  border: 2px solid #800000;
+  box-shadow: 0 0 22px var(--dark-glow), inset 0 0 30px rgba(128,0,0,.12);
+}
+[data-bs-theme="dark"] .page-header::before { background: rgba(128,0,0,.10); }
+[data-bs-theme="dark"] .page-header::after  { background: rgba(128,0,0,.06); }
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .stat-tile { box-shadow: none; }
+[data-bs-theme="dark"] .stat-tile-icon {
+  background: rgba(128,0,0,.16) !important;
+  color: #a52a2a !important;
+}
+[data-bs-theme="dark"] .stat-tile-clickable.active {
+  border-color: #800000;
+  box-shadow: 0 0 0 1px #800000 inset, 0 0 14px rgba(128,0,0,.22);
+}
+[data-bs-theme="dark"] .stat-sparkline polyline { stroke: rgb(var(--chart-rgb)); }
+[data-bs-theme="dark"] .stat-sparkline polygon,
+[data-bs-theme="dark"] .stat-sparkline circle { fill: rgb(var(--chart-rgb)); }
+[data-bs-theme="dark"] .stat-delta-up   { background: rgba(16,185,129,.16); color: #34d399; }
+[data-bs-theme="dark"] .stat-delta-down { background: rgba(239,68,68,.16);  color: #f87171; }
+[data-bs-theme="dark"] .btn-outline-light { background: rgba(255,255,255,.08); border-color: transparent; }
+[data-bs-theme="dark"] .maroon-select-display { background: var(--input-bg); }
+[data-bs-theme="dark"] .fab-announcement { background: #800000; box-shadow: 0 0 18px rgba(128,0,0,.45); }
 
 /* Bootstrap's bg-white/bg-light/text-dark utilities are hardcoded with
    !important and ignore data-bs-theme, so card headers/footers and
@@ -1218,6 +1266,8 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
 .login-wrapper-light { background: #f4f6f9; }
 .login-shell-split { align-items: stretch; }
 .login-form-panel-left { flex: 0 0 46%; }
+/* Single-panel card for Forgot / Reset password. */
+.login-shell-compact { max-width: 460px; min-height: 0; }
 
 /* Illustration panel (right) — soft brand-tinted backdrop behind the
    hand-built animated SVG scene. */
@@ -1393,3 +1443,81 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
 @media (max-width: 991.98px) {
   .fab-announcement { right: 18px; bottom: 18px; width: 50px; height: 50px; font-size: 1.2rem; }
 }
+
+/* ── KPI dashboard: jump links, section heads, chart cards, status chips ── */
+.dash-jump { display: flex; gap: .5rem; flex-wrap: wrap; }
+.dash-jump a {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .35rem .8rem; border-radius: 50px; font-size: .78rem; font-weight: 600;
+  color: var(--text-secondary); background: var(--card); border: 1px solid var(--border);
+  text-decoration: none; transition: border-color .15s, color .15s, transform .15s;
+}
+.dash-jump a:hover { color: var(--primary); border-color: var(--primary); transform: translateY(-1px); }
+.dash-jump a i { color: var(--primary); font-size: .85rem; }
+
+.kpi-status {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .68rem; font-weight: 700; padding: .15rem .55rem; border-radius: 50px; white-space: nowrap;
+}
+.kpi-status-ok   { background: rgba(16,185,129,.14); color: #047857; }
+.kpi-status-warn { background: rgba(245,158,11,.16); color: #b45309; }
+.kpi-status-bad  { background: rgba(239,68,68,.14);  color: #b91c1c; }
+[data-bs-theme="dark"] .kpi-status-ok   { color: #34d399; }
+[data-bs-theme="dark"] .kpi-status-warn { color: #fbbf24; }
+[data-bs-theme="dark"] .kpi-status-bad  { color: #f87171; }
+
+.dash-highlights-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+.dash-highlights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .6rem; }
+
+.dash-section-head { display: flex; align-items: center; gap: .85rem; margin: .5rem 0 .9rem; scroll-margin-top: calc(var(--topbar-h) + 12px); }
+.dash-section-icon {
+  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+  background: rgba(128,0,0,.10); color: var(--primary);
+}
+[data-bs-theme="dark"] .dash-section-icon { background: rgba(128,0,0,.25); color: #a52a2a; }
+.dash-section-head h5 { margin: 0; font-size: 1.02rem; font-weight: 700; color: var(--text); }
+.dash-section-head p { margin: 0; font-size: .78rem; color: var(--muted); }
+
+.chart-card { padding: 1.1rem 1.25rem; }
+.chart-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .9rem; }
+.chart-card-title { font-size: .92rem; font-weight: 700; color: var(--text); }
+.chart-card-sub { font-size: .74rem; color: var(--muted); margin-top: .1rem; }
+.chart-card-figure { text-align: right; flex-shrink: 0; }
+.chart-figure-value { font-size: 1.5rem; font-weight: 700; line-height: 1.1; color: var(--text); }
+.chart-card-figure .stat-tile-delta-row { justify-content: flex-end; margin-top: .3rem; }
+.chart-wrap { position: relative; height: 250px; }
+.chart-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem;
+  height: 180px; color: var(--muted); font-size: .8rem;
+}
+.chart-empty i { font-size: 1.6rem; opacity: .6; }
+.chart-empty.d-none { display: none !important; }
+.chart-card-note { margin-top: .75rem; padding-top: .6rem; border-top: 1px solid var(--border); font-size: .72rem; display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.target-key { display: inline-flex; align-items: center; gap: .4rem; color: var(--text-secondary); font-weight: 600; }
+.target-key i { display: inline-block; width: 18px; border-top: 2px dashed var(--muted); }
+a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); }
+
+[data-bs-theme="dark"] .table-light, [data-bs-theme="dark"] .table-light > * { --bs-table-bg: var(--surface-hover); --bs-table-color: var(--text); background: var(--surface-hover) !important; color: var(--text) !important; }
+
+/* Compact, modern chart cards (overrides the first pass above) */
+.chart-card { padding: .9rem 1rem; border-radius: 16px; transition: box-shadow .2s, border-color .2s; }
+.chart-card:hover { border-color: rgba(128,0,0,.3); box-shadow: 0 6px 20px rgba(0,0,0,.07); }
+[data-bs-theme="dark"] .chart-card:hover { border-color: rgba(239,68,68,.35); box-shadow: 0 0 18px rgba(220,38,38,.12); }
+.chart-card-head { margin-bottom: .5rem; }
+.chart-card-title { font-size: .84rem; }
+.chart-card-sub { font-size: .7rem; }
+.chart-figure-value { font-size: 1.2rem; }
+.chart-wrap { height: 165px; }
+.chart-empty { height: 110px; }
+.chart-card-note { margin-top: .5rem; padding-top: .45rem; font-size: .68rem; }
+.dash-section-head { margin: .25rem 0 .7rem; }
+.dash-section-icon { width: 32px; height: 32px; font-size: .95rem; border-radius: 10px; }
+.dash-section-head h5 { font-size: .95rem; }
+.dash-section-head p { font-size: .72rem; }
+
+/* ── Document Management: task folders ─────────────────────── */
+.doc-folder-card { transition: border-color .15s, box-shadow .15s, transform .15s; }
+.doc-folder-card:hover { border-color: var(--primary); box-shadow: 0 6px 20px rgba(0,0,0,.07); transform: translateY(-1px); }
+.doc-folder-card .min-w-0 { min-width: 0; }
+.doc-folder-icon { font-size: 1.75rem; line-height: 1; color: rgb(var(--chart-rgb)); flex-shrink: 0; }

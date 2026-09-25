@@ -7,7 +7,7 @@
       <p>Summative Test 1, Summative Test 2 &amp; Term Examination — per grade level &amp; subject</p>
     </div>
     <div class="d-flex gap-2">
-      <a href="<?= base_url('performance/mps/template') ?>" class="btn btn-sm btn-outline-light">
+      <a href="<?= base_url('performance/mps/template?year=' . urlencode($year) . '&term=' . (int) $term) ?>" class="btn btn-sm btn-outline-light">
         <i class="bi bi-download me-1"></i>Download Template
       </a>
       <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importMpsModal">
@@ -59,6 +59,19 @@
   </div>
 </div>
 
+<<<<<<< Updated upstream
+=======
+<?php if (empty($handledCells)): ?>
+<div class="card mb-4">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-clipboard-x fs-1 d-block mb-3"></i>
+    You have no subjects for Term <?= (int) $term ?>, SY <?= e($year) ?> yet —
+    <a href="<?= base_url('profile?sy=' . urlencode($year) . '&term=' . (int) $term) ?>#subject-load">add your subject load</a>
+    before entering MPS scores.
+  </div>
+</div>
+<?php else: ?>
+>>>>>>> Stashed changes
 <form method="POST" action="<?= base_url('performance/mps') ?>">
   <input type="hidden" name="school_year" value="<?= e($year) ?>">
   <input type="hidden" name="term" value="<?= (int) $term ?>">
@@ -121,7 +134,7 @@
           <p class="text-muted" style="font-size:.82rem;">
             Upload the school's MPS workbook — the sheet with a grade-level &times; subject grid for each test period
             (Summative Test 1/2, Term Examination), same layout as the printed MPS report.
-            Not sure of the format? <a href="<?= base_url('performance/mps/template') ?>">Download the template</a>.
+            Not sure of the format? <a href="<?= base_url('performance/mps/template?year=' . urlencode($year) . '&term=' . (int) $term) ?>">Download the template</a>.
           </p>
           <div class="row g-2 mb-2">
             <div class="col-6">

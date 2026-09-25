@@ -80,4 +80,69 @@ class Users extends BaseController
             'flash'     => session()->getFlashdata('flash'),
         ]);
     }
+<<<<<<< Updated upstream
+=======
+
+    /**
+     * Creates or updates the teachers row tied to a user, and resyncs its
+     * teacher_subjects rows, from the Add/Edit User form's teacher-only
+     * fields (advisory_status, advisory_section, grade_level, subjects[]).
+     */
+    private function syncTeacherProfile(int $userId, ?array $user): void
+    {
+        if (! $user) {
+            return;
+        }
+
+        $teacherModel = new TeacherModel();
+        $teacher      = $teacherModel->findByUserId($userId) ?? $teacherModel->findByEmail($user['email']);
+
+        $advisoryStatus  = $this->request->getPost('advisory_status');
+        $advisorySection = trim((string) $this->request->getPost('advisory_section'));
+        $advisory        = null;
+        if ($advisorySection !== '' && $advisoryStatus === 'adviser') {
+            $advisory = $advisorySection;
+        } elseif ($advisorySection !== '' && $advisoryStatus === 'co_adviser') {
+            $advisory = $advisorySection . ' (Co-Adviser)';
+        }
+
+        $payload = [
+            'name'        => $user['name'],
+            'email'       => $user['email'],
+            'grade_level' => trim((string) $this->request->getPost('grade_level')) ?: null,
+            'advisory'    => $advisory,
+            'user_id'     => $userId,
+        ];
+
+        if ($teacher) {
+            $teacherModel->update($teacher['id'], $payload);
+            $teacherId = (int) $teacher['id'];
+        } else {
+            $payload['employee_id']     = 'T-' . str_pad((string) $userId, 3, '0', STR_PAD_LEFT);
+            $payload['submission_rate'] = 0.00;
+            $teacherId                  = (int) $teacherModel->insert($payload);
+        }
+
+        $subjectModel = new TeacherSubjectModel();
+        // Only the base load — per-term loads the teacher entered stay put.
+        $subjectModel->where('teacher_id', $teacherId)->where('school_year', null)->delete();
+
+        $subjects = $this->request->getPost('subjects') ?? [];
+        foreach ($subjects as $row) {
+            $subject = trim((string) ($row['subject'] ?? ''));
+            $grade   = trim((string) ($row['grade'] ?? ''));
+            $section = trim((string) ($row['section'] ?? ''));
+            if ($subject === '' || $grade === '' || $section === '') {
+                continue;
+            }
+
+            $subjectModel->insert([
+                'teacher_id'  => $teacherId,
+                'subject'     => $subject,
+                'grade_level' => $grade,
+                'section'     => $section,
+            ]);
+        }
+    }
+>>>>>>> Stashed changes
 }

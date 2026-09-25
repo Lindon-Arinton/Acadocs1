@@ -28,6 +28,13 @@
       <h3 class="login-form-title">Welcome back</h3>
       <p class="login-form-sub">Log in to manage your school's documents and records.</p>
 
+      <?php if ($success = session()->getFlashdata('success')): ?>
+      <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+        <span style="font-size:.82rem"><?= e($success) ?></span>
+      </div>
+      <?php endif; ?>
+
       <?php if ($error ?? ''): ?>
       <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-exclamation-circle-fill flex-shrink-0"></i>
@@ -47,6 +54,10 @@
           <button type="button" class="login-input-icon" onclick="togglePwd()">
             <i class="bi bi-eye" id="pwdIcon"></i>
           </button>
+        </div>
+
+        <div class="text-end mb-2" style="margin-top:-.4rem;">
+          <a href="<?= base_url('forgot-password') ?>" class="text-decoration-none" style="font-size:.8rem;color:var(--primary);">Forgot password?</a>
         </div>
 
         <button type="submit" class="login-submit-btn mt-2">

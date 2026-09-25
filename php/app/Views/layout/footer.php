@@ -27,6 +27,13 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-bs-theme', next);
     localStorage.setItem(THEME_KEY, next);
     syncThemeIcon();
+
+    // Charts bake their colors in at build time — re-render the page so
+    // they pick up the new theme's palette.
+    applyChartDefaults();
+    if (Object.values(Chart.instances).some(c => c.canvas && c.canvas.isConnected)) {
+        loadPage(window.location.href, { push: false, scroll: false });
+    }
 }
 
 syncThemeIcon();
@@ -689,6 +696,7 @@ function loadPage(url, { push = true, scroll = true } = {}) {
             if (!newMain) { window.location.href = finalUrl; return; }
 
             closeAnyOpenModals();
+            Object.values(Chart.instances).forEach(c => { if (main.contains(c.canvas)) c.destroy(); });
             main.innerHTML = newMain.innerHTML;
             // Only after the swap: this is what actually detaches the old
             // wrappers from the document, which is what tells the cleanup
@@ -768,7 +776,7 @@ document.addEventListener('submit', function (e) {
 window.addEventListener('popstate', () => loadPage(window.location.href, { push: false }));
 
 /* ── Chart.js global defaults ─────────────────────────────── */
-(function () {
+function applyChartDefaults() {
     const style   = getComputedStyle(document.documentElement);
     const cssVar  = (name) => style.getPropertyValue(name).trim();
 
@@ -782,10 +790,22 @@ window.addEventListener('popstate', () => loadPage(window.location.href, { push:
     Chart.defaults.plugins.tooltip.borderWidth = 1;
     Chart.defaults.plugins.tooltip.cornerRadius = 10;
     Chart.defaults.plugins.tooltip.padding = 10;
-})();
+}
+applyChartDefaults();
 
 function chartGridColor() {
     return getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+}
+
+// Theme-aware series colors (dark maroon in light mode, soft gold in dark
+// mode) — sourced from --chart-rgb / --chart-2 in app.css.
+function chartColor(alpha = 1) {
+    const rgb = getComputedStyle(document.documentElement).getPropertyValue('--chart-rgb').trim();
+    return 'rgba(' + rgb + ',' + alpha + ')';
+}
+
+function chartColorAlt() {
+    return getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim();
 }
 </script>
 

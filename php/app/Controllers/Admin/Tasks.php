@@ -32,7 +32,7 @@ class Tasks extends BaseController
                     $title        = $this->request->getPost('title');
                     $assignedRole = $this->request->getPost('assigned_role');
                     $deadlineDate = $this->request->getPost('deadline_date');
-                    $deadlineTime = $this->request->getPost('deadline_time') ?: '00:00';
+                    $deadlineTime = $this->request->getPost('deadline_time') ?: '23:59';
 
                     if ($deadlineDate < date('Y-m-d')) {
                         $error = 'Deadline cannot be in the past.';

@@ -117,6 +117,112 @@ include APPPATH . 'Views/layout/header.php';
       </div>
     </div>
   </div>
+
+  <?php if ($subjectLoad): ?>
+  <!-- Subject load per term (teachers) -->
+  <div class="col-12" id="subject-load">
+    <div class="card">
+      <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center gap-2">
+        <span class="fw-semibold me-auto"><i class="bi bi-journal-bookmark me-2 text-muted"></i>Subject Load</span>
+        <form method="GET" action="<?= base_url('profile') ?>" class="d-flex flex-wrap gap-2 align-items-center" id="subjectTermForm">
+          <input type="text" name="sy" value="<?= e($subjectLoad['year']) ?>" list="subjectYearOptions"
+                 class="form-control form-control-sm" style="width:120px;" pattern="\d{4}-\d{4}" title="e.g. 2026-2027"
+                 onchange="this.form.requestSubmit()">
+          <datalist id="subjectYearOptions">
+            <?php foreach ($subjectLoad['years'] as $y): ?><option value="<?= e($y) ?>"><?php endforeach; ?>
+          </datalist>
+          <div class="maroon-select maroon-select-sm" style="width:auto;">
+            <select name="term" class="maroon-select-native" onchange="this.form.requestSubmit()">
+              <?php foreach ($subjectLoad['terms'] as $t): ?>
+              <option value="<?= $t ?>" <?= $t === $subjectLoad['term'] ? 'selected' : '' ?>>Term <?= $t ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+            <div class="maroon-select-panel"></div>
+          </div>
+        </form>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Your subjects change every term — list the ones you handle in
+          <strong>Term <?= (int) $subjectLoad['term'] ?>, SY <?= e($subjectLoad['year']) ?></strong>.
+          These decide which subjects and sections you enter MPS scores for.
+          <?php if ($subjectLoad['source'] !== 'saved' && $subjectLoad['source'] !== 'none'): ?>
+          <br><i class="bi bi-info-circle me-1"></i>Not saved for this term yet — pre-filled from <?= e($subjectLoad['source']) ?>. Edit what changed, then save.
+          <?php endif; ?>
+        </p>
+
+        <form method="POST" action="<?= base_url('profile') ?>" class="ajax-form"
+              data-confirm-title="Save your subject load for Term <?= (int) $subjectLoad['term'] ?>, SY <?= e($subjectLoad['year']) ?>?">
+          <input type="hidden" name="action" value="save_subjects">
+          <input type="hidden" name="school_year" value="<?= e($subjectLoad['year']) ?>">
+          <input type="hidden" name="term" value="<?= (int) $subjectLoad['term'] ?>">
+
+          <datalist id="subjectNameOptions">
+            <?php foreach ($subjectLoad['subjects'] as $s): ?><option value="<?= e($s) ?>"><?php endforeach; ?>
+          </datalist>
+
+          <div id="subjectLoadList" class="d-flex flex-column gap-2"></div>
+          <p class="text-muted small mb-0 d-none" id="subjectLoadEmpty">No subjects yet — add one for each section you teach.</p>
+
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addLoadRow()">
+              <i class="bi bi-plus-lg me-1"></i>Add Subject
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm ms-auto"><i class="bi bi-check-lg me-1"></i>Save Subject Load</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
 </div>
 
-<?php include APPPATH . 'Views/layout/footer.php'; ?>
+<?php
+if ($subjectLoad) {
+    $initialRows = array_map(static fn ($r) => [
+        'subject' => $r['subject'],
+        'grade'   => $r['grade_level'] ?? '',
+        'section' => $r['section'] ?? '',
+    ], $subjectLoad['rows']);
+
+    $extraScript = '<script>
+const LOAD_GRADE_LEVELS = ' . json_encode($subjectLoad['gradeLevels']) . ';
+let loadRowSeq = 0;
+
+function loadEscape(v) {
+    return String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function addLoadRow(subject, grade, section) {
+    const idx = loadRowSeq++;
+    const gradeOptions = LOAD_GRADE_LEVELS.map(function (g) {
+        return "<option value=\"" + g + "\"" + (g === grade ? " selected" : "") + ">" + g + "</option>";
+    }).join("");
+
+    document.getElementById("subjectLoadList").insertAdjacentHTML("beforeend",
+        "<div class=\"d-flex flex-wrap gap-2 align-items-center load-row\">" +
+          "<input type=\"text\" class=\"form-control form-control-sm\" style=\"flex:1 1 140px;\" list=\"subjectNameOptions\" placeholder=\"Subject (e.g. Science)\" required " +
+            "name=\"subjects[" + idx + "][subject]\" value=\"" + loadEscape(subject || "") + "\">" +
+          "<select class=\"form-select form-select-sm\" style=\"flex:1 1 120px;\" required name=\"subjects[" + idx + "][grade]\">" +
+            "<option value=\"\">Grade</option>" + gradeOptions +
+          "</select>" +
+          "<input type=\"text\" class=\"form-control form-control-sm\" style=\"flex:1 1 140px;\" placeholder=\"Section (e.g. Matatag)\" required " +
+            "name=\"subjects[" + idx + "][section]\" value=\"" + loadEscape(section || "") + "\">" +
+          "<button type=\"button\" class=\"btn btn-ghost btn-sm text-danger\" title=\"Remove\" onclick=\"this.closest(\'.load-row\').remove(); syncLoadEmpty();\">" +
+            "<i class=\"bi bi-x-lg\"></i></button>" +
+        "</div>");
+    syncLoadEmpty();
+}
+
+function syncLoadEmpty() {
+    document.getElementById("subjectLoadEmpty").classList.toggle("d-none", document.getElementById("subjectLoadList").children.length > 0);
+}
+
+' . json_encode($initialRows) . '.forEach(function (r) { addLoadRow(r.subject, r.grade, r.section); });
+syncLoadEmpty();
+</script>';
+}
+
+include APPPATH . 'Views/layout/footer.php';
+?>

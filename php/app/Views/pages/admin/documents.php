@@ -2,197 +2,58 @@
 
 <div class="page-header">
   <h4><i class="bi bi-file-earmark-check me-2"></i>Document Management</h4>
-  <p>Review and manage teacher-submitted DLLs, Lesson Plans & other documents</p>
+  <p>Task uploads, filed into one folder per task</p>
 </div>
 
-<?php if (isset($_GET['success'])): ?>
-<div class="alert alert-success alert-dismissible fade show">
-  <i class="bi bi-check-circle me-2"></i>Feedback submitted successfully.
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-
-<!-- Filters -->
 <div class="card mb-4">
   <div class="card-body py-3">
     <form method="GET" action="<?= base_url('documents') ?>" id="filterForm" class="d-flex flex-wrap gap-2 align-items-center">
-      <div class="d-flex gap-2 flex-wrap">
-        <?php foreach (['all'=>'All','Submitted'=>'Submitted','Reviewed'=>'Reviewed','Pending'=>'Pending','Returned'=>'Returned'] as $val=>$lbl): ?>
-        <button type="submit" name="status" value="<?= $val ?>"
-                class="btn btn-sm <?= $statusFilter===$val ? 'btn-maroon' : 'btn-outline-secondary' ?>">
-          <?= $lbl ?>
-          <?php if ($val !== 'all'): ?>
-          <span class="badge bg-secondary ms-1"><?= $statusCounts[$val] ?? 0 ?></span>
-          <?php endif; ?>
-        </button>
-        <?php endforeach; ?>
-      </div>
-
+      <h6 class="fw-bold mb-0"><i class="bi bi-folder2 me-2"></i>Task Folders</h6>
       <div class="input-group input-group-sm ms-auto" style="max-width:260px;">
         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
         <input type="text" name="q" id="docSearchInput" value="<?= e($search) ?>"
-               class="form-control border-start-0 ps-0" placeholder="Search teacher, subject...">
-      </div>
-
-      <div class="maroon-select maroon-select-sm" style="width:auto;">
-        <select name="sort" class="maroon-select-native" onchange="this.form.requestSubmit()">
-          <option value="date_desc"  <?= $sort==='date_desc'  ? 'selected' : '' ?>>Newest First</option>
-          <option value="date_asc"   <?= $sort==='date_asc'   ? 'selected' : '' ?>>Oldest First</option>
-          <option value="teacher_az" <?= $sort==='teacher_az' ? 'selected' : '' ?>>Teacher A-Z</option>
-          <option value="status"     <?= $sort==='status'     ? 'selected' : '' ?>>Status</option>
-        </select>
-        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
-        <div class="maroon-select-panel"></div>
+               class="form-control border-start-0 ps-0" placeholder="Search folders...">
       </div>
     </form>
   </div>
 </div>
 
+<!-- Task folders: one per task, auto-created on the first upload to it -->
+<?php if (empty($folders)): ?>
 <div class="card">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>#</th><th>Teacher</th><th>Type</th><th>Subject</th>
-            <th>Grade</th><th>Date Submitted</th><th>Status</th><th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($docs as $i => $doc):
-            $badgeMap = ['Submitted'=>'badge-submitted','Reviewed'=>'badge-reviewed','Pending'=>'badge-pending','Returned'=>'badge-returned'];
-          ?>
-          <tr>
-            <td class="text-muted small"><?= $i+1 ?></td>
-            <td class="fw-semibold"><?= e($doc['teacher_name']) ?></td>
-            <td><?= e($doc['type']) ?></td>
-            <td><?= e($doc['subject']) ?></td>
-            <td><?= e($doc['grade_level']) ?></td>
-            <td class="small text-muted"><?= date('M d, Y', strtotime($doc['date_submitted'])) ?></td>
-            <td><span class="status-pill <?= $badgeMap[$doc['status']] ?? 'badge-pending' ?>"><?= e($doc['status']) ?></span></td>
-            <td>
-              <button class="btn btn-sm btn-outline-secondary"
-                      onclick="viewDoc(<?= htmlspecialchars(json_encode($doc), ENT_QUOTES) ?>)">
-                <i class="bi bi-eye"></i>
-              </button>
-              <?php if (hasRole('admin') && $doc['status'] === 'Submitted'): ?>
-              <button class="btn btn-sm btn-outline-maroon"
-                      onclick="feedbackDoc(<?= $doc['id'] ?>, '<?= e(addslashes($doc['teacher_name'])) ?>')">
-                <i class="bi bi-chat-dots"></i> Review
-              </button>
-              <?php endif; ?>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-          <?php if (empty($docs)): ?>
-          <tr><td colspan="8" class="text-center py-5 text-muted">No documents found.</td></tr>
+  <div class="card-body text-center py-5 text-muted small">
+    <?= $search !== ''
+        ? 'No folders match "' . e($search) . '".'
+        : 'No task folders yet. A folder is created automatically when someone uploads to a task.' ?>
+  </div>
+</div>
+<?php else: ?>
+<div class="row g-3">
+  <?php foreach ($folders as $folder): ?>
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+    <a href="<?= base_url('documents?folder=' . $folder['id']) ?>" class="card doc-folder-card h-100 text-decoration-none">
+      <div class="card-body d-flex gap-3 align-items-start">
+        <i class="bi bi-folder-fill doc-folder-icon"></i>
+        <div class="min-w-0">
+          <div class="fw-semibold text-truncate" style="color:var(--text);" title="<?= e($folder['name']) ?>"><?= e($folder['name']) ?></div>
+          <div class="small text-muted">
+            <?= (int) $folder['file_count'] ?> file<?= (int) $folder['file_count'] === 1 ? '' : 's' ?>
+            · <?= (int) $folder['submitter_count'] ?> uploader<?= (int) $folder['submitter_count'] === 1 ? '' : 's' ?>
+          </div>
+          <?php if ((int) $folder['to_review_count'] > 0): ?>
+          <span class="status-pill badge-pending mt-1 d-inline-block"><?= (int) $folder['to_review_count'] ?> pending</span>
+          <?php elseif ($folder['last_upload']): ?>
+          <div class="small text-muted">Updated <?= date('M d, Y', strtotime($folder['last_upload'])) ?></div>
           <?php endif; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- View Modal -->
-<div class="modal fade" id="viewModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header" style="background:var(--maroon);color:#fff;">
-        <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark me-2"></i>Document Details</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="viewModalBody"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Feedback Modal -->
-<div class="modal fade" id="feedbackModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header" style="background:var(--maroon);color:#fff;">
-        <h6 class="modal-title fw-bold"><i class="bi bi-chat-dots me-2"></i>Add Feedback</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="POST" action="<?= base_url('documents') ?>" class="ajax-form"
-            data-confirm-action="update" data-confirm-title="Submit this feedback?"
-            data-confirm-text="The document status will be marked as Reviewed.">
-        <div class="modal-body">
-          <input type="hidden" name="doc_id" id="feedbackDocId">
-          <input type="hidden" name="decision" id="feedbackDecision" value="approve">
-          <p class="text-muted small mb-3">Reviewing document for: <strong id="feedbackTeacher"></strong></p>
-          <label class="form-label fw-semibold small">Feedback / Comment</label>
-          <textarea name="comment" class="form-control" rows="4" required placeholder="Enter your feedback..."></textarea>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-outline-danger" onclick="setFeedbackDecision(this,'reject')">
-            <i class="bi bi-x-circle me-2"></i>Reject
-          </button>
-          <button type="submit" class="btn btn-maroon" onclick="setFeedbackDecision(this,'approve')">
-            <i class="bi bi-send me-2"></i>Submit Feedback
-          </button>
-        </div>
-      </form>
-    </div>
+      </div>
+    </a>
   </div>
+  <?php endforeach; ?>
 </div>
+<?php endif; ?>
 
 <?php
-$extraScript = "<script>
-const DOC_FILE_BASE = '" . base_url('documents/') . "';
-const DOC_ITEM_FILE_BASE = '" . base_url('document-files/') . "';
-function viewDoc(doc) {
-    let fileSection;
-    if (doc.files && doc.files.length) {
-        const first = doc.files[0];
-        const list = doc.files.map(f => `<div class='d-flex justify-content-between align-items-center gap-2 p-2 rounded-3 mb-1' style='background:var(--surface-hover);'>
-             <span class='small text-truncate'><i class='bi bi-paperclip me-1 text-muted'></i>\${f.file_name}</span>
-             <div class='d-flex gap-1 flex-shrink-0'>
-               <a href='\${DOC_ITEM_FILE_BASE}\${f.id}/preview' target='_blank' rel='noopener' class='btn btn-sm btn-outline-secondary py-0 px-2'><i class='bi bi-eye'></i></a>
-               <a href='\${DOC_ITEM_FILE_BASE}\${f.id}/download' class='btn btn-sm btn-outline-secondary py-0 px-2'><i class='bi bi-download'></i></a>
-             </div>
-           </div>`).join('');
-        fileSection = `<div class='mb-2'>\${list}</div>
-           <iframe src='\${DOC_ITEM_FILE_BASE}\${first.id}/preview' style='width:100%;height:420px;border:1px solid var(--border);border-radius:8px;'></iframe>`;
-    } else if (doc.file_path) {
-        fileSection = `<div class='d-flex gap-2 mb-2'>
-             <a href='\${DOC_FILE_BASE}\${doc.id}/download' class='btn btn-sm btn-outline-secondary'><i class='bi bi-download me-1'></i>Download</a>
-           </div>
-           <iframe src='\${DOC_FILE_BASE}\${doc.id}/file' style='width:100%;height:420px;border:1px solid var(--border);border-radius:8px;'></iframe>`;
-    } else {
-        fileSection = `<p class='text-muted small mb-0 mt-2'>No file attached.</p>`;
-    }
-    document.getElementById('viewModalBody').innerHTML = `
-      <table class='table table-sm'>
-        <tr><th>Teacher</th><td>\${doc.teacher_name}</td></tr>
-        <tr><th>Type</th><td>\${doc.type}</td></tr>
-        <tr><th>Subject</th><td>\${doc.subject}</td></tr>
-        <tr><th>Grade</th><td>\${doc.grade_level}</td></tr>
-        <tr><th>Submitted</th><td>\${doc.date_submitted}</td></tr>
-        <tr><th>Status</th><td><span class='badge bg-secondary'>\${doc.status}</span></td></tr>
-      </table>
-      \${fileSection}`;
-    new bootstrap.Modal(document.getElementById('viewModal')).show();
-}
-function feedbackDoc(id, teacher) {
-    document.getElementById('feedbackDocId').value = id;
-    document.getElementById('feedbackTeacher').textContent = teacher;
-    setFeedbackDecision(null, 'approve');
-    new bootstrap.Modal(document.getElementById('feedbackModal')).show();
-}
-initLiveSearch('docSearchInput', 'filterForm');
-function setFeedbackDecision(btn, decision) {
-    document.getElementById('feedbackDecision').value = decision;
-    const form = document.getElementById('feedbackDecision').closest('form');
-    if (decision === 'reject') {
-        form.dataset.confirmTitle = 'Reject this document?';
-        form.dataset.confirmText = 'The document will be marked as Returned and sent back to the teacher for revision.';
-    } else {
-        form.dataset.confirmTitle = 'Submit this feedback?';
-        form.dataset.confirmText = 'The document status will be marked as Reviewed.';
-    }
-}
-</script>";
+$extraScript = "<script>initLiveSearch('docSearchInput', 'filterForm');</script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

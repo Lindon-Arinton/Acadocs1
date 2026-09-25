@@ -71,13 +71,11 @@ $insightTone = [
         <table class="table table-hover mb-0">
           <thead><tr><th>Task</th><th>Submitted</th><th>Status</th></tr></thead>
           <tbody>
-            <?php foreach ($recentActivity as $a):
-              $bm = ['Submitted' => 'badge-submitted', 'Reviewed' => 'badge-reviewed'];
-            ?>
+            <?php foreach ($recentActivity as $a): ?>
             <tr>
               <td><?= e($a['title']) ?></td>
               <td class="small text-muted"><?= date('M d, Y', strtotime($a['submitted_at'])) ?></td>
-              <td><span class="status-pill <?= $bm[$a['status']] ?? '' ?>"><?= e($a['status']) ?></span></td>
+              <td><span class="status-pill <?= submissionBadge($a['status']) ?>"><?= e($a['status']) ?></span></td>
             </tr>
             <?php endforeach; ?>
             <?php if (empty($recentActivity)): ?>
@@ -167,7 +165,7 @@ $insightTone = [
           </div>
         </div>
         <div class="w-100">
-          <?php foreach (['Completed' => ['completed', 'rgba(128,0,0,1)'], 'Pending' => ['pending', 'rgba(128,0,0,.5)'], 'Overdue' => ['overdue', 'rgba(220,38,38,1)']] as $label => [$key, $dotColor]): ?>
+          <?php foreach (['Completed' => ['completed', 'rgba(var(--chart-rgb),1)'], 'Pending' => ['pending', 'rgba(var(--chart-rgb),.5)'], 'Overdue' => ['overdue', 'rgba(220,38,38,1)']] as $label => [$key, $dotColor]): ?>
           <div class="d-flex justify-content-between small mb-1">
             <span><span class="d-inline-block rounded-circle me-1" style="width:9px;height:9px;background:<?= $dotColor ?>;"></span><?= $label ?></span>
             <strong><?= $taskStats[$key] ?></strong>
@@ -237,7 +235,7 @@ new Chart(document.getElementById("taskStatusChart"), {
   type: "doughnut",
   data: {
     labels: ["Completed","Pending","Overdue"],
-    datasets: [{ data:[' . implode(',', [$taskStats['completed'], $taskStats['pending'], $taskStats['overdue']]) . '], backgroundColor:["rgba(128,0,0,1)","rgba(128,0,0,.5)","rgba(220,38,38,1)"], borderWidth:0 }]
+    datasets: [{ data:[' . implode(',', [$taskStats['completed'], $taskStats['pending'], $taskStats['overdue']]) . '], backgroundColor:[chartColor(1),chartColor(.5),"rgba(220,38,38,1)"], borderWidth:0 }]
   },
   options: { responsive:true, maintainAspectRatio:false, cutout:"64%", plugins:{legend:{display:false}} }
 });

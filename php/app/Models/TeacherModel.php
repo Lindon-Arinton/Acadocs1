@@ -46,14 +46,22 @@ class TeacherModel extends Model
         }, $rows);
     }
 
-    public function findWithSubjects(int $id): ?array
+    /**
+     * With a school year + term, 'subjects' is the load for that term (see
+     * TeacherSubjectModel::forTeacher()); without, the most recent one.
+     */
+    public function findWithSubjects(int $id, ?string $schoolYear = null, ?int $term = null): ?array
     {
         $row = $this->withSubjectsQuery()->where('teachers.id', $id)->first();
         if (! $row) {
             return null;
         }
 
+<<<<<<< Updated upstream
         $row['subjects'] = $row['subjects'] ? explode(',', $row['subjects']) : [];
+=======
+        $row['subjects'] = (new TeacherSubjectModel())->forTeacher($id, $schoolYear, $term);
+>>>>>>> Stashed changes
 
         return $row;
     }

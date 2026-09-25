@@ -160,8 +160,8 @@
             </div>
             <div class="col-6">
               <label class="form-label">Deadline Time</label>
-              <input type="time" name="deadline_time" class="form-control" value="00:00">
-              <p class="text-muted mt-1 mb-0" style="font-size:.72rem;">Defaults to 12:00 AM.</p>
+              <input type="time" name="deadline_time" class="form-control" value="23:59">
+              <p class="text-muted mt-1 mb-0" style="font-size:.72rem;">Defaults to 11:59 PM.</p>
             </div>
           </div>
         </div>
@@ -244,8 +244,11 @@ function openNewTaskModal() {
     assignedRoleSelect.dispatchEvent(new Event('change'));
     document.getElementById('taskSpecificPickerWrap').classList.add('d-none');
     renderTaskSpecificSummary();
-    const todayIso = new Date().toISOString().slice(0, 10);
+    // Local date, not toISOString() (UTC) — that returns yesterday before 8 AM in UTC+8.
+    const now = new Date();
+    const todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     document.getElementById('taskDeadlineDp')?.maroonDpSetValue(todayIso);
+    document.querySelector('#addTaskModal input[name=deadline_time]').value = '23:59';
     new bootstrap.Modal(document.getElementById('addTaskModal')).show();
 }
 
@@ -344,6 +347,168 @@ document.getElementById('taskPeopleSelectAll')?.addEventListener('change', funct
         }
     });
 });
+<<<<<<< Updated upstream
+=======
+
+/* ── Row-click task detail modal ── */
+const TASKS_BASE = '" . base_url('tasks/') . "';
+const TASK_FILE_BASE = '" . base_url('task-submissions/') . "';
+const PREVIEWABLE_EXT = ['doc','docx','xls','xlsx','ppt','pptx','pdf','jpg','jpeg','png'];
+let currentTaskDetailSubmissions = [];
+
+function openTaskDetailModal(taskId) {
+    document.getElementById('taskDetailTitle').innerHTML = '<i class=\"bi bi-list-task me-2\"></i>Task';
+    document.getElementById('taskDetailMeta').innerHTML = '';
+    document.getElementById('taskDetailDescriptionWrap').style.display = 'none';
+    document.getElementById('taskDetailContent').style.display = 'none';
+    document.getElementById('taskDetailLoading').style.display = 'block';
+    document.getElementById('taskDetailLoading').innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>Loading task details\\u2026';
+    document.getElementById('taskFeedbackForm').action = TASKS_BASE + taskId;
+
+    new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
+
+    fetch(TASKS_BASE + taskId + '/data', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                document.getElementById('taskDetailLoading').innerHTML =
+                    '<div class=\"text-danger\">' + taskEscapeHtml(data.message || 'Could not load this task.') + '</div>';
+                return;
+            }
+
+            document.getElementById('taskDetailTitle').innerHTML = '<i class=\"bi bi-list-task me-2\"></i>' + taskEscapeHtml(data.task.title);
+            renderTaskDetailMeta(data.task);
+
+            if (data.task.description) {
+                document.getElementById('taskDetailDescription').innerHTML = taskEscapeHtml(data.task.description).replace(/\\n/g, '<br>');
+                document.getElementById('taskDetailDescriptionWrap').style.display = 'block';
+            }
+
+            currentTaskDetailSubmissions = data.submissions;
+            renderTaskDetailSubmissions(data.submissions);
+            renderTaskDetailPending(data.pendingUsers);
+
+            document.getElementById('taskDetailLoading').style.display = 'none';
+            document.getElementById('taskDetailContent').style.display = 'block';
+        })
+        .catch(() => {
+            document.getElementById('taskDetailLoading').innerHTML =
+                '<div class=\"text-danger\">Something went wrong loading this task. Please try again.</div>';
+        });
+}
+
+function renderTaskDetailMeta(task) {
+    const roleLabel = task.assignedRole.charAt(0).toUpperCase() + task.assignedRole.slice(1);
+    const assignedLabel = task.assignedRole === 'specific'
+        ? task.assigneeCount + ' specific ' + (task.assigneeCount === 1 ? 'person' : 'people')
+        : roleLabel;
+    document.getElementById('taskDetailMeta').innerHTML =
+        'Assigned to <strong>' + taskEscapeHtml(assignedLabel) + '</strong>'
+        + ' &middot; Posted ' + taskEscapeHtml(task.createdAt)
+        + ' &middot; Deadline ' + taskEscapeHtml(task.deadline)
+        + ' &middot; <span class=\"text-capitalize\">' + taskEscapeHtml(task.status) + '</span>';
+}
+
+function renderTaskDetailSubmissions(submissions) {
+    document.getElementById('taskDetailSubCount').textContent = submissions.length;
+
+    if (submissions.length === 0) {
+        document.getElementById('taskDetailSubmissions').innerHTML =
+            '<div class=\"card\"><div class=\"card-body text-center py-5 text-muted\">'
+            + '<i class=\"bi bi-inbox fs-1 d-block mb-3\"></i>No submissions yet.</div></div>';
+        return;
+    }
+
+    document.getElementById('taskDetailSubmissions').innerHTML = submissions.map(function (s, i) {
+        const statusClass = ({ Reviewed: 'badge-reviewed', Returned: 'badge-returned' })[s.status] || 'badge-pending';
+        const notesHtml = s.notes
+            ? '<p class=\"small text-muted mb-3\">' + taskEscapeHtml(s.notes).replace(/\\n/g, '<br>') + '</p>'
+            : '';
+        return '<div class=\"card mb-3\"><div class=\"card-body\">'
+            + '<div class=\"d-flex justify-content-between align-items-start mb-2\">'
+            + '<div><h6 class=\"fw-bold mb-1\">' + taskEscapeHtml(s.submitterName) + '</h6>'
+            + '<span class=\"text-muted small\"><i class=\"bi bi-paperclip me-1\"></i>' + s.files.length + ' file' + (s.files.length !== 1 ? 's' : '')
+            + ' &middot; Submitted ' + taskEscapeHtml(s.submittedAt) + '</span></div>'
+            + '<span class=\"status-pill ' + statusClass + '\">' + taskEscapeHtml(s.status) + '</span>'
+            + '</div>'
+            + notesHtml
+            + '<button type=\"button\" class=\"btn btn-sm btn-outline-maroon\" onclick=\"viewSubmission(' + i + ')\">'
+            + '<i class=\"bi bi-eye me-1\"></i>View File' + (s.files.length !== 1 ? 's' : '') + '</button>'
+            + '</div></div>';
+    }).join('');
+}
+
+function renderTaskDetailPending(pendingUsers) {
+    const list = document.getElementById('taskDetailPending');
+    if (pendingUsers.length === 0) {
+        list.innerHTML = '<li class=\"list-group-item py-4 text-center text-muted small\">Everyone has submitted.</li>';
+        return;
+    }
+    list.innerHTML = pendingUsers.map(function (u) {
+        const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
+        return '<li class=\"list-group-item py-2 px-3 d-flex align-items-center gap-2\">'
+            + '<div style=\"width:26px;height:26px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">' + taskEscapeHtml(initial) + '</div>'
+            + '<span class=\"small\">' + taskEscapeHtml(u.name) + '</span></li>';
+    }).join('');
+}
+
+function viewSubmission(index) {
+    const data = currentTaskDetailSubmissions[index];
+    if (!data) return;
+
+    document.getElementById('viewSubmitterName').textContent = data.submitterName;
+    document.getElementById('viewSubmissionId').value = data.id;
+
+    document.getElementById('viewFilesList').innerHTML = data.files.map(function (f) {
+        const previewBtn = PREVIEWABLE_EXT.includes(f.ext)
+            ? '<button type=\"button\" class=\"btn btn-sm btn-outline-secondary preview-file-btn\" data-file-id=\"' + f.id + '\" data-file-name=\"' + taskEscapeHtml(f.name) + '\"><i class=\"bi bi-eye\"></i></button>'
+            : '';
+        return '<div class=\"d-flex justify-content-between align-items-center p-2 rounded-3 mb-2\" style=\"background:var(--surface-hover);\">'
+            + '<span class=\"small text-truncate me-2\"><i class=\"bi bi-file-earmark me-1\"></i>' + taskEscapeHtml(f.name) + '</span>'
+            + '<div class=\"d-flex gap-1 flex-shrink-0\">' + previewBtn
+            + '<a class=\"btn btn-sm btn-outline-secondary\" href=\"' + TASK_FILE_BASE + f.id + '/download\"><i class=\"bi bi-download\"></i></a>'
+            + '</div></div>';
+    }).join('');
+
+    document.querySelectorAll('#viewFilesList .preview-file-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            previewSubmissionFile(this.dataset.fileId, this.dataset.fileName);
+        });
+    });
+
+    const thread = document.getElementById('viewFeedbackThread');
+    thread.innerHTML = data.feedback.length
+        ? '<div class=\"p-3 rounded-3\" style=\"background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);\">'
+            + '<p class=\"small fw-semibold mb-2 text-muted\"><i class=\"bi bi-chat-dots me-1\"></i>Your Private Feedback</p>'
+            + data.feedback.map(function (fb) {
+                return '<p class=\"small mb-1\">' + taskEscapeHtml(fb.comment) + ' <span class=\"text-muted\">— ' + taskEscapeHtml(fb.date) + '</span></p>';
+            }).join('')
+            + '</div>'
+        : '';
+
+    closeSubmissionPreview();
+    switchTaskModal('taskDetailModal', 'viewSubmissionModal');
+}
+
+function previewSubmissionFile(fileId, name) {
+    document.getElementById('viewPreviewFileName').textContent = name;
+    document.getElementById('viewFilePreviewBody').innerHTML =
+        '<iframe src=\"' + TASK_FILE_BASE + fileId + '/preview\" style=\"width:100%;height:400px;border:0;\"></iframe>';
+    document.getElementById('viewFilePreviewWrap').style.display = 'block';
+}
+
+function closeSubmissionPreview() {
+    document.getElementById('viewFilePreviewWrap').style.display = 'none';
+    document.getElementById('viewFilePreviewBody').innerHTML = '';
+}
+
+// Closing the submission modal (X, backdrop, Esc — any path fires this same
+// event) always means \"go back to the task\", since it's only ever reached
+// from within the task detail modal's own View Files button.
+document.getElementById('viewSubmissionModal').addEventListener('hidden.bs.modal', function () {
+    new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
+});
+>>>>>>> Stashed changes
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>
