@@ -3,7 +3,9 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Controllers\Teacher\PerformanceMps;
 use App\Models\RoomPropertyModel;
+use App\Models\TeacherSubjectModel;
 
 class Properties extends BaseController
 {
@@ -23,9 +25,15 @@ class Properties extends BaseController
 
             try {
                 if ($action === 'add') {
+                    $grade   = (string) $this->request->getPost('grade');
+                    $section = (string) $this->request->getPost('section');
+                    if (! in_array($section, $this->sectionsByGrade()[$grade] ?? [], true)) {
+                        return $isAjax ? $this->ajaxError('Please pick a valid grade and section.') : redirect()->to('/property-management');
+                    }
+
                     $model->insert([
-                        'section'          => $this->request->getPost('section'),
-                        'grade'            => $this->request->getPost('grade'),
+                        'section'          => $section,
+                        'grade'            => $grade,
                         'item_name'        => $this->request->getPost('item_name'),
                         'quantity'         => (int) ($this->request->getPost('quantity') ?: 1),
                         'condition_status' => $this->request->getPost('condition_status'),
@@ -90,9 +98,37 @@ class Properties extends BaseController
             'search'     => $search,
             'sort'       => $sort,
             'grades'     => $grades,
+            'sectionsByGrade' => $this->sectionsByGrade(),
             'conditions' => $conditions,
             'condStats'  => $condStats,
             'flash'      => session()->getFlashdata('flash'),
         ]);
+    }
+
+    /**
+     * Every section the school has, grouped by grade level — taken from the
+     * teachers' subject loads (teacher_subjects), which is where sections are
+     * defined. Drives the Add Item grade/section dropdowns.
+     *
+     * @return array<string,list<string>>
+     */
+    private function sectionsByGrade(): array
+    {
+        $map = array_fill_keys(PerformanceMps::GRADE_LEVELS, []);
+
+        $rows = (new TeacherSubjectModel())->distinct()
+            ->select('grade_level, section')
+            ->where('section IS NOT NULL')
+            ->where('section !=', '')
+            ->orderBy('section')
+            ->findAll();
+
+        foreach ($rows as $row) {
+            if (isset($map[$row['grade_level']])) {
+                $map[$row['grade_level']][] = $row['section'];
+            }
+        }
+
+        return $map;
     }
 }
