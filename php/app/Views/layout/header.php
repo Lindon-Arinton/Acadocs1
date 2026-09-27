@@ -333,6 +333,9 @@ try {
         <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
         </a>
+        <a href="<?= base_url('tasks') ?>" class="nav-link <?= preg_match('#/tasks([/?]|$)#',$uri)?'active':'' ?>">
+          <i class="bi bi-clipboard-check nav-icon"></i><span class="sidebar-label">Tasks &amp; Assignments</span>
+        </a>
         <a href="<?= base_url('announcements') ?>" class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i><span class="sidebar-label">Announcements</span>
           <?php if ($unreadAnnouncementsCount > 0): ?>
@@ -350,6 +353,9 @@ try {
         </a>
         <a href="<?= base_url('property-management') ?>" class="nav-link <?= str_contains($uri,'property')?'active':'' ?>">
           <i class="bi bi-building nav-icon"></i><span class="sidebar-label">Property Management</span>
+        </a>
+        <a href="<?= base_url('users') ?>" class="nav-link <?= str_contains($uri,'users')?'active':'' ?>">
+          <i class="bi bi-person-gear nav-icon"></i><span class="sidebar-label">User Management</span>
         </a>
       </div>
     </div>

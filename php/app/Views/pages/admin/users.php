@@ -31,6 +31,19 @@
           <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
           <div class="maroon-select-panel"></div>
         </div>
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-diagram-3 text-muted"></i>
+          <div class="maroon-select maroon-select-sm" style="width:auto;">
+            <select name="dept" class="maroon-select-native" onchange="this.form.requestSubmit()">
+              <option value="all" <?= $department==='all' ? 'selected' : '' ?>>All Departments</option>
+              <?php foreach ($departments as $d): ?>
+              <option value="<?= e($d) ?>" <?= $department===$d ? 'selected' : '' ?>><?= e($d) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+            <div class="maroon-select-panel"></div>
+          </div>
+        </div>
       </form>
       <button class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#addUserModal">
         <i class="bi bi-person-plus me-1"></i>Add User
@@ -49,7 +62,7 @@
     <div class="table-responsive">
       <table class="table mb-0" id="users-table">
         <thead>
-          <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th class="text-center">Actions</th></tr>
+          <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Joined</th><th class="text-center">Actions</th></tr>
         </thead>
         <tbody>
           <?php
@@ -61,6 +74,8 @@
           foreach ($users as $i => $u):
             [$rbg,$rtc] = $roleCfg[$u['role']] ?? ['var(--surface-hover)','var(--text-secondary)'];
             $isMe = $u['id'] == currentUser()['id'];
+            // ADAS may manage every account except admins (Users::index enforces this too).
+            $canManage = hasRole('admin') || $u['role'] !== 'admin';
 
             // Fed to editUser() as JSON so the Edit modal can be pre-filled
             // client-side with no extra round trip — includes the linked
@@ -109,8 +124,15 @@
                 <?= e(ucfirst($u['role'])) ?>
               </span>
             </td>
+            <td style="font-size:.72rem">
+              <?php foreach ($u['departments'] as $d): ?>
+              <span class="badge bg-light text-dark border me-1"><?= e($d) ?></span>
+              <?php endforeach; ?>
+              <?php if (empty($u['departments'])): ?><span class="text-muted">—</span><?php endif; ?>
+            </td>
             <td class="text-muted" style="font-size:.78rem"><?= date('M d, Y', strtotime($u['created_at'])) ?></td>
             <td class="text-center">
+              <?php if ($canManage): ?>
               <button class="btn btn-ghost btn-sm"
                       onclick='editUser(<?= json_encode($editPayload) ?>)'
                       title="Edit user">
@@ -132,11 +154,12 @@
                 </button>
               </form>
               <?php endif; ?>
+              <?php endif; ?>
             </td>
           </tr>
           <?php endforeach; ?>
           <?php if (empty($users)): ?>
-          <tr><td colspan="6" class="text-center py-5 text-muted">No users found matching your search.</td></tr>
+          <tr><td colspan="7" class="text-center py-5 text-muted">No users found matching your search.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
@@ -217,7 +240,7 @@ function teacherFieldsBlock(string $idPrefix, array $gradeLevels): void { ?>
                 <select name="role" class="maroon-select-native" onchange="toggleTeacherFields('add', this.value)">
                   <option value="teacher">Teacher</option>
                   <option value="adas">ADAS</option>
-                  <option value="admin">Admin</option>
+                  <?php if (hasRole('admin')): ?><option value="admin">Admin</option><?php endif; ?>
                 </select>
                 <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
                 <div class="maroon-select-panel"></div>
@@ -267,7 +290,7 @@ function teacherFieldsBlock(string $idPrefix, array $gradeLevels): void { ?>
                 <select name="role" id="editUserRole" class="maroon-select-native" onchange="toggleTeacherFields('edit', this.value)">
                   <option value="teacher">Teacher</option>
                   <option value="adas">ADAS</option>
-                  <option value="admin">Admin</option>
+                  <?php if (hasRole('admin')): ?><option value="admin">Admin</option><?php endif; ?>
                 </select>
                 <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
                 <div class="maroon-select-panel"></div>

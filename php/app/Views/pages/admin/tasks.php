@@ -199,10 +199,22 @@
           <button type="button" class="chat-filter-pill" data-role="teacher">Teacher</button>
           <button type="button" class="chat-filter-pill" data-role="adas">ADAS</button>
         </div>
+        <?php if ($departments): ?>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-diagram-3 text-muted"></i>
+          <select id="taskPeopleDeptFilter" class="form-select form-select-sm" style="width:auto;">
+            <option value="all">All Departments</option>
+            <?php foreach ($departments as $d): ?>
+            <option value="<?= e($d) ?>"><?= e($d) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <?php endif; ?>
         <div style="max-height:300px;overflow-y:auto;" id="taskPeopleList">
           <?php foreach ($assignableUsers as $u): ?>
           <label class="align-items-center gap-2 p-2 rounded-3 task-people-row" style="display:flex;cursor:pointer;"
                  data-role="<?= e($u['role']) ?>" data-search="<?= e(mb_strtolower($u['name'])) ?>"
+                 data-depts="<?= e(json_encode($u['departments'])) ?>"
                  data-id="<?= $u['id'] ?>" data-name="<?= e($u['name']) ?>">
             <input type="checkbox" class="task-people-checkbox">
             <div style="width:30px;height:30px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -210,7 +222,7 @@
             </div>
             <div>
               <div class="fw-semibold" style="font-size:.82rem;"><?= e($u['name']) ?></div>
-              <div class="text-muted" style="font-size:.7rem;"><?= e(ucfirst($u['role'])) ?></div>
+              <div class="text-muted" style="font-size:.7rem;"><?= e(ucfirst($u['role'])) ?><?= $u['departments'] ? ' · ' . e(implode(', ', $u['departments'])) : '' ?></div>
             </div>
           </label>
           <?php endforeach; ?>
@@ -393,12 +405,14 @@ function applyTaskPeopleFilter() {
     const q = (document.getElementById('taskPeopleSearchInput')?.value || '').trim().toLowerCase();
     const activeRoleBtn = document.querySelector('#taskPeopleRoleFilter .chat-filter-pill.active');
     const role = activeRoleBtn ? activeRoleBtn.dataset.role : 'all';
+    const dept = document.getElementById('taskPeopleDeptFilter')?.value || 'all';
     let anyVisible = false;
 
     document.querySelectorAll('.task-people-row').forEach(row => {
         const matchSearch = !q || row.dataset.search.includes(q);
         const matchRole = role === 'all' || row.dataset.role === role;
-        const match = matchSearch && matchRole;
+        const matchDept = dept === 'all' || JSON.parse(row.dataset.depts || '[]').includes(dept);
+        const match = matchSearch && matchRole && matchDept;
         row.style.display = match ? 'flex' : 'none';
         if (match) anyVisible = true;
     });
@@ -408,6 +422,7 @@ function applyTaskPeopleFilter() {
 }
 
 document.getElementById('taskPeopleSearchInput')?.addEventListener('input', applyTaskPeopleFilter);
+document.getElementById('taskPeopleDeptFilter')?.addEventListener('change', applyTaskPeopleFilter);
 document.querySelectorAll('#taskPeopleRoleFilter .chat-filter-pill').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('#taskPeopleRoleFilter .chat-filter-pill').forEach(b => b.classList.remove('active'));

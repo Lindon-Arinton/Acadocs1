@@ -30,6 +30,10 @@ include APPPATH . 'Views/layout/header.php';
 <?php endif; ?>
 
 <!-- Condition summary -->
+<div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2">
+  <h6 class="fw-semibold mb-0"><i class="bi bi-clipboard-check me-2"></i>Condition of Property</h6>
+  <span class="text-muted" style="font-size:.75rem">Number of items per condition rating<?= ($grade !== 'all' || $condition !== 'all' || $search !== '') ? ' (filtered)' : '' ?></span>
+</div>
 <div class="row g-3 mb-4">
   <?php foreach (['Excellent'=>['#d1fae5','#065f46'],'Good'=>['#dbeafe','#1e40af'],'Fair'=>['#fef9c3','#713f12'],'Poor'=>['#fee2e2','#991b1b']] as $cond=>[$bg,$tc]): ?>
   <div class="col-6 col-xl-3">
@@ -39,8 +43,9 @@ include APPPATH . 'Views/layout/header.php';
           <i class="bi <?= $condCfg[$cond][1] ?>" style="color:<?= $tc ?>;font-size:1.1rem;"></i>
         </div>
         <div>
-          <div style="font-size:1.6rem;font-weight:700;color:<?= $tc ?>"><?= $condStats[$cond] ?? 0 ?></div>
-          <div class="text-muted" style="font-size:.78rem"><?= $cond ?></div>
+          <div class="text-muted text-uppercase fw-semibold" style="font-size:.68rem;letter-spacing:.04em">Condition: <?= $cond ?></div>
+          <div style="font-size:1.6rem;font-weight:700;color:<?= $tc ?>;line-height:1.2"><?= $condStats[$cond] ?? 0 ?></div>
+          <div class="text-muted" style="font-size:.75rem"><?= ($condStats[$cond] ?? 0) === 1 ? 'item' : 'items' ?> in <?= strtolower($cond) ?> condition</div>
         </div>
       </div>
     </div>

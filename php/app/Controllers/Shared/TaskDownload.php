@@ -65,7 +65,8 @@ class TaskDownload extends BaseController
     }
 
     /**
-     * Loads the file and verifies the current user is either the submitter or an admin.
+     * Loads the file and verifies the current user is either the submitter or
+     * someone who reviews task submissions (admin/ADAS).
      */
     private function authorizedFile(int $fileId): array
     {
@@ -78,7 +79,7 @@ class TaskDownload extends BaseController
         $submission = (new TaskSubmissionModel())->find($file['task_submission_id']);
         $user       = currentUser();
 
-        if (! $submission || (! hasRole('admin') && (int) $submission['user_id'] !== (int) $user['id'])) {
+        if (! $submission || (! hasRole('admin', 'adas') && (int) $submission['user_id'] !== (int) $user['id'])) {
             throw PageNotFoundException::forPageNotFound();
         }
 

@@ -95,6 +95,31 @@ class TeacherSubjectModel extends Model
         $this->db->transComplete();
     }
 
+    /**
+     * Each teacher account's departments — the distinct subjects in any of
+     * their loads (base or per-term), so an English teacher is in ENGLISH.
+     *
+     * @return array<int,list<string>> keyed by users.id
+     */
+    public function departmentsByUserId(): array
+    {
+        $rows = $this->db->table('teacher_subjects ts')
+            ->distinct()
+            ->select('t.user_id, UPPER(TRIM(ts.subject)) AS department')
+            ->join('teachers t', 't.id = ts.teacher_id')
+            ->where('t.user_id IS NOT NULL')
+            ->where('TRIM(ts.subject) !=', '')
+            ->orderBy('department')
+            ->get()->getResultArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['user_id']][] = $row['department'];
+        }
+
+        return $map;
+    }
+
     /** @return array<int,array<int,array<string,mixed>>> base-load rows grouped by teacher_id */
     public function groupedByTeacherId(): array
     {

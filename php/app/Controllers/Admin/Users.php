@@ -24,6 +24,15 @@ class Users extends BaseController
             $isAjax  = $this->request->isAJAX();
             $message = null;
 
+            // ADAS can manage teacher/ADAS accounts but not admins — otherwise
+            // they could create an admin account or promote themselves.
+            if (! hasRole('admin')) {
+                $target = $this->request->getPost('id') ? $model->find((int) $this->request->getPost('id')) : null;
+                if ($this->request->getPost('role') === 'admin' || ($target['role'] ?? null) === 'admin') {
+                    return $isAjax ? $this->ajaxError('Only an admin can manage admin accounts.', 403) : redirect()->to('/users');
+                }
+            }
+
             try {
                 if ($action === 'add') {
                     $role = $this->request->getPost('role');
@@ -80,8 +89,9 @@ class Users extends BaseController
             return redirect()->to('/users');
         }
 
-        $search = trim($this->request->getGet('q') ?? '');
-        $sort   = $this->request->getGet('sort') ?? 'role';
+        $search     = trim($this->request->getGet('q') ?? '');
+        $sort       = $this->request->getGet('sort') ?? 'role';
+        $department = $this->request->getGet('dept') ?? 'all';
 
         $builder = $model->select('id,name,email,role,created_at')
             ->groupStart()
@@ -106,16 +116,27 @@ class Users extends BaseController
                 $teachersByUserId[(int) $teacher['user_id']] = $teacher;
             }
         }
+        $departmentsByUserId = (new TeacherSubjectModel())->departmentsByUserId();
         foreach ($users as &$u) {
-            $u['teacher'] = $teachersByUserId[(int) $u['id']] ?? null;
+            $u['teacher']     = $teachersByUserId[(int) $u['id']] ?? null;
+            $u['departments'] = $departmentsByUserId[(int) $u['id']] ?? [];
         }
         unset($u);
+
+        $departments = array_values(array_unique(array_merge([], ...array_values($departmentsByUserId))));
+        sort($departments);
+
+        if ($department !== 'all') {
+            $users = array_values(array_filter($users, static fn ($u) => in_array($department, $u['departments'], true)));
+        }
 
         return view('pages/admin/users', [
             'pageTitle'   => 'User Management',
             'users'       => $users,
             'search'      => $search,
             'sort'        => $sort,
+            'department'  => $department,
+            'departments' => $departments,
             'gradeLevels' => self::GRADE_LEVELS,
             'flash'       => session()->getFlashdata('flash'),
         ]);

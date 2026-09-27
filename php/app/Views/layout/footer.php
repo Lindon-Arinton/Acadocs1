@@ -547,7 +547,11 @@ function initMaroonSelect(root) {
     // A "fixed" panel doesn't track the trigger button while the page
     // scrolls underneath it, so just close it instead of drifting out of
     // place; a resize can shift the button too, so reposition for that.
-    window.addEventListener('scroll', () => { if (panel.style.display === 'block') closePanel(); }, true);
+    // Scrolling the panel's own option list (a long one, e.g. the Users
+    // department filter) must not count — the capture listener sees it too.
+    window.addEventListener('scroll', (e) => {
+        if (panel.style.display === 'block' && !panel.contains(e.target)) closePanel();
+    }, true);
     window.addEventListener('resize', () => { if (panel.style.display === 'block') positionPanel(); });
     select.addEventListener('change', sync);
 
