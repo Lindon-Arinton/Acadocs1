@@ -87,6 +87,15 @@ mysql -u root acadocs < "database schema/acadocs.sql"
 > authoritative snapshot if `migrate` and the migrations directory ever
 > disagree on a long-lived, hand-seeded database like this one.
 
+For whole-system demo data on top of the real accounts (~11,000 rows: tasks
+and submissions with Templates files attached, attendance, MPS/enrolment/KPIs,
+chat, announcements, notifications, room inventory, links, parent meetings),
+run `php spark db:seed DemoDataSeeder` after uploading some files on the
+Templates page. It only fills gaps — it never overwrites existing records.
+Re-running replaces the batch; `php spark db:seed DemoDataPurgeSeeder`
+removes it (keeping any demo row a real import has since overwritten).
+Modules live in `app/Database/Seeds/Demo/`.
+
 ### 4. (Optional) Install LibreOffice for full-fidelity template preview
 
 ```powershell

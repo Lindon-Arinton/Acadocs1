@@ -6,16 +6,6 @@ use CodeIgniter\Config\BaseConfig;
 
 class App extends BaseConfig
 {
-    /**
-     * --------------------------------------------------------------------------
-     * Base Site URL
-     * --------------------------------------------------------------------------
-     *
-     * URL to your CodeIgniter root. Typically, this will be your base URL,
-     * WITH a trailing slash:
-     *
-     * E.g., http://example.com/
-     */
     public string $baseURL = 'http://localhost:8080/';
 
     /**
