@@ -42,11 +42,16 @@ class TemplateModel extends Model
             return $data;
         }
 
+        // Rows from a narrower select (e.g. distinctExtensions()) have no path to fix.
         if ($data['singleton']) {
-            $data['data']['file_path'] = self::localPath($data['data']);
+            if (isset($data['data']['file_path'])) {
+                $data['data']['file_path'] = self::localPath($data['data']);
+            }
         } else {
             foreach ($data['data'] as &$row) {
-                $row['file_path'] = self::localPath($row);
+                if (isset($row['file_path'])) {
+                    $row['file_path'] = self::localPath($row);
+                }
             }
             unset($row);
         }
