@@ -69,8 +69,8 @@ $monthEnd   = date('Y-m-t');
         </span>
       </div>
       <?php if ($submission): ?>
-      <span class="status-pill <?= $submission['status'] === 'Reviewed' ? 'badge-reviewed' : 'badge-submitted' ?>">
-        <?= $submission['status'] === 'Reviewed' ? 'Reviewed' : 'Submitted' ?>
+      <span class="status-pill <?= submissionBadge($submission['status']) ?>">
+        <?= e($submission['status'] === 'Returned' ? 'Returned - please revise' : $submission['status']) ?>
       </span>
       <?php elseif ($t['status'] === 'Closed'): ?>
       <span class="status-pill badge-returned">Missed</span>

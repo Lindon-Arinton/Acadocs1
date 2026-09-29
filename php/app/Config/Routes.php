@@ -8,6 +8,8 @@ use CodeIgniter\Router\RouteCollection;
 $routes->match(['get', 'post'], '/', 'Shared\Auth::login');
 $routes->match(['get', 'post'], 'login', 'Shared\Auth::login');
 $routes->get('logout', 'Shared\Auth::logout');
+$routes->match(['get', 'post'], 'forgot-password', 'Shared\PasswordReset::forgot');
+$routes->match(['get', 'post'], 'reset-password', 'Shared\PasswordReset::reset');
 
 // ── API auth (not behind authGuard — this is how a session is obtained) ──
 $routes->post('api/auth/login', 'Api\AuthController::login');

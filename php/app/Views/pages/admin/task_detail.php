@@ -48,7 +48,7 @@
               · Submitted <?= date('M d, Y h:i A', strtotime($s['submitted_at'])) ?>
             </span>
           </div>
-          <span class="status-pill <?= $s['status'] === 'Reviewed' ? 'badge-reviewed' : 'badge-submitted' ?>"><?= e($s['status']) ?></span>
+          <span class="status-pill <?= submissionBadge($s['status']) ?>"><?= e($s['status']) ?></span>
         </div>
 
         <?php if ($s['notes']): ?>

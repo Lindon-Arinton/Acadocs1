@@ -3,6 +3,7 @@
 namespace App\Controllers\Teacher;
 
 use App\Controllers\BaseController;
+use App\Models\DocumentFolderModel;
 use App\Models\NotificationModel;
 use App\Models\TaskAssigneeModel;
 use App\Models\TaskFeedbackModel;
@@ -105,7 +106,7 @@ class SubmitDocuments extends BaseController
                 'task_id'      => $taskId,
                 'user_id'      => $user['id'],
                 'notes'        => $this->request->getPost('notes') ?? '',
-                'status'       => 'Submitted',
+                'status'       => 'Pending',
                 'submitted_at' => date('Y-m-d H:i:s'),
             ];
 
@@ -133,6 +134,10 @@ class SubmitDocuments extends BaseController
                 ]);
             }
 
+            // Auto-file the upload into Document Management under a folder
+            // named after the task (title + date created).
+            (new DocumentFolderModel())->ensureForTask($task);
+
             $totalSubmitted = $submissionModel->where('task_id', $taskId)->countAllResults();
             $others         = $totalSubmitted - 1;
             $notifTitle     = $user['name'] . ($others > 0
@@ -140,7 +145,7 @@ class SubmitDocuments extends BaseController
                 : '') . ' submitted';
 
             $notifModel = new NotificationModel();
-            foreach ((new UserModel())->where('role', 'admin')->findAll() as $admin) {
+            foreach ((new UserModel())->whereIn('role', ['admin', 'adas'])->where('id !=', $user['id'])->findAll() as $admin) {
                 $notifModel->upsertGrouped(
                     (int) $admin['id'],
                     'task_submission',

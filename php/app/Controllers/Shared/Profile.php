@@ -3,11 +3,15 @@
 namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
+use App\Controllers\Teacher\PerformanceMps;
+use App\Models\TeacherModel;
+use App\Models\TeacherSubjectModel;
 use App\Models\UserModel;
 
 class Profile extends BaseController
 {
     private const ALLOWED_PHOTO_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    private const YEAR_PATTERN      = '/^(\d{4})-(\d{4})$/';
 
     public function index()
     {
@@ -97,6 +101,8 @@ class Profile extends BaseController
                     $model->update($sessionUser['id'], ['photo' => null]);
                     $this->refreshSession($model, $sessionUser['id']);
                     $message = 'Profile photo removed.';
+                } elseif ($action === 'save_subjects' && hasRole('teacher')) {
+                    [$message, $error] = $this->saveSubjectLoad($sessionUser);
                 }
             } catch (\Throwable $e) {
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/profile');
@@ -116,10 +122,134 @@ class Profile extends BaseController
         }
 
         return view('pages/shared/profile', [
-            'pageTitle' => 'My Profile',
-            'profile'   => $model->find($sessionUser['id']),
-            'flash'     => session()->getFlashdata('flash'),
+            'pageTitle'   => 'My Profile',
+            'profile'     => $model->find($sessionUser['id']),
+            'subjectLoad' => hasRole('teacher') ? $this->subjectLoad($sessionUser) : null,
+            'flash'       => session()->getFlashdata('flash'),
         ]);
+    }
+
+    /**
+     * The teacher's subject load for the school year + term picked on the
+     * page (defaults to the term after the latest one they filled in). When
+     * that term has nothing saved yet, the form is pre-filled from the load
+     * that would otherwise apply, so only what changed needs editing.
+     */
+    private function subjectLoad(array $user): ?array
+    {
+        $teacher = (new TeacherModel())->resolveForUser($user);
+        if (! $teacher) {
+            return null;
+        }
+
+        $subjectModel = new TeacherSubjectModel();
+        $teacherId    = (int) $teacher['id'];
+
+        $year = trim($this->request->getGet('sy') ?? '');
+        $term = (int) $this->request->getGet('term');
+        if (! $this->isValidYear($year) || ! in_array($term, PerformanceMps::TERM_OPTIONS, true)) {
+            [$year, $term] = $this->nextTerm($subjectModel->latestTermFor($teacherId));
+        }
+
+        $rows   = $subjectModel->forTerm($teacherId, $year, $term);
+        $source = 'saved';
+
+        if ($rows === []) {
+            $previous = $subjectModel->latestTermFor($teacherId, $year, $term);
+            $rows     = $subjectModel->forTeacher($teacherId, $year, $term);
+            $source   = $previous
+                ? 'Term ' . $previous['term'] . ', SY ' . $previous['school_year']
+                : ($rows !== [] ? 'the load set by the admin' : 'none');
+        }
+
+        $years = PerformanceMps::YEAR_OPTIONS;
+        array_unshift($years, $this->shiftYear($years[0], 1));
+
+        return [
+            'year'        => $year,
+            'term'        => $term,
+            'rows'        => $rows,
+            'source'      => $source,
+            'years'       => array_values(array_unique($years)),
+            'terms'       => PerformanceMps::TERM_OPTIONS,
+            'gradeLevels' => PerformanceMps::GRADE_LEVELS,
+            'subjects'    => PerformanceMps::SUBJECTS,
+        ];
+    }
+
+    /** @return array{0:?string,1:?string} [message, error] */
+    private function saveSubjectLoad(array $user): array
+    {
+        $year = trim($this->request->getPost('school_year') ?? '');
+        $term = (int) $this->request->getPost('term');
+
+        if (! $this->isValidYear($year) || ! in_array($term, PerformanceMps::TERM_OPTIONS, true)) {
+            return [null, 'Please pick a valid school year (e.g. 2026-2027) and term.'];
+        }
+
+        $teacher = (new TeacherModel())->resolveForUser($user);
+        if (! $teacher) {
+            return [null, 'No teacher record is linked to your account.'];
+        }
+
+        $rows = [];
+        foreach ($this->request->getPost('subjects') ?? [] as $row) {
+            $subject = trim((string) ($row['subject'] ?? ''));
+            $grade   = trim((string) ($row['grade'] ?? ''));
+            $section = trim((string) ($row['section'] ?? ''));
+
+            if ($subject === '' && $grade === '' && $section === '') {
+                continue;
+            }
+            if ($subject === '' || $grade === '' || $section === '') {
+                return [null, 'Each subject needs a subject, grade level and section.'];
+            }
+            if (! in_array($grade, PerformanceMps::GRADE_LEVELS, true)) {
+                return [null, 'Invalid grade level: ' . $grade];
+            }
+
+            $key        = strtolower($subject . '|' . $grade . '|' . $section);
+            $rows[$key] = ['subject' => $subject, 'grade_level' => $grade, 'section' => $section];
+        }
+
+        if ($rows === []) {
+            return [null, 'Add at least one subject for this term.'];
+        }
+
+        (new TeacherSubjectModel())->replaceTerm((int) $teacher['id'], $year, $term, array_values($rows));
+
+        return ['Subject load saved for Term ' . $term . ', SY ' . $year . '.', null];
+    }
+
+    private function isValidYear(string $year): bool
+    {
+        return preg_match(self::YEAR_PATTERN, $year, $m) === 1 && (int) $m[2] === (int) $m[1] + 1;
+    }
+
+    private function shiftYear(string $year, int $by): string
+    {
+        $start = (int) substr($year, 0, 4) + $by;
+
+        return $start . '-' . ($start + 1);
+    }
+
+    /**
+     * The term after the given one (Term 3 rolls into Term 1 of the next
+     * school year); the current school year's Term 1 when there is none.
+     *
+     * @return array{0:string,1:int}
+     */
+    private function nextTerm(?array $latest): array
+    {
+        if (! $latest) {
+            return [PerformanceMps::YEAR_OPTIONS[0], PerformanceMps::TERM_OPTIONS[0]];
+        }
+
+        $term = (int) $latest['term'];
+
+        return $term < max(PerformanceMps::TERM_OPTIONS)
+            ? [$latest['school_year'], $term + 1]
+            : [$this->shiftYear($latest['school_year'], 1), PerformanceMps::TERM_OPTIONS[0]];
     }
 
     private function refreshSession(UserModel $model, int $userId): void

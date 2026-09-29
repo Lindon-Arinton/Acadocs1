@@ -154,6 +154,7 @@ class Dashboard extends BaseController
             'enrollmentTotals'   => $enrollmentTotals,
             'mpsTrend'           => $mpsTrend,
             'mpsSourceYear'      => $mpsSourceYear,
+            'mpsByYear'          => $avgMpsByYear,
             'mpsOverallAvg'      => $mpsOverallAvg,
             'enrolleesSparkline' => $this->sparkline(array_column($enrolleesSeries, 'value')),
             'dropoutSparkline'   => $this->sparkline(array_column($dropoutSeries, 'value')),

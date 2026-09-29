@@ -30,6 +30,10 @@ include APPPATH . 'Views/layout/header.php';
 <?php endif; ?>
 
 <!-- Condition summary -->
+<div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2">
+  <h6 class="fw-semibold mb-0"><i class="bi bi-clipboard-check me-2"></i>Condition of Property</h6>
+  <span class="text-muted" style="font-size:.75rem">Number of items per condition rating<?= ($grade !== 'all' || $condition !== 'all' || $search !== '') ? ' (filtered)' : '' ?></span>
+</div>
 <div class="row g-3 mb-4">
   <?php foreach (['Excellent'=>['#d1fae5','#065f46'],'Good'=>['#dbeafe','#1e40af'],'Fair'=>['#fef9c3','#713f12'],'Poor'=>['#fee2e2','#991b1b']] as $cond=>[$bg,$tc]): ?>
   <div class="col-6 col-xl-3">
@@ -39,8 +43,9 @@ include APPPATH . 'Views/layout/header.php';
           <i class="bi <?= $condCfg[$cond][1] ?>" style="color:<?= $tc ?>;font-size:1.1rem;"></i>
         </div>
         <div>
-          <div style="font-size:1.6rem;font-weight:700;color:<?= $tc ?>"><?= $condStats[$cond] ?? 0 ?></div>
-          <div class="text-muted" style="font-size:.78rem"><?= $cond ?></div>
+          <div class="text-muted text-uppercase fw-semibold" style="font-size:.68rem;letter-spacing:.04em">Condition: <?= $cond ?></div>
+          <div style="font-size:1.6rem;font-weight:700;color:<?= $tc ?>;line-height:1.2"><?= $condStats[$cond] ?? 0 ?></div>
+          <div class="text-muted" style="font-size:.75rem"><?= ($condStats[$cond] ?? 0) === 1 ? 'item' : 'items' ?> in <?= strtolower($cond) ?> condition</div>
         </div>
       </div>
     </div>
@@ -174,14 +179,26 @@ include APPPATH . 'Views/layout/header.php';
           <div class="row g-3">
             <div class="col-6">
               <label class="form-label">Grade</label>
-              <input type="text" name="grade" class="form-control" list="gradeList" required>
-              <datalist id="gradeList">
-                <?php foreach ($grades as $g): ?><option value="<?= e($g) ?>"><?php endforeach; ?>
-              </datalist>
+              <div class="maroon-select" style="width:100%;">
+                <select name="grade" id="addItemGrade" class="maroon-select-native" required
+                        data-sections="<?= e(json_encode($sectionsByGrade)) ?>">
+                  <?php foreach (array_keys($sectionsByGrade) as $g): ?>
+                  <option value="<?= e($g) ?>" <?= $g === 'Grade 7' ? 'selected' : '' ?>><?= e($g) ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-6">
               <label class="form-label">Section</label>
-              <input type="text" name="section" class="form-control" required>
+              <div class="maroon-select" style="width:100%;">
+                <select name="section" id="addItemSection" class="maroon-select-native" required disabled>
+                  <option value="" disabled selected>Select grade first</option>
+                </select>
+                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                <div class="maroon-select-panel"></div>
+              </div>
             </div>
             <div class="col-12">
               <label class="form-label">Item Name</label>
@@ -226,6 +243,28 @@ function exportTable(tableId, filename) {
     a.click();
 }
 initLiveSearch('propSearchInput', 'filterForm');
+
+// Add Item: the Section dropdown only lists the sections of the chosen grade.
+(function () {
+    const gradeSel   = document.getElementById('addItemGrade');
+    const sectionSel = document.getElementById('addItemSection');
+    if (!gradeSel || !sectionSel) return;
+    const sectionsByGrade = JSON.parse(gradeSel.dataset.sections || '{}');
+
+    function fillSections() {
+        const sections = sectionsByGrade[gradeSel.value] || [];
+        sectionSel.innerHTML = '';
+        sectionSel.add(new Option(sections.length ? 'Select section' : 'No sections for this grade', '', true, true));
+        sectionSel.options[0].disabled = true;
+        sections.forEach(s => sectionSel.add(new Option(s, s)));
+        sectionSel.disabled = sections.length === 0;
+        const root = sectionSel.closest('.maroon-select');
+        if (root && root.maroonSelectSync) root.maroonSelectSync();
+    }
+
+    gradeSel.addEventListener('change', fillSections);
+    fillSections(); // Grade 7 is preselected, so load its sections right away
+})();
 </script>
 HTML;
 include APPPATH . 'Views/layout/footer.php';

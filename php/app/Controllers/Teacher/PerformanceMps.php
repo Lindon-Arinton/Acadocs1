@@ -85,7 +85,7 @@ class PerformanceMps extends BaseController
             $redirect = '/performance/mps?year=' . urlencode($year) . '&term=' . $term;
 
             $rawScores    = $this->request->getPost('scores') ?? [];
-            $handledCells = $this->handledCells($this->currentTeacherRow());
+            $handledCells = $this->handledCells($this->currentTeacherRow($year, $term));
 
             // Belt-and-suspenders: the form only ever renders inputs for the
             // signed-in teacher's own grade/subject/section cells, but a crafted
@@ -163,7 +163,7 @@ class PerformanceMps extends BaseController
             $existing[$shortKey][$row['grade_level']][$row['subject']][$sectionLabel] = $row['mps'];
         }
 
-        $handledCells = $this->handledCells($this->currentTeacherRow());
+        $handledCells = $this->handledCells($this->currentTeacherRow($year, $term));
 
         return view('pages/teacher/performance_mps', [
             'pageTitle'   => 'Enter MPS Scores',
@@ -245,7 +245,7 @@ class PerformanceMps extends BaseController
                 $uploadPath . DIRECTORY_SEPARATOR . $fileName,
                 $year,
                 $term,
-                $this->gradeSubjectOnly($this->handledCells($this->currentTeacherRow()))
+                $this->gradeSubjectOnly($this->handledCells($this->currentTeacherRow($year, $term)))
             );
         } catch (\Throwable $e) {
             return $isAjax ? $this->ajaxError('Import failed: ' . $e->getMessage()) : redirect()->to($redirect);
@@ -290,14 +290,20 @@ class PerformanceMps extends BaseController
             return redirect()->to('/dashboard');
         }
 
-        $handledCells = $this->handledCells($this->currentTeacherRow());
+        $year = trim($this->request->getGet('year') ?? '');
+        $term = (int) $this->request->getGet('term');
+        if (! preg_match(self::YEAR_PATTERN, $year) || ! in_array($term, self::TERM_OPTIONS, true)) {
+            [$year, $term] = [null, null];
+        }
+
+        $handledCells = $this->handledCells($this->currentTeacherRow($year, $term));
         $subjects     = $this->subjectsFromCells($handledCells);
         $gradeLevels  = $this->gradesFromCells($handledCells);
 
         if ($subjects === [] || $gradeLevels === []) {
             session()->setFlashdata('flash', [
                 'type' => 'danger',
-                'msg'  => 'You have no assigned subjects yet — please ask the admin to set your subject load.',
+                'msg'  => 'You have no subjects for this term yet — add them under My Profile → Subject Load.',
             ]);
 
             return redirect()->to('/performance/mps');
@@ -333,8 +339,11 @@ class PerformanceMps extends BaseController
         return $this->response->download($tempFile, null)->setFileName('mps_scores_template.xlsx');
     }
 
-    /** The current session's teacher row, joined with its subjects (see TeacherModel::findWithSubjects()). */
-    private function currentTeacherRow(): ?array
+    /**
+     * The current session's teacher row, joined with their subject load for
+     * the given school year + term (see TeacherModel::findWithSubjects()).
+     */
+    private function currentTeacherRow(?string $year = null, ?int $term = null): ?array
     {
         $teacherModel = new TeacherModel();
         $teacher      = $teacherModel->resolveForUser(currentUser());
@@ -343,7 +352,7 @@ class PerformanceMps extends BaseController
             return null;
         }
 
-        return $teacherModel->findWithSubjects((int) $teacher['id']) ?? $teacher;
+        return $teacherModel->findWithSubjects((int) $teacher['id'], $year, $term) ?? $teacher;
     }
 
     /**

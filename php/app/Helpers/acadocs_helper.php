@@ -23,6 +23,20 @@ if (! function_exists('e')) {
     }
 }
 
+if (! function_exists('submissionBadge')) {
+    /**
+     * Status-pill class for a task submission status (Pending until an
+     * admin marks it Reviewed or Returned).
+     */
+    function submissionBadge(?string $status): string
+    {
+        return [
+            'Reviewed' => 'badge-reviewed',
+            'Returned' => 'badge-returned',
+        ][$status] ?? 'badge-pending';
+    }
+}
+
 if (! function_exists('richText')) {
     /**
      * Escapes user text, then renders **bold** and *italic* markers as HTML.

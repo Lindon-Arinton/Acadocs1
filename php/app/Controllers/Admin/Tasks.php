@@ -9,6 +9,7 @@ use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
 use App\Models\TaskSubmissionFileModel;
 use App\Models\TaskSubmissionModel;
+use App\Models\TeacherSubjectModel;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -32,7 +33,7 @@ class Tasks extends BaseController
                     $title        = $this->request->getPost('title');
                     $assignedRole = $this->request->getPost('assigned_role');
                     $deadlineDate = $this->request->getPost('deadline_date');
-                    $deadlineTime = $this->request->getPost('deadline_time') ?: '00:00';
+                    $deadlineTime = $this->request->getPost('deadline_time') ?: '23:59';
 
                     if ($deadlineDate < date('Y-m-d')) {
                         $error = 'Deadline cannot be in the past.';
@@ -129,12 +130,20 @@ class Tasks extends BaseController
         }
         unset($task);
 
-        $assignableUsers = $userModel->whereIn('role', ['teacher', 'adas'])->orderBy('name', 'ASC')->findAll();
+        $assignableUsers     = $userModel->whereIn('role', ['teacher', 'adas'])->orderBy('name', 'ASC')->findAll();
+        $departmentsByUserId = (new TeacherSubjectModel())->departmentsByUserId();
+        foreach ($assignableUsers as &$u) {
+            $u['departments'] = $departmentsByUserId[(int) $u['id']] ?? [];
+        }
+        unset($u);
+        $departments = array_values(array_unique(array_merge([], ...array_values($departmentsByUserId))));
+        sort($departments);
 
         return view('pages/admin/tasks', [
             'pageTitle'       => 'Tasks & Assignments',
             'tasks'           => $tasks,
             'assignableUsers' => $assignableUsers,
+            'departments'     => $departments,
             'flash'           => session()->getFlashdata('flash'),
         ]);
     }

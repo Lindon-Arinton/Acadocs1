@@ -60,7 +60,7 @@ class TeachersController extends BaseApiController
         ]);
 
         $subjectModel = new TeacherSubjectModel();
-        $subjectModel->where('teacher_id', $id)->delete();
+        $subjectModel->where('teacher_id', $id)->where('school_year', null)->delete();
         foreach (($b['subjects'] ?? []) as $subject) {
             $subjectModel->insert(array_merge(['teacher_id' => $id], $this->normalizeSubject($subject)));
         }

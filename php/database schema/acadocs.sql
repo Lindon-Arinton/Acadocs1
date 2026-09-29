@@ -289,6 +289,30 @@ CREATE TABLE IF NOT EXISTS `document_files` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `document_folders`
+-- (one Document Management folder per task, auto-created on first upload)
+--
+
+CREATE TABLE IF NOT EXISTS `document_folders` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `task_id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `task_id` (`task_id`),
+  CONSTRAINT `document_folders_task_fk` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `document_folders`
+--
+
+INSERT IGNORE INTO `document_folders` (`id`, `task_id`, `name`, `created_at`) VALUES
+(1, 1, 'Submit Q1 DLL - Jul 25, 2026', '2026-07-25 07:47:22');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `document_links`
 --
 
@@ -587,6 +611,26 @@ CREATE TABLE IF NOT EXISTS `mps_test_scores` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `password_resets`
+-- (one-time "Forgot password" codes, stored hashed)
+--
+
+CREATE TABLE IF NOT EXISTS `password_resets` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) UNSIGNED NOT NULL,
+  `code_hash` varchar(255) NOT NULL,
+  `attempts` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `expires_at` datetime NOT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `password_resets_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `performance_by_level`
 --
 
@@ -829,7 +873,7 @@ CREATE TABLE IF NOT EXISTS `task_submissions` (
   `file_path` varchar(255) DEFAULT NULL,
   `file_name` varchar(255) DEFAULT NULL,
   `notes` text DEFAULT NULL,
-  `status` enum('Submitted','Reviewed') DEFAULT 'Submitted',
+  `status` enum('Pending','Reviewed','Returned') DEFAULT 'Pending',
   `submitted_at` datetime NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
@@ -844,7 +888,7 @@ CREATE TABLE IF NOT EXISTS `task_submissions` (
 --
 
 INSERT IGNORE INTO `task_submissions` (`id`, `task_id`, `user_id`, `file_path`, `file_name`, `notes`, `status`, `submitted_at`, `created_at`) VALUES
-(1, 1, 15, 'C:\\Users\\Huawei Matebook\\Desktop\\Acadocs1\\php\\writable\\uploads/tasks/1\\1784965642_02b99ff6b28f5020c497.pdf', 'Basic-Ed-Enrollment-Form.pdf', '', 'Submitted', '2026-07-25 16:23:26', '2026-07-25 07:47:22');
+(1, 1, 15, 'C:\\Users\\Huawei Matebook\\Desktop\\Acadocs1\\php\\writable\\uploads/tasks/1\\1784965642_02b99ff6b28f5020c497.pdf', 'Basic-Ed-Enrollment-Form.pdf', '', 'Pending', '2026-07-25 16:23:26', '2026-07-25 07:47:22');
 
 -- --------------------------------------------------------
 
@@ -943,8 +987,11 @@ CREATE TABLE IF NOT EXISTS `teacher_subjects` (
   `subject` varchar(100) NOT NULL,
   `grade_level` varchar(20) DEFAULT NULL,
   `section` varchar(100) DEFAULT NULL,
+  `school_year` varchar(9) DEFAULT NULL,
+  `term` tinyint(3) UNSIGNED DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `teacher_id` (`teacher_id`),
+  KEY `teacher_term` (`teacher_id`,`school_year`,`term`),
   CONSTRAINT `teacher_subjects_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
