@@ -1183,14 +1183,96 @@ CREATE TABLE IF NOT EXISTS `templates` (
   PRIMARY KEY (`id`),
   KEY `category_id` (`category_id`),
   CONSTRAINT `templates_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `template_categories` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=84 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `templates`
 --
 
 INSERT IGNORE INTO `templates` (`id`, `category_id`, `title`, `description`, `file_path`, `file_name`, `file_ext`, `file_size`, `uploaded_by`, `date_added`, `created_at`) VALUES
-(1, 1, 'CERTIFICATE', '', 'C:\\Users\\Huawei Matebook\\Desktop\\Acadocs1\\php\\writable\\uploads/templates/1\\1784966595_8a72451447d84b77a049.docx', 'CERTIFICATE.docx', 'docx', 1114356, 'Rhonnel Magyaya', '2026-07-25', '2026-07-25 08:03:15');
+(1, 1, 'KEY-PERFORMANCE-INDICATOR-TEMPLATE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/1\\1785053364_95441f98082eaa597d9b.bin', 'KEY-PERFORMANCE-INDICATOR-2023-2024-blank (1).docx', 'docx', 42304, 'Rhonnel Magyaya', '2026-07-26', '2026-07-26 16:09:24'),
+(2, 3, 'BAC1-F-038-NOTICE-OF-BID-RECEIVED', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127428_fda9b226769d381a2c15.docx', 'BAC1-F-038-NOTICE-OF-BID-RECEIVED.docx', 'docx', 103953, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:43:48'),
+(3, 3, 'BAC1-F-037-BAC-RESOLUTION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127438_526c7071164676911271.docx', 'BAC1-F-037-BAC-RESOLUTION.docx', 'docx', 121586, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:43:58'),
+(4, 3, 'BAC1-F-033-PUBLIC-BIDDING-CHECKLIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127467_1b1525da7381a3b2969e.docx', 'BAC1-F-033-PUBLIC-BIDDING-CHECKLIST.docx', 'docx', 109059, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:44:27'),
+(5, 3, 'BAC1-F-026-NOTICE-TO-PROCEED-AMP', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127483_893ec7563bc7f837d7fc.docx', 'BAC1-F-026-NOTICE-TO-PROCEED-AMP.docx', 'docx', 105730, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:44:43'),
+(6, 3, 'BAC1-F-025-NOTICE-OF-AWARD-AMP', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127492_aea9f7b1bf0f1c259293.docx', 'BAC1-F-025-NOTICE-OF-AWARD-AMP.docx', 'docx', 105544, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:44:52'),
+(7, 3, 'BAC1-F-024-ABSTRACT-OF-QUOTATIONS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127507_d79cb591668170b1cb00.docx', 'BAC1-F-024-ABSTRACT-OF-QUOTATIONS.docx', 'docx', 107713, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:45:07'),
+(8, 3, 'BAC1-F-024-ABSTRACT-OF-QUOTATION-AS-READ', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127521_7ac8dc8255a711a48535.docx', 'BAC1-F-024-ABSTRACT-OF-QUOTATION-AS-READ.docx', 'docx', 107587, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:45:21'),
+(9, 3, 'BAC1-F-023-REQUEST-FOR-QUOTATION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127547_2a786b027641c1fc41c7.docx', 'BAC1-F-023-REQUEST-FOR-QUOTATION.docx', 'docx', 107043, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:45:47'),
+(10, 3, 'BAC1-F-019-NOTICE-TO-PROCEED-Public-Bidding', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127585_e587badf12d32d965970.docx', 'BAC1-F-019-NOTICE-TO-PROCEED-Public-Bidding.docx', 'docx', 105743, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:46:25'),
+(11, 3, 'BAC1-F-020-TRANSMITTAL-COA', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127630_d764f9423c82baa2b1ed.docx', 'BAC1-F-020-TRANSMITTAL-COA.docx', 'docx', 106547, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:47:10'),
+(12, 3, 'BAC1-F-015-NOTICE-OF-AWARD-Public-Bidding-Goods-and-Services', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127656_0f6675f14316d6b5b882.docx', 'BAC1-F-015-NOTICE-OF-AWARD-Public-Bidding-Goods-and-Services.docx', 'docx', 106231, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:47:36'),
+(13, 3, 'BAC1-F-013-NOTICE-OF-POST-QUALIFICATION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127670_a96d78abd7a4af82d865.docx', 'BAC1-F-013-NOTICE-OF-POST-QUALIFICATION.docx', 'docx', 103207, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:47:50'),
+(14, 3, 'BAC1-F-009-ELIGIBILITY-CHECKLIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127684_e9f120a5d29779e89e29.docx', 'BAC1-F-009-ELIGIBILITY-CHECKLIST.docx', 'docx', 119145, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:48:04'),
+(15, 3, 'BAC1-F-012-POST-QUALIFICATION-REPORT', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127705_54682e6a82b6db0adf5b.docx', 'BAC1-F-012-POST-QUALIFICATION-REPORT.docx', 'docx', 120328, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:48:25'),
+(16, 3, 'BAC1-F-006-NOTIFICATION-LETTER-FOR-OBSERVER', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127736_60086178c1620e8b6e2d.docx', 'BAC1-F-006-NOTIFICATION-LETTER-FOR-OBSERVER.docx', 'docx', 104657, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:48:56'),
+(17, 3, 'BAC1-F-007-SUPPLEMENTAL-BID-BULLETIN', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127747_d95c8cd7e110aedf1743.docx', 'BAC1-F-007-SUPPLEMENTAL-BID-BULLETIN.docx', 'docx', 103297, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:49:07'),
+(18, 3, 'BAC1-F-002-ATTENDANCE-SHEET', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127766_ffbcef78ddde8a83f176.docx', 'BAC1-F-002-ATTENDANCE-SHEET.docx', 'docx', 110622, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:49:26'),
+(19, 3, 'BAC1-F-003-CONFERENCE-MINUTES', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127784_f4155bc0e8df48c315f1.docx', 'BAC1-F-003-CONFERENCE-MINUTES.docx', 'docx', 106962, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:49:44'),
+(20, 3, 'BAC1-F-001-NOTIFICATION-LETTER-FOR-BAC-MEMBERS-END-USER', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127795_f7164256f5fb31111408.doc', 'BAC1-F-001-NOTIFICATION-LETTER-FOR-BAC-MEMBERS-END-USER.doc', 'doc', 126464, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 12:49:55'),
+(21, 4, 'WORK-PLAN', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_d1bcb10615a44ed91a32.docx', 'WORK-PLAN.docx', 'docx', 1115080, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:04:55'),
+(22, 4, 'SLE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_4dfb0160ee4e70d44a5b.docx', 'SLE.docx', 'docx', 1113308, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:04:55'),
+(23, 4, 'PROJECT-COMPLETION-2', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_132758342698bd264923.docx', 'PROJECT-COMPLETION-2.docx', 'docx', 1115770, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:04:55'),
+(24, 4, 'REGISTRATION-FORM', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_152521a4a0a471a9736c.docx', 'REGISTRATION-FORM.docx', 'docx', 1114264, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:04:55'),
+(25, 4, 'PROJECT-COMPLETION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_32680a8d6c01c06a1049.docx', 'PROJECT-COMPLETION.docx', 'docx', 1115769, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:04:55'),
+(26, 4, 'PROCESS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_255961384b47c672cce7.docx', 'PROCESS.docx', 'docx', 1112948, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:15'),
+(27, 4, 'LOG-SHEET', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_2867480677d2d8227c16.docx', 'LOG-SHEET.docx', 'docx', 1113262, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:15'),
+(28, 4, 'LIST-OF-PARTCICIPANTS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_20365a6c9a584a617c4c.docx', 'LIST-OF-PARTCICIPANTS.docx', 'docx', 1114274, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:15'),
+(29, 4, 'l-and-d-plan', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_24ec5409fe96fa656ffb.docx', 'l-and-d-plan.docx', 'docx', 1119636, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:15'),
+(30, 4, 'l-and-d-survey', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_4b4c2d8c037479f9398f.docx', 'l-and-d-survey.docx', 'docx', 1116633, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:15'),
+(31, 4, 'l-and-d-design', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_0d75a2625024db503f9d.docx', 'l-and-d-design.docx', 'docx', 1118502, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(32, 4, 'INDIVIDUAL-DEVELOPMENT-PLAN', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_82f8f05128433eab6c98.docx', 'INDIVIDUAL-DEVELOPMENT-PLAN.docx', 'docx', 1112202, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(33, 4, 'GAWAD-BALISONG-MANAHIS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_0dc2f9b98e9c66200112.docx', 'GAWAD-BALISONG-MANAHIS.docx', 'docx', 1112772, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(34, 4, 'GAWAD-BALISONG-MANAHIS-2', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_f5d9503a02788bc37068.docx', 'GAWAD-BALISONG-MANAHIS-2.docx', 'docx', 1113101, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(35, 4, 'END-OF-TERM-BEST-EMPLOYEE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_5db9e5ed4ac084dea2c3.docx', 'END-OF-TERM-BEST-EMPLOYEE.docx', 'docx', 1118405, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(36, 4, 'DISTRIBUTION-LIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_d3ddcbadd0740b0e36e6.docx', 'DISTRIBUTION-LIST.docx', 'docx', 1114813, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(37, 4, 'Daily-Attendance-Sheet (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_9f68f54e100265200a99.docx', 'Daily-Attendance-Sheet (1).docx', 'docx', 700189, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(38, 4, 'COMPLETION-REPORT-INDIVIDUAL', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_a84f28e74c61ce3a6733.docx', 'COMPLETION-REPORT-INDIVIDUAL.docx', 'docx', 1114882, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(39, 4, 'CHECKLIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_28af281d8f51af7df22b.docx', 'CHECKLIST.docx', 'docx', 1114729, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(40, 4, 'CERTIFICATE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_9c330a56305b99ddb3c8.docx', 'CERTIFICATE.docx', 'docx', 1114356, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(41, 4, 'CERTIFICATE-OF-RECOGNITION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_1202fd4e87450d4ef470.docx', 'CERTIFICATE-OF-RECOGNITION.docx', 'docx', 1111704, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(42, 4, 'CERTIFICATE-2', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_4a392ecc809ac5bd465d.docx', 'CERTIFICATE-2.docx', 'docx', 1114568, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(43, 4, 'ATTENDANCE (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_d879782d47d18f6365fa.docx', 'ATTENDANCE (1).docx', 'docx', 1117540, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(44, 4, 'APPEARANCE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_8dac8a1ef9d409eaf7f9.docx', 'APPEARANCE.docx', 'docx', 1114488, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:05:51'),
+(45, 5, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_6586074b1bb7f7434ff3.xlsx', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE.xlsx', 'xlsx', 25949, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(46, 5, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (2)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_da0b1224e3843dac5620.xls', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE.xls', 'xls', 40448, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(47, 5, 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_d31d9cb709cb350a067c.xlsx', 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY.xlsx', 'xlsx', 23010, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(48, 5, 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_4761a2600b067143d1da.xlsx', 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY.xlsx', 'xlsx', 79255, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(49, 5, 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_23c333f4957b9fb3af50.xlsx', 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED.xlsx', 'xlsx', 22100, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(50, 5, 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_453dcf0962db4a43ee5d.xlsx', 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY.xlsx', 'xlsx', 21235, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(51, 5, 'Annex-A.5-INVENTORY-TRANFER-REPORT', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_c9a47f970ebbb72d55cf.xlsx', 'Annex-A.5-INVENTORY-TRANFER-REPORT.xlsx', 'xlsx', 23111, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(52, 5, 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_4deca2e6907510bfe4ea.xlsx', 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED.xlsx', 'xlsx', 23314, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(53, 5, 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_6b6c20de6f75422530a4.xlsx', 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP.xlsx', 'xlsx', 20226, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(54, 5, 'Annex-A.2-PROPERTY-LEDGER-CARD', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_317f318b8a02a990d6fb.xlsx', 'Annex-A.2-PROPERTY-LEDGER-CARD.xlsx', 'xlsx', 23370, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(55, 5, 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_8d6676146ee13248c675.xlsx', 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY.xlsx', 'xlsx', 82596, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(56, 5, 'Annex-A.1-PROPERTY-CARD', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_d3b63fe66951fa7dcad4.xlsx', 'Annex-A.1-PROPERTY-CARD.xlsx', 'xlsx', 23080, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:06:56'),
+(57, 6, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_e786620e650ac5c6a994.xls', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1).xls', 'xls', 40448, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(58, 6, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1) (2)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_10528ddfcfd86d34b141.xlsx', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1).xlsx', 'xlsx', 25949, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(59, 6, 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_d54e8f54db4be58da303.xlsx', 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY (1).xlsx', 'xlsx', 23010, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(60, 6, 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_b4304f591f2afebb7f81.xlsx', 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY (1).xlsx', 'xlsx', 79255, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(61, 6, 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_2fc97c4fcc6c20ff744b.xlsx', 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED (1).xlsx', 'xlsx', 22100, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(62, 6, 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_565e7aa3d75f3347d009.xlsx', 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY (1).xlsx', 'xlsx', 21235, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(63, 6, 'Annex-A.5-INVENTORY-TRANFER-REPORT (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_a64460bb178afe7e7655.xlsx', 'Annex-A.5-INVENTORY-TRANFER-REPORT (1).xlsx', 'xlsx', 23111, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(64, 6, 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_59cbf366b2c1f364065e.xlsx', 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED (1).xlsx', 'xlsx', 23314, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(65, 6, 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_9642affc1646b6be2d18.xlsx', 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP (1).xlsx', 'xlsx', 20226, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(66, 6, 'Annex-A.2-PROPERTY-LEDGER-CARD (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_f96ad4802d32342a64b0.xlsx', 'Annex-A.2-PROPERTY-LEDGER-CARD (1).xlsx', 'xlsx', 23370, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(67, 6, 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_707d923cee796baf8524.xlsx', 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY (1).xlsx', 'xlsx', 82596, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(68, 6, 'Annex-A.1-PROPERTY-CARD (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_d7cd039a0560af3af328.xlsx', 'Annex-A.1-PROPERTY-CARD (1).xlsx', 'xlsx', 23080, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:08:00'),
+(69, 7, 'Request-CTC-or-Non-CTC-Checklist-of-Requirements', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_3e04f288b7e7a5fb4279.docx', 'Request-CTC-or-Non-CTC-Checklist-of-Requirements.docx', 'docx', 254856, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(70, 7, 'RECORDS-CUSTODIAN-LIAISON-OFFICER-2025', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_0ae597f68efb513a90aa.docx', 'RECORDS-CUSTODIAN-LIAISON-OFFICER-2025.docx', 'docx', 218711, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(71, 7, 'Checklist-of-Requirements-Request-for-CAV', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_e455bb35a6c0f13d2688.docx', 'Checklist-of-Requirements-Request-for-CAV.docx', 'docx', 226410, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(72, 7, '6-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-RECOMMENDING-AUTHORITIES', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_5e6cbd90bb902deed44c.docx', '6-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-RECOMMENDING-AUTHORITIES.docx', 'docx', 42838, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(73, 7, '5-OFFICIAL-FOREIGN-TRAVEL-2023-RM388s2023', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_bca7e01313e79df665c1.docx', '5-OFFICIAL-FOREIGN-TRAVEL-2023-RM388s2023.docx', 'docx', 27295, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(74, 7, '4-LOCATOR-SLIP-2025', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_2ade5cc53ca2e24edfab.docx', '4-LOCATOR-SLIP-2025.docx', 'docx', 240309, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(75, 7, '3-PERSONAL-FOREIGN-TRAVEL-2023-RM338s2023', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_75005c815a24179a011e.docx', '3-PERSONAL-FOREIGN-TRAVEL-2023-RM338s2023.docx', 'docx', 43111, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(76, 7, '2-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-EMPLOYEES', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_442c0329a79a1925ad7f.docx', '2-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-EMPLOYEES.docx', 'docx', 22315, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(77, 7, '1-OFFICIAL-LOCAL-TRAVEL-2023', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_5c8597e13600b5b63918.docx', '1-OFFICIAL-LOCAL-TRAVEL-2023.docx', 'docx', 26869, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:09:13'),
+(78, 8, 'SDO-SGOD-F081_Research-implementation-Monitoring-Tool-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_23059aa015b5cd432e8d.docx', 'SDO-SGOD-F081_Research-implementation-Monitoring-Tool-Template.docx', 'docx', 253404, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:10:11'),
+(79, 8, 'SDO-SGOD-F080_Research-Dissemination-and-Utilization-template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_66a4a3e58146922f346b.docx', 'SDO-SGOD-F080_Research-Dissemination-and-Utilization-template.docx', 'docx', 257813, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:10:11'),
+(80, 8, 'SDO-SGOD-F079_QCC-Basic-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_0b171833c7708d94ccee.docx', 'SDO-SGOD-F079_QCC-Basic-Research-Template.docx', 'docx', 262059, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:10:11'),
+(81, 8, 'SDO-SGOD-F078_QCC-Action-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_1181bac31c61a783c29b.docx', 'SDO-SGOD-F078_QCC-Action-Research-Template.docx', 'docx', 261811, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:10:11'),
+(82, 8, 'SDO-SGOD-F077_Basic-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_58804701412f308d6029.docx', 'SDO-SGOD-F077_Basic-Research-Template.docx', 'docx', 251658, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:10:11'),
+(83, 8, 'SDO-SGOD-F076_Action-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_078d6397d14523de5666.docx', 'SDO-SGOD-F076_Action-Research-Template.docx', 'docx', 251793, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 13:10:11');
 
 -- --------------------------------------------------------
 
@@ -1205,20 +1287,20 @@ CREATE TABLE IF NOT EXISTS `template_categories` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `template_categories`
 --
 
 INSERT IGNORE INTO `template_categories` (`id`, `name`, `created_by`, `created_at`) VALUES
-(1, 'Certificate', 'System', '2026-07-24 14:26:21'),
-(2, 'BAC Forms', 'System', '2026-07-24 14:26:21'),
-(3, 'Research Template', 'System', '2026-07-24 14:26:21'),
-(4, 'Travel-Records Checklist', 'System', '2026-07-24 14:26:21'),
-(5, 'Curriculum Implementation Division-CID', 'System', '2026-07-24 14:26:21'),
-(6, 'COA Forms', 'System', '2026-07-24 14:26:21'),
-(7, 'HRD Forms', 'System', '2026-07-24 14:26:21');
+(1, 'Enrollment', 'Rhonnel Magyaya', '2026-07-26 15:37:52'),
+(3, 'BAC Forms', 'Rhonnel Magyaya', '2026-07-27 12:43:33'),
+(4, 'HRD Forms', 'Rhonnel Magyaya', '2026-07-27 13:03:28'),
+(5, 'COA Forms', 'Rhonnel Magyaya', '2026-07-27 13:06:41'),
+(6, 'CURRICULUM IMPLEMENTATION DIVISION-CID', 'Rhonnel Magyaya', '2026-07-27 13:07:30'),
+(7, 'TRAVEL-RECORDS CHECKLIST', 'Rhonnel Magyaya', '2026-07-27 13:08:58'),
+(8, 'Research Templates', 'Rhonnel Magyaya', '2026-07-27 13:09:44');
 
 -- --------------------------------------------------------
 

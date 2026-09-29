@@ -59,6 +59,9 @@ Vagrantfile
 
 /writable/uploads/*
 !/writable/uploads/index.html
+# Uploaded templates are shared project data (the DB rows in acadocs.sql
+# point at them), so they're committed; other uploads stay local.
+!/writable/uploads/templates/
 
 /writable/debugbar/*
 !/writable/debugbar/index.html

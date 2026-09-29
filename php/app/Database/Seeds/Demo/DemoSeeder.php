@@ -3,6 +3,7 @@
 namespace App\Database\Seeds\Demo;
 
 use App\Database\Seeds\DemoDataSeeder;
+use App\Models\TemplateModel;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -98,10 +99,8 @@ abstract class DemoSeeder extends Seeder
     }
 
     /**
-     * Uploaded templates whose file actually exists on this machine. Paths
-     * are stored absolute, so a DB imported from another machine points
-     * elsewhere — fall back to the same file name under this install's
-     * uploads/templates/{category_id}/ folder.
+     * Uploaded templates whose file actually exists on this machine (see
+     * TemplateModel::localPath() for rows imported from another machine).
      *
      * @return list<array{title:string,path:string,file_name:string,ext:string}>
      */
@@ -115,10 +114,7 @@ abstract class DemoSeeder extends Seeder
                 continue;
             }
 
-            $path = $t['file_path'];
-            if (! is_file($path)) {
-                $path = WRITEPATH . 'uploads/templates/' . $t['category_id'] . '/' . basename(str_replace('\\', '/', $t['file_path']));
-            }
+            $path = TemplateModel::localPath($t);
             if (! is_file($path)) {
                 continue;
             }

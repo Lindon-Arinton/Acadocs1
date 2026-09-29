@@ -90,8 +90,10 @@ mysql -u root acadocs < "database schema/acadocs.sql"
 For whole-system demo data on top of the real accounts (~11,000 rows: tasks
 and submissions with Templates files attached, attendance, MPS/enrolment/KPIs,
 chat, announcements, notifications, room inventory, links, parent meetings),
-run `php spark db:seed DemoDataSeeder` after uploading some files on the
-Templates page. It only fills gaps — it never overwrites existing records.
+run `php spark db:seed DemoDataSeeder`. It attaches the Templates files, which
+are committed under `writable/uploads/templates/` and match the `templates`
+rows in `acadocs.sql` (import the dump first). It only fills gaps — it never
+overwrites existing records.
 Re-running replaces the batch; `php spark db:seed DemoDataPurgeSeeder`
 removes it (keeping any demo row a real import has since overwritten).
 Modules live in `app/Database/Seeds/Demo/`.
