@@ -80,6 +80,35 @@ class OfficeConverter
         return is_file($expected) ? $expected : null;
     }
 
+    /**
+     * Returns a cached copy of $sourcePath converted to $targetExt, stored as
+     * "$cacheKey.$targetExt" in $cacheDir, converting it first if there's no
+     * cached copy yet (or the source file changed since).
+     */
+    public function convertCached(string $sourcePath, string $targetExt, string $cacheDir, int|string $cacheKey): ?string
+    {
+        $cached = rtrim($cacheDir, '\\/') . DIRECTORY_SEPARATOR . $cacheKey . '.' . $targetExt;
+
+        if (is_file($cached) && filemtime($cached) >= filemtime($sourcePath)) {
+            return $cached;
+        }
+
+        $result = $this->convert($sourcePath, $targetExt, $cacheDir);
+
+        if (! $result) {
+            return null;
+        }
+
+        if ($result !== $cached) {
+            if (is_file($cached)) {
+                unlink($cached);
+            }
+            rename($result, $cached);
+        }
+
+        return $cached;
+    }
+
     private function locateSoffice(): ?string
     {
         foreach (self::CANDIDATE_PATHS as $path) {

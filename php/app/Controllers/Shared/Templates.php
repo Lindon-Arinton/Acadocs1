@@ -4,6 +4,7 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Libraries\CertificateGenerator;
+use App\Libraries\FilePreview;
 use App\Libraries\OfficeConverter;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
@@ -18,12 +19,6 @@ class Templates extends BaseController
 
     /** File types LibreOffice can convert to PDF for preview/download. */
     private const OFFICE_TO_PDF = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'odt', 'ods', 'odp'];
-
-    /** Word/Slides formats: preview is a PDF rendered in the modal. */
-    private const PDF_PREVIEW_EXT = ['doc', 'docx', 'odt', 'ppt', 'pptx', 'odp'];
-
-    /** Spreadsheet formats: preview is an HTML table rendering, not a flattened PDF page. */
-    private const SPREADSHEET_PREVIEW_EXT = ['xls', 'xlsx', 'csv', 'ods'];
 
     /**
      * Returns the extra download/preview format a file's "usual type" can be
@@ -303,7 +298,7 @@ class Templates extends BaseController
                 throw PageNotFoundException::forPageNotFound();
             }
 
-            $converted = $this->convertedPath($template, $as);
+            $converted = (new OfficeConverter())->convertCached($template['file_path'], $as, WRITEPATH . 'cache/templates', $template['id']);
 
             if (! $converted) {
                 return redirect()->back()->with('flash', [
@@ -328,126 +323,8 @@ class Templates extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        $ext = $template['file_ext'];
-
-        $mimeMap = [
-            'pdf'  => 'application/pdf',
-            'jpg'  => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png'  => 'image/png',
-            'txt'  => 'text/plain',
-        ];
-
-        if (isset($mimeMap[$ext])) {
-            return $this->response
-                ->setHeader('Content-Type', $mimeMap[$ext])
-                ->setHeader('Content-Disposition', 'inline; filename="' . $template['file_name'] . '"')
-                ->setBody(file_get_contents($template['file_path']));
-        }
-
-        if (in_array($ext, self::PDF_PREVIEW_EXT, true)) {
-            $pdfPath = $this->convertedPath($template, 'pdf');
-
-            if ($pdfPath) {
-                $inlineName = pathinfo($template['file_name'], PATHINFO_FILENAME) . '.pdf';
-
-                return $this->response
-                    ->setHeader('Content-Type', 'application/pdf')
-                    ->setHeader('Content-Disposition', 'inline; filename="' . $inlineName . '"')
-                    ->setBody(file_get_contents($pdfPath));
-            }
-
-            return $this->previewUnavailable();
-        }
-
-        if (in_array($ext, self::SPREADSHEET_PREVIEW_EXT, true)) {
-            $html = $this->renderOfficeAsHtml($template);
-
-            if ($html !== null) {
-                return $this->response
-                    ->setHeader('Content-Type', 'text/html; charset=UTF-8')
-                    ->setBody($html);
-            }
-
-            return $this->previewUnavailable();
-        }
-
-        return $this->previewUnavailable();
-    }
-
-    /**
-     * Signals to the page's JS (via a header it can check without ever
-     * rendering the response body) that this file has no working preview
-     * path, so it can show the "Preview Unavailable" card instead of
-     * embedding a blank or broken iframe.
-     */
-    private function previewUnavailable()
-    {
-        return $this->response
-            ->setHeader('X-Preview-Available', '0')
-            ->setBody('');
-    }
-
-    /**
-     * Renders a spreadsheet file to a standalone HTML table using
-     * PhpSpreadsheet directly — no LibreOffice binary required. Returns null
-     * if the file fails to parse (e.g. corrupted or password-protected).
-     */
-    private function renderOfficeAsHtml(array $template): ?string
-    {
-        $extra = '<style>body{font-family:"Inter",system-ui,sans-serif;padding:1.5rem;color:#1f2937;}'
-            . 'table{border-collapse:collapse;} table td,table th{border:1px solid #d1d5db;padding:.35rem .5rem;}'
-            . 'img{max-width:100%;height:auto;}</style>';
-
-        try {
-            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($template['file_path']);
-            $writer      = new \PhpOffice\PhpSpreadsheet\Writer\Html($spreadsheet);
-
-            ob_start();
-            $writer->save('php://output');
-            $html = ob_get_clean();
-        } catch (\Throwable $e) {
-            return null;
-        }
-
-        return str_contains($html, '</head>')
-            ? str_replace('</head>', $extra . '</head>', $html)
-            : $extra . $html;
-    }
-
-    /**
-     * Returns a cached converted copy of the template's file, converting via
-     * LibreOffice headless and caching the result if it isn't cached yet (or
-     * the source file changed since the cached copy was made).
-     */
-    private function convertedPath(array $template, string $targetExt): ?string
-    {
-        $cacheDir = WRITEPATH . 'cache/templates';
-
-        if (! is_dir($cacheDir)) {
-            mkdir($cacheDir, 0755, true);
-        }
-
-        $cached = $cacheDir . DIRECTORY_SEPARATOR . $template['id'] . '.' . $targetExt;
-
-        if (is_file($cached) && filemtime($cached) >= filemtime($template['file_path'])) {
-            return $cached;
-        }
-
-        $result = (new OfficeConverter())->convert($template['file_path'], $targetExt, $cacheDir);
-
-        if (! $result) {
-            return null;
-        }
-
-        if ($result !== $cached) {
-            if (is_file($cached)) {
-                unlink($cached);
-            }
-            rename($result, $cached);
-        }
-
-        return $cached;
+        return (new FilePreview(WRITEPATH . 'cache/templates'))
+            ->respond($this->response, $template['file_path'], $template['file_name'], $template['id']);
     }
 
     /**

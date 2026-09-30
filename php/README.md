@@ -18,7 +18,7 @@ room/property inventory — all behind a single role-based login.
 | Frontend            | Bootstrap 5.3.3, Bootstrap Icons 1.11.3, SweetAlert2 11 (all CDN)  |
 | Charts              | Chart.js 4.4.3                                                     |
 | Fonts               | Google Fonts — Inter                                               |
-| Office doc rendering| PhpWord / PhpSpreadsheet (bundled), docx-preview + JSZip (CDN), LibreOffice (optional, local) |
+| Office doc rendering| docx-preview + JSZip, officeparser (CDN, in-browser); PhpWord / PhpSpreadsheet (bundled) |
 
 ---
 
@@ -27,10 +27,9 @@ room/property inventory — all behind a single role-based login.
 - PHP 8.1+ with `intl`, `mbstring`, `mysqli` extensions
 - Composer
 - MySQL/MariaDB 10.4+
-- **Optional:** LibreOffice, installed locally, for the highest-fidelity
-  Excel/PowerPoint/other-Office template preview and the "Convert to PDF"
-  download option. Not required — see [Template preview](#template-preview)
-  below for how the app degrades without it.
+- **Optional:** LibreOffice, installed locally, only for the "Convert to PDF"
+  template download option (hidden when it isn't installed). File previews
+  never use it — see [File preview](#file-preview).
 
 ---
 
@@ -98,15 +97,15 @@ Re-running replaces the batch; `php spark db:seed DemoDataPurgeSeeder`
 removes it (keeping any demo row a real import has since overwritten).
 Modules live in `app/Database/Seeds/Demo/`.
 
-### 4. (Optional) Install LibreOffice for full-fidelity template preview
+### 4. (Optional) Install LibreOffice for the "Convert to PDF" template download
 
 ```powershell
 winget install --id TheDocumentFoundation.LibreOffice
 ```
 
 `App\Libraries\OfficeConverter` auto-detects it at its default install path —
-no configuration needed. Skip this step entirely if you don't need it; see
-[Template preview](#template-preview).
+no configuration needed. Skip this step entirely if you don't need that
+option; previews work without it (see [File preview](#file-preview)).
 
 ### 5. Serve the app
 
@@ -141,6 +140,7 @@ app/
 │   ├── auth/login.php          — login page with a hand-authored animated SVG illustration
 │   └── pages/{admin,teacher,adas,shared}/*.php — one view per page
 ├── Libraries/
+│   ├── FilePreview.php         — builds the inline preview response for templates, documents and task submissions
 │   ├── OfficeConverter.php     — LibreOffice-headless Office→PDF conversion (optional; degrades gracefully)
 │   └── CertificateGenerator.php— fills a Word template's ${Field} placeholders per row of an uploaded Excel list
 ├── Helpers/acadocs_helper.php  — e(), currentUser(), hasRole()
@@ -235,14 +235,31 @@ leave), and a right-side Chat Info panel. Fully responsive — on small
 viewports the list/thread/info panel each take the full screen with a Back
 button rather than sharing space.
 
-### Template preview
-`Shared\Templates::preview()` tries, in order:
-1. **LibreOffice** headless conversion to PDF, if installed (`OfficeConverter`) — highest fidelity, works for any Office format.
-2. **Client-side exact render** for `.doc`/`.docx` via the `docx-preview` library (loaded from CDN, needs `JSZip` loaded alongside it) — reproduces the real OOXML layout, fonts, and images in-browser regardless of server capability.
-3. **Server-side HTML fallback** for other Office formats via PhpWord/PhpSpreadsheet (already Composer dependencies for certificate generation) — lower fidelity, but works everywhere with zero extra setup.
+### File preview
+Every preview endpoint (templates, documents, document files, task
+submissions) goes through `App\Libraries\FilePreview`:
 
-None of these are required for the app to function — each tier degrades to
-the next rather than failing.
+- **PDF, images, text** — streamed inline as-is (PDFs open in the browser's own viewer).
+- **`.docx`, `.pptx`, `.xlsx`, `.csv`, `.odt`/`.ods`/`.odp`** — the endpoint returns a small page
+  with the file embedded, and `public/assets/js/office-viewer.js` renders it in the
+  viewer's browser: `.docx` with `docx-preview` + `JSZip` (keeps letterheads/headers and page
+  layout), the rest with `officeparser`. The libraries load from jsDelivr only when such a file
+  is opened (officeparser is ~5.5 MB, cached by the browser after the first time).
+- **Legacy `.doc` / `.xls`** — rendered to HTML server-side by PhpWord / PhpSpreadsheet (lower
+  fidelity), cached under `writable/cache/` until the file changes.
+- **`.ppt`** — no preview ("Preview unavailable"); download still works.
+
+Nothing here needs LibreOffice or any system command, so it works the same on
+shared hosting (e.g. Hostinger Web Hosting). Downloads always return the
+original uploaded file.
+
+Every HTML preview is sent with a `Content-Security-Policy: sandbox` header
+(and shown in a sandboxed iframe), so markup generated from an uploaded
+document runs in an isolated origin and can't reach the user's session.
+
+**Deployment:** the preview page loads `office-viewer.js` from `base_url()`,
+so set `app.baseURL` in `.env` to the real site URL (with `https://` if the
+site uses it).
 
 ### Motion loading overlays
 `app/Views/layout/header.php` + `footer.php` carry two full-screen animated

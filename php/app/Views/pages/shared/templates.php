@@ -488,11 +488,15 @@ function loadTemplatePreview(t, previewUrl, downloadBase) {
             if (result.contentType.indexOf('application/pdf') !== -1) {
                 box.innerHTML = '<iframe src=\"' + objectUrl + '\" style=\"width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;\"></iframe>';
             } else if (result.contentType.indexOf('text/html') !== -1) {
+                // Rendered from an uploaded document: keep it sandboxed. A blob:
+                // URL would inherit this page's origin, so use srcdoc instead.
+                URL.revokeObjectURL(objectUrl);
                 const iframe = document.createElement('iframe');
+                iframe.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
                 iframe.style.cssText = 'width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;background:#fff;';
                 box.innerHTML = '';
                 box.appendChild(iframe);
-                iframe.src = objectUrl;
+                result.blob.text().then(html => { iframe.srcdoc = html; });
             } else if (result.contentType.indexOf('text/plain') !== -1) {
                 result.blob.text().then(text => {
                     box.innerHTML = '<pre style=\"white-space:pre-wrap;max-height:65vh;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:1rem;background:var(--card);margin:0;\">' + escapeHtml(text) + '</pre>';
