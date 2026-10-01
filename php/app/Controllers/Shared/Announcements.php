@@ -26,8 +26,15 @@ class Announcements extends BaseController
             try {
                 if ($action === 'add') {
                     $type  = $this->request->getPost('type');
-                    $title = $this->request->getPost('title');
+                    $title = trim((string) $this->request->getPost('title'));
                     $date  = $this->request->getPost('date');
+
+                    // Only the title is required; content is optional.
+                    if ($title === '') {
+                        $error = 'Please enter a title.';
+
+                        return $isAjax ? $this->ajaxError($error) : redirect()->to('/announcements')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                    }
 
                     if ($date < date('Y-m-d')) {
                         $error = 'Announcement date cannot be in the past.';
@@ -38,7 +45,7 @@ class Announcements extends BaseController
                     $announcementId = $model->insert([
                         'type'    => $type,
                         'title'   => $title,
-                        'content' => $this->request->getPost('content'),
+                        'content' => trim((string) $this->request->getPost('content')),
                         'date'    => $date,
                         'status'  => 'active',
                     ]);

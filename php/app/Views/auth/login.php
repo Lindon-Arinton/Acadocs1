@@ -26,7 +26,10 @@
             <i class="bi bi-info-circle"></i>
           </button>
         </div>
-        <span class="text-muted" id="liveClock" style="font-size:.78rem;font-variant-numeric:tabular-nums;">--:--:--</span>
+        <div class="text-end" style="line-height:1.25;font-variant-numeric:tabular-nums;">
+          <div id="liveDate" style="font-size:.72rem;font-weight:600;color:var(--primary);opacity:.65;"></div>
+          <div id="liveClock" class="text-muted" style="font-size:.78rem;">--:--:--</div>
+        </div>
       </div>
 
       <h3 class="login-form-title">Welcome back</h3>
@@ -279,11 +282,13 @@ function togglePwd() {
     i.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
 }
 
-/* ── Live clock (compact, top of the form panel) ─────────────── */
+/* ── Live clock + date (compact, top of the form panel) ─────── */
 function updateClock() {
-    document.getElementById('liveClock').textContent = new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-    });
+    const now = new Date();
+    const date = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    document.getElementById('liveDate').textContent  = date;
+    document.getElementById('liveClock').textContent = time;
 }
 updateClock();
 setInterval(updateClock, 1000);

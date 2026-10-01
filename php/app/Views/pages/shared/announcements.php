@@ -70,10 +70,11 @@
         'Forms'          => ['#f0fdf4','#065f46','bi-file-earmark-text-fill'],
       ][$a['type']] ?? ['var(--surface-hover)','var(--text-secondary)','bi-bell'];
       [$bg,$tc,$icon] = $cfg;
-      $preview = mb_strlen($a['content']) > 140 ? mb_substr($a['content'], 0, 140) . '…' : $a['content'];
+      $content = (string) $a['content'];
+      $preview = mb_strlen($content) > 140 ? mb_substr($content, 0, 140) . '…' : $content;
       $modalData = $a + [
           'date_formatted' => date('F d, Y', strtotime($a['date'])),
-          'content_html'   => richText($a['content']),
+          'content_html'   => $content !== '' ? richText($content) : '<span class="text-muted">No additional details.</span>',
       ];
     ?>
     <div class="announcement-card" id="announcement-<?= $a['id'] ?>" style="border-left:4px solid <?= $tc ?>;cursor:pointer;"
@@ -104,7 +105,9 @@
               <?php endif; ?>
             </div>
           </div>
+          <?php if ($preview !== ''): ?>
           <p class="text-muted mb-0" style="font-size:.8rem;line-height:1.5;"><?= richText($preview) ?></p>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -142,7 +145,7 @@
             <input type="text" name="title" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Content</label>
+            <label class="form-label">Content <span class="text-muted small fw-normal">(optional)</span></label>
             <div class="btn-group btn-group-sm mb-1" role="group" aria-label="Text formatting">
               <button type="button" class="btn btn-outline-secondary" title="Bold" onclick="wrapSelection('announcementContent','**')">
                 <i class="bi bi-type-bold"></i>
@@ -151,7 +154,7 @@
                 <i class="bi bi-type-italic"></i>
               </button>
             </div>
-            <textarea name="content" id="announcementContent" class="form-control" rows="4" required
+            <textarea name="content" id="announcementContent" class="form-control" rows="4"
                       placeholder="Select text and click Bold/Italic, or type **bold** / *italic* directly"></textarea>
           </div>
           <div class="mb-3">
