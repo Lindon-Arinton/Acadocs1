@@ -19,6 +19,7 @@ class PerformanceMps extends BaseController
     public const SUBJECTS = [
         'English', 'Filipino', 'Science', 'Mathematics', 'AP', 'TLE',
         'MAPEH', 'Music', 'Arts', 'PE', 'Health', 'ESP',
+        'HG', 'Research', 'SPFL', 'SPFL-CM',
     ];
 
     /** Short form-field keys mapped to the DB's full test_period labels. */
@@ -31,31 +32,39 @@ class PerformanceMps extends BaseController
     /**
      * Maps the free-text codes found in teachers.subject_handle-style data
      * (e.g. "MAPEH 9 (5)", "V.E 9 (1)", "MATH 9 (4)") to the fixed subject
-     * vocabulary above. Anything not listed here (HG, RESEARCH, SPFL, ...)
-     * isn't an MPS-tracked subject and is intentionally left unmapped.
+     * vocabulary above (keys are the code with non-letters stripped, so
+     * "V.E" -> "VE", "SPFL-CM" -> "SPFLCM"). A code not listed here still
+     * shows up on the MPS page, under the name the teacher typed.
      */
     private const SUBJECT_ALIASES = [
-        'ENGLISH'     => 'English',
-        'ENG'         => 'English',
-        'FILIPINO'    => 'Filipino',
-        'FIL'         => 'Filipino',
-        'SCIENCE'     => 'Science',
-        'SCI'         => 'Science',
-        'MATHEMATICS' => 'Mathematics',
-        'MATH'        => 'Mathematics',
-        'AP'          => 'AP',
-        'TLE'         => 'TLE',
-        'MAPEH'       => 'MAPEH',
-        'MUSIC'       => 'Music',
-        'ARTS'        => 'Arts',
-        'PE'          => 'PE',
-        'HEALTH'      => 'Health',
-        'ESP'         => 'ESP',
-        'VE'          => 'ESP',
+        'ENGLISH'          => 'English',
+        'ENG'              => 'English',
+        'FILIPINO'         => 'Filipino',
+        'FIL'              => 'Filipino',
+        'SCIENCE'          => 'Science',
+        'SCI'              => 'Science',
+        'MATHEMATICS'      => 'Mathematics',
+        'MATH'             => 'Mathematics',
+        'AP'               => 'AP',
+        'TLE'              => 'TLE',
+        'MAPEH'            => 'MAPEH',
+        'MUSIC'            => 'Music',
+        'ARTS'             => 'Arts',
+        'PE'               => 'PE',
+        'HEALTH'           => 'Health',
+        'ESP'              => 'ESP',
+        'VE'               => 'ESP',
+        'HG'               => 'HG',
+        'HOMEROOMGUIDANCE' => 'HG',
+        'RESEARCH'         => 'Research',
+        'SPFL'             => 'SPFL',
+        'SPFLCM'           => 'SPFL-CM',
     ];
 
     /** Matches "2025-2026" — the only shape a school year needs to satisfy now that it's freely typed rather than picked from a fixed list. */
     private const YEAR_PATTERN = '/^\d{4}-\d{4}$/';
+
+    private const INVALID_YEAR_MESSAGE = 'School year must be in YYYY-YYYY format with consecutive years (e.g. 2026-2027) — letters are not allowed.';
 
     /**
      * Placeholder section label for a cell with no real section on record (an
@@ -78,8 +87,12 @@ class PerformanceMps extends BaseController
             $year = trim($this->request->getPost('school_year') ?? '');
             $term = (int) $this->request->getPost('term');
 
-            if (! preg_match(self::YEAR_PATTERN, $year) || ! in_array($term, self::TERM_OPTIONS, true)) {
-                return $isAjax ? $this->ajaxError('Invalid school year or term.') : redirect()->to('/performance/mps');
+            if (! self::isValidYear($year)) {
+                return $isAjax ? $this->ajaxError(self::INVALID_YEAR_MESSAGE) : $this->invalidYearRedirect('/performance/mps');
+            }
+
+            if (! in_array($term, self::TERM_OPTIONS, true)) {
+                return $isAjax ? $this->ajaxError('Invalid term.') : redirect()->to('/performance/mps');
             }
 
             $redirect = '/performance/mps?year=' . urlencode($year) . '&term=' . $term;
@@ -137,7 +150,7 @@ class PerformanceMps extends BaseController
         }
 
         $year = trim($this->request->getGet('year') ?? '') ?: self::YEAR_OPTIONS[0];
-        if (! preg_match(self::YEAR_PATTERN, $year)) {
+        if (! self::isValidYear($year)) {
             $year = self::YEAR_OPTIONS[0];
         }
 
@@ -182,6 +195,28 @@ class PerformanceMps extends BaseController
     }
 
     /**
+     * A school year is valid only as digits-only "YYYY-YYYY" where the second
+     * year is exactly the first plus one (e.g. 2026-2027).
+     */
+    private static function isValidYear(string $year): bool
+    {
+        if (! preg_match(self::YEAR_PATTERN, $year)) {
+            return false;
+        }
+
+        [$start, $end] = array_map('intval', explode('-', $year));
+
+        return $end === $start + 1;
+    }
+
+    private function invalidYearRedirect(string $to)
+    {
+        session()->setFlashdata('flash', ['type' => 'danger', 'msg' => self::INVALID_YEAR_MESSAGE]);
+
+        return redirect()->to($to);
+    }
+
+    /**
      * School years to suggest in the datalist — the hardcoded baseline plus
      * any year that already has scores entered, newest first. Purely a
      * convenience list now; typing any other "YYYY-YYYY" year is still valid.
@@ -213,8 +248,12 @@ class PerformanceMps extends BaseController
         $year = trim($this->request->getPost('school_year') ?? '');
         $term = (int) $this->request->getPost('term');
 
-        if (! preg_match(self::YEAR_PATTERN, $year) || ! in_array($term, self::TERM_OPTIONS, true)) {
-            return $isAjax ? $this->ajaxError('Invalid school year or term.') : redirect()->to($redirect);
+        if (! self::isValidYear($year)) {
+            return $isAjax ? $this->ajaxError(self::INVALID_YEAR_MESSAGE) : $this->invalidYearRedirect($redirect);
+        }
+
+        if (! in_array($term, self::TERM_OPTIONS, true)) {
+            return $isAjax ? $this->ajaxError('Invalid term.') : redirect()->to($redirect);
         }
 
         $redirect = '/performance/mps?year=' . urlencode($year) . '&term=' . $term;
@@ -292,7 +331,7 @@ class PerformanceMps extends BaseController
 
         $year = trim($this->request->getGet('year') ?? '');
         $term = (int) $this->request->getGet('term');
-        if (! preg_match(self::YEAR_PATTERN, $year) || ! in_array($term, self::TERM_OPTIONS, true)) {
+        if (! self::isValidYear($year) || ! in_array($term, self::TERM_OPTIONS, true)) {
             [$year, $term] = [null, null];
         }
 
@@ -423,11 +462,27 @@ class PerformanceMps extends BaseController
         return $cells;
     }
 
+    /**
+     * Known codes map to their canonical name ("MATH" -> "Mathematics").
+     * Anything else (a subject typed into Subject Load that isn't in
+     * SUBJECTS yet) is kept under its own name instead of being dropped,
+     * so every subject a teacher handles shows up on the MPS page.
+     */
     private function resolveMpsSubject(string $rawCode): ?string
     {
         $code = strtoupper((string) preg_replace('/[^A-Za-z]/', '', $rawCode));
 
-        return self::SUBJECT_ALIASES[$code] ?? null;
+        if (isset(self::SUBJECT_ALIASES[$code])) {
+            return self::SUBJECT_ALIASES[$code];
+        }
+
+        $name = trim((string) preg_replace('/\s+/', ' ', $rawCode));
+        if ($code === '' || $name === '') {
+            return null;
+        }
+
+        // "statistics" -> "Statistics"; leave mixed/upper case ("STEM", "iCT") as typed.
+        return $name === strtolower($name) ? ucwords($name) : $name;
     }
 
     /** @param array<string,array{grade:string,subject:string,section:?string}> $cells */
@@ -443,7 +498,11 @@ class PerformanceMps extends BaseController
     {
         $found = array_unique(array_map(static fn (array $cell) => $cell['subject'], $cells));
 
-        return array_values(array_intersect(self::SUBJECTS, $found));
+        // Known subjects in their usual report order, then any others alphabetically.
+        $extra = array_diff($found, self::SUBJECTS);
+        sort($extra, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return array_values(array_merge(array_intersect(self::SUBJECTS, $found), $extra));
     }
 
     /** Collapses handledCells down to "Grade X|Subject" => true — for the Excel importer/template, which don't break scores out by section. */
@@ -497,9 +556,9 @@ class PerformanceMps extends BaseController
     /**
      * Parses one free-text subject-handle entry (e.g. "MAPEH 9 (5)",
      * "V.E 9 (1)", "ENGLISH (3)") into a canonical subject + optional grade.
-     * Returns null when the leading code doesn't match any MPS-tracked
-     * subject (HG, RESEARCH, SPFL, ...). Only used as a fallback for
-     * teacher_subjects rows with no structured grade_level/section.
+     * Unknown subjects are kept under their own name (see resolveMpsSubject).
+     * Only used as a fallback for teacher_subjects rows with no structured
+     * grade_level/section.
      *
      * @return array{subject:string,grade:?string}|null
      */
@@ -511,7 +570,12 @@ class PerformanceMps extends BaseController
             return null;
         }
 
-        $subject = $this->resolveMpsSubject($codeMatch[1]);
+        // Known leading code ("MAPEH 9") -> canonical name; otherwise the
+        // whole entry minus grade numbers ("Earth Science 9" -> "Earth Science").
+        $code    = strtoupper((string) preg_replace('/[^A-Za-z]/', '', $codeMatch[1]));
+        $subject = isset(self::SUBJECT_ALIASES[$code])
+            ? self::SUBJECT_ALIASES[$code]
+            : $this->resolveMpsSubject((string) preg_replace('/\b\d+\b/', '', $clean));
         if ($subject === null) {
             return null;
         }

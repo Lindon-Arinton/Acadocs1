@@ -21,7 +21,7 @@ class PerformanceController extends BaseApiController
             'kpi'        => (new KpiSnapshotModel())->forYear($schoolYear),
             'by_level'   => (new PerformanceByLevelModel())->where('school_year', $schoolYear)->where('term', $term)->orderBy('grade_level')->findAll(),
             'by_subject' => (new PerformanceBySubjectModel())->where('school_year', $schoolYear)->where('term', $term)->orderBy('mps', 'DESC')->findAll(),
-            'enrollment' => (new EnrollmentByLevelModel())->where('school_year', $schoolYear)->orderBy('grade_level')->findAll(),
+            'enrollment' => (new EnrollmentByLevelModel())->forYear($schoolYear),
         ]);
     }
 }

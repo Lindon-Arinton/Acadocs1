@@ -87,7 +87,11 @@ mysql -u root acadocs < "database schema/acadocs.sql"
 > authoritative snapshot if `migrate` and the migrations directory ever
 > disagree on a long-lived, hand-seeded database like this one.
 
+<<<<<<< Updated upstream
 ### 4. (Optional) Install LibreOffice for full-fidelity template preview
+=======
+### 4. (Optional) Install LibreOffice for the "Convert to PDF" template download
+>>>>>>> Stashed changes
 
 ```powershell
 winget install --id TheDocumentFoundation.LibreOffice

@@ -33,6 +33,8 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('enrollment-kpis', static fn () => redirect()->to('/dashboard'));
     $routes->post('enrollment-kpis/import', 'Admin\EnrollmentKpis::import');
     $routes->get('enrollment-kpis/template', 'Admin\EnrollmentKpis::template');
+    $routes->post('enrollment/import', 'Admin\Enrollment::import');
+    $routes->get('enrollment/template', 'Admin\Enrollment::template');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');

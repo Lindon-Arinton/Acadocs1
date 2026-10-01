@@ -8,6 +8,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>window.Chart || document.write('<script src="<?= base_url('assets/js/chart.umd.min.js') ?>"><\/script>');</script>
 
 <script>
 /* ── Dark mode toggle (persisted; data-bs-theme also drives Bootstrap's
@@ -617,7 +618,9 @@ function reinitPageWidgets(scope) {
  * instead of erroring. Functions/vars declared this way stay reachable
  * from inline onclick="..." handlers exactly like a normal <script> would.
  */
-function runPageScript(code) {
+function runPageScript(code, { replayReady = true } = {}) {
+    if (!code.trim()) return;
+
     const safeCode = code.replace(/(^|[;{\n]\s*)(let|const)(\s+)/g, '$1var$3');
     const script = document.createElement('script');
     script.textContent = safeCode;
@@ -626,8 +629,18 @@ function runPageScript(code) {
 
     // Some pages wire things up inside DOMContentLoaded; that event only
     // fires once natively, so replay it manually for re-injected scripts.
-    document.dispatchEvent(new Event('DOMContentLoaded'));
-    window.dispatchEvent(new Event('DOMContentLoaded'));
+    // (Not on the initial full load: the native event is still to come.)
+    if (replayReady) {
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+        window.dispatchEvent(new Event('DOMContentLoaded'));
+    }
+}
+
+/* The page's $extraScript lives in an inert <template id="page-extra-script">. */
+function pageExtraScriptCode(doc) {
+    const holder = doc.getElementById('page-extra-script');
+    const script = holder && (holder.content || holder).querySelector('script');
+    return script ? script.textContent : '';
 }
 
 function updateActiveNavLinks(pathname) {
@@ -727,10 +740,7 @@ function loadPage(url, { push = true, scroll = true } = {}) {
             const finalPath = new URL(finalUrl, window.location.origin).pathname;
             updateActiveNavLinks(finalPath);
 
-            const newScript = doc.querySelector('#page-extra-script script');
-            if (newScript && newScript.textContent.trim()) {
-                runPageScript(newScript.textContent);
-            }
+            runPageScript(pageExtraScriptCode(doc));
             reinitPageWidgets(main);
 
             if (push) history.pushState({ ajaxNav: true }, '', finalUrl);
@@ -791,6 +801,63 @@ document.addEventListener('submit', function (e) {
 
 window.addEventListener('popstate', () => loadPage(window.location.href, { push: false }));
 
+/* ── School year inputs (.sy-input) ──────────────────────────
+   Digits only, dash auto-inserted (YYYY-YYYY), second year = first + 1.
+   Delegated on document so it also covers AJAX-loaded pages. A form with a
+   hidden year field marks it [data-sy-hidden] to have it checked too. The
+   server re-validates every one of these. */
+const SY_MESSAGE = 'School year must be YYYY-YYYY with consecutive years (e.g. 2026-2027). Letters are not allowed.';
+
+function formatSchoolYear(raw) {
+    const digits = String(raw).replace(/\D/g, '').slice(0, 8);
+    return digits.length > 4 ? digits.slice(0, 4) + '-' + digits.slice(4) : digits;
+}
+
+function isValidSchoolYear(v) {
+    const m = /^(\d{4})-(\d{4})$/.exec(v);
+    return !!m && parseInt(m[2], 10) === parseInt(m[1], 10) + 1;
+}
+
+function validateSchoolYearInput(input) {
+    const ok = isValidSchoolYear(input.value);
+    input.setCustomValidity(ok ? '' : SY_MESSAGE);
+    input.classList.toggle('is-invalid', !ok && input.value !== '');
+    return ok;
+}
+
+document.addEventListener('keydown', function (e) {
+    if (!e.target.classList || !e.target.classList.contains('sy-input')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return; // shortcuts, arrows, backspace…
+    if (!/[0-9]/.test(e.key)) e.preventDefault(); // letters/symbols; the dash is auto-inserted
+}, true);
+
+document.addEventListener('input', function (e) {
+    const input = e.target;
+    if (!input.classList || !input.classList.contains('sy-input')) return;
+    const formatted = formatSchoolYear(input.value);
+    if (formatted !== input.value) input.value = formatted;
+    validateSchoolYearInput(input);
+}, true);
+
+// Capture phase: runs before the ajax-form / AJAX-nav submit handlers.
+document.addEventListener('submit', function (e) {
+    const form = e.target;
+    const hidden = form.querySelector('input[data-sy-hidden]');
+    if (hidden && !isValidSchoolYear(hidden.value)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        showToast(SY_MESSAGE, 'danger');
+        return;
+    }
+    const bad = Array.from(form.querySelectorAll('.sy-input')).filter(i => !validateSchoolYearInput(i));
+    if (bad.length) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        bad[0].reportValidity();
+        bad[0].focus();
+    }
+}, true);
+
 /* ── Chart.js global defaults ─────────────────────────────── */
 function applyChartDefaults() {
     const style   = getComputedStyle(document.documentElement);
@@ -826,7 +893,13 @@ function chartColorAlt() {
 </script>
 
 <?php if (isset($extraScript)): ?>
-<div id="page-extra-script" hidden><?= $extraScript ?></div>
+<!-- Inert <template> so the browser doesn't run it natively: a native run
+     leaves top-level const/let as global bindings, and the var-rewritten
+     re-run after AJAX navigation back to this page would then throw
+     "already been declared" (charts silently missing). Always go through
+     runPageScript so every run uses the same var declarations. -->
+<template id="page-extra-script"><?= $extraScript ?></template>
+<script>runPageScript(pageExtraScriptCode(document), { replayReady: false });</script>
 <?php endif; ?>
 </body>
 </html>

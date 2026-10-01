@@ -46,7 +46,12 @@ class Dashboard extends BaseController
 
         $currentTerm = $latestPeriod['term'] ?? self::CURRENT_TERM;
 
-        $enrollment = (new EnrollmentByLevelModel())->where('school_year', $currentYear)->orderBy('grade_level')->findAll();
+        // Enrollment is stored as monthly snapshots; default to the latest one.
+        $enrollmentModel  = new EnrollmentByLevelModel();
+        $enrollmentMonths = $enrollmentModel->monthsFor($currentYear);
+        $requestedMonth   = (string) $this->request->getGet('month');
+        $enrollmentMonth  = in_array($requestedMonth, $enrollmentMonths, true) ? $requestedMonth : (end($enrollmentMonths) ?: null);
+        $enrollment       = $enrollmentModel->forYear($currentYear, $enrollmentMonth);
         $perfLevel  = (new PerformanceByLevelModel())->where('school_year', $currentYear)->where('term', $currentTerm)->orderBy('grade_level')->findAll();
 
         $avgMps = $perfLevel !== [] ? round(array_sum(array_column($perfLevel, 'mps')) / count($perfLevel), 2) : null;
@@ -143,6 +148,8 @@ class Dashboard extends BaseController
             'currentYear'        => $currentYear,
             'currentTerm'        => $currentTerm,
             'enrollment'         => $enrollment,
+            'enrollmentMonths'   => $enrollmentMonths,
+            'enrollmentMonth'    => $enrollmentMonth,
             'perfLevel'          => $perfLevel,
             'lowest'             => $lowest,
             'allPerf'            => $allPerf,
@@ -395,16 +402,8 @@ class Dashboard extends BaseController
      */
     private function enrollmentTotalsByYear(): array
     {
-        $totals = [];
-
-        $gradeLevelRows = (new EnrollmentByLevelModel())
-            ->select('school_year, SUM(students) AS total')
-            ->groupBy('school_year')
-            ->findAll();
-
-        foreach ($gradeLevelRows as $row) {
-            $totals[$row['school_year']] = (int) $row['total'];
-        }
+        // Each year's latest monthly snapshot (months must not be added together).
+        $totals = (new EnrollmentByLevelModel())->latestTotalsByYear();
 
         foreach ((new DepedKpiReportModel())->allByYear() as $row) {
             if (! isset($totals[$row['school_year']]) && $row['enrolment_total'] !== null) {

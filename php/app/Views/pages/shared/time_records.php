@@ -251,7 +251,15 @@
       <form method="POST" action="<?= base_url('time-records/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this file?" data-confirm-text="Existing records for the same employee &amp; date will be overwritten.">
         <div class="modal-body">
           <p class="text-muted" style="font-size:.82rem;">
-            Upload the biometric scanner export (columns: AC-No, Name, Department, Date, Time). Blank Time on a school day is marked <strong>Absent</strong>; a single punch is marked <strong>Present (incomplete)</strong>; two or more punches use the earliest as Time In and latest as Time Out. Weekends and dates listed under Manage Holidays are skipped, not counted as absences.
+            Upload the biometric scanner attendance log as exported, one row per punch, with the columns
+            <em>Department, Name, No., Date/Time, Status, Location ID, ID Number, Workcode, VerifyCode, CardNo</em>.
+            For each employee and day, the earliest <strong>C/In</strong> becomes Time In and the latest <strong>C/Out</strong> becomes Time Out.
+            A Time In after 7:30 AM is marked <strong>Late</strong>, and a missing In or Out is marked <strong>Present (incomplete)</strong>.
+            A school day with no punch, within that employee's range in the file, is marked <strong>Absent</strong> unless a record already exists.
+            Weekends and dates listed under Manage Holidays are never counted as absences.
+          </p>
+          <p class="text-muted mb-3" style="font-size:.75rem;">
+            The older daily layout (AC-No, Name, Department, Date, Time) is still accepted.
           </p>
           <div class="mb-3">
             <label class="form-label">Excel file (.xlsx, .xls)</label>

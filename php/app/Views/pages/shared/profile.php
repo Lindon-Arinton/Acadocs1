@@ -126,7 +126,8 @@ include APPPATH . 'Views/layout/header.php';
         <span class="fw-semibold me-auto"><i class="bi bi-journal-bookmark me-2 text-muted"></i>Subject Load</span>
         <form method="GET" action="<?= base_url('profile') ?>" class="d-flex flex-wrap gap-2 align-items-center" id="subjectTermForm">
           <input type="text" name="sy" value="<?= e($subjectLoad['year']) ?>" list="subjectYearOptions"
-                 class="form-control form-control-sm" style="width:120px;" pattern="\d{4}-\d{4}" title="e.g. 2026-2027"
+                 inputmode="numeric" maxlength="9" autocomplete="off" required placeholder="e.g. 2026-2027"
+                 class="form-control form-control-sm sy-input" style="width:120px;" pattern="\d{4}-\d{4}" title="YYYY-YYYY, e.g. 2026-2027"
                  onchange="this.form.requestSubmit()">
           <datalist id="subjectYearOptions">
             <?php foreach ($subjectLoad['years'] as $y): ?><option value="<?= e($y) ?>"><?php endforeach; ?>
@@ -155,7 +156,7 @@ include APPPATH . 'Views/layout/header.php';
         <form method="POST" action="<?= base_url('profile') ?>" class="ajax-form"
               data-confirm-title="Save your subject load for Term <?= (int) $subjectLoad['term'] ?>, SY <?= e($subjectLoad['year']) ?>?">
           <input type="hidden" name="action" value="save_subjects">
-          <input type="hidden" name="school_year" value="<?= e($subjectLoad['year']) ?>">
+          <input type="hidden" name="school_year" value="<?= e($subjectLoad['year']) ?>" data-sy-hidden>
           <input type="hidden" name="term" value="<?= (int) $subjectLoad['term'] ?>">
 
           <datalist id="subjectNameOptions">

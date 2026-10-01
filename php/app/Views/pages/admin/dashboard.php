@@ -10,6 +10,9 @@
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap" style="position:relative;z-index:1;">
       <?php if (hasRole('admin')): ?>
+      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
+        <i class="bi bi-people me-1"></i>Add Enrollment
+      </button>
       <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importKpiModal">
         <i class="bi bi-upload me-1"></i>Import KPI Report
       </button>
@@ -190,7 +193,24 @@ if ($complianceRate === null) {
       <div class="col-md-6">
         <div class="card h-100">
           <div class="card-header bg-white py-2">
-            <span class="fw-semibold small"><i class="bi bi-bar-chart-steps me-2 text-muted"></i>Enrolment by Grade Level</span>
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+              <span class="fw-semibold small"><i class="bi bi-bar-chart-steps me-2 text-muted"></i>Enrolment by Grade Level</span>
+              <?php if (! empty($enrollmentMonths)): ?>
+              <div class="d-flex align-items-center gap-2">
+                <label class="small text-muted mb-0" for="enrollment-month-filter">Month:</label>
+                <div class="maroon-select maroon-select-sm" style="width:auto;">
+                  <select id="enrollment-month-filter" class="maroon-select-native"
+                          onchange="loadPage('<?= base_url('dashboard') ?>?year=<?= urlencode($currentYear) ?>&month=' + encodeURIComponent(this.value), { scroll: false })">
+                    <?php foreach (array_reverse($enrollmentMonths) as $m): ?>
+                    <option value="<?= e($m) ?>" <?= $m === $enrollmentMonth ? 'selected' : '' ?>><?= e(date('F Y', strtotime($m . '-01'))) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                  <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+                  <div class="maroon-select-panel"></div>
+                </div>
+              </div>
+              <?php endif; ?>
+            </div>
           </div>
           <div class="card-body card-body-tight">
             <?php if (empty($enrollment)): ?>
@@ -307,7 +327,7 @@ if ($complianceRate === null) {
     <ul class="nav nav-tabs border-bottom-0" data-tab-group="data">
       <li class="nav-item">
         <button type="button" class="nav-link active" data-tab-key="breakdown" onclick="switchTab('data','breakdown')">
-          <i class="bi bi-table me-1"></i>Enrolment Breakdown
+          <i class="bi bi-table me-1"></i>Enrolment Breakdown<?php if (! empty($enrollmentMonth)): ?> <span class="text-muted fw-normal">(<?= e(date('F Y', strtotime($enrollmentMonth . '-01'))) ?>)</span><?php endif; ?>
         </button>
       </li>
       <li class="nav-item">
@@ -458,6 +478,48 @@ if ($complianceRate === null) {
 </div>
 
 <?php if (hasRole('admin')): ?>
+<!-- Add Enrollment Modal -->
+<div class="modal fade" id="addEnrollmentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-people me-2"></i>Add Enrollment</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="<?= base_url('enrollment/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this enrollment?" data-confirm-text="Enrollment for the months in this file will be replaced; other months are kept.">
+        <div class="modal-body">
+          <p class="text-muted" style="font-size:.82rem;">
+            Upload the enrollment sheet: a <strong>GRADE 7–10</strong> block each, one row per section with
+            <strong>MALE / FEMALE / TOTAL</strong>, then the grade's TOTAL row and a GRAND TOTAL.
+            Section rows are added up per grade level. Every sheet is read — name each sheet by its
+            count date (e.g. <em>June 10</em>, <em>AUG 11</em>); each month keeps its latest-dated sheet.
+          </p>
+          <a href="<?= base_url('enrollment/template') ?>?year=<?= urlencode($currentYear) ?>" id="enrollmentTemplateLink"
+             class="btn btn-sm btn-outline-primary w-100 mb-3" data-no-ajax>
+            <i class="bi bi-download me-1"></i>Download Enrollment Template (.xlsx)
+          </a>
+          <div class="mb-3">
+            <label class="form-label">School Year</label>
+            <input type="text" name="school_year" class="form-control form-control-sm sy-input" list="kpiYearOptions"
+                   inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2026-2027"
+                   value="<?= e($currentYear) ?>" placeholder="e.g. 2026-2027" pattern="\d{4}-\d{4}" required
+                   oninput="updateEnrollmentTemplateLink(this.form)">
+            <div class="form-text">Uploading a month again replaces it; other months are kept.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Excel file (.xlsx, .xls, .csv)</label>
+            <input type="file" name="import_file" class="form-control" accept=".xlsx,.xls,.csv" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Import KPI Report Modal -->
 <div class="modal fade" id="importKpiModal" tabindex="-1">
   <div class="modal-dialog">
@@ -476,7 +538,8 @@ if ($complianceRate === null) {
           </p>
           <div class="mb-3">
             <label class="form-label">School Year</label>
-            <input type="text" name="school_year" class="form-control form-control-sm" list="kpiYearOptions"
+            <input type="text" name="school_year" class="form-control form-control-sm sy-input" list="kpiYearOptions"
+                   inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2025-2026"
                    value="<?= e($currentYear) ?>" placeholder="e.g. 2025-2026" pattern="\d{4}-\d{4}" required
                    oninput="document.getElementById('kpiTemplateLink').href = '<?= base_url('enrollment-kpis/template') ?>?year=' + encodeURIComponent(this.value)">
             <datalist id="kpiYearOptions">
@@ -534,23 +597,38 @@ function switchTab(group, key) {
 // Canvas only exists in the DOM when there\'s data (see the PHP empty-state
 // check around it) — guard the lookup so a data-less year can\'t throw here
 // and silently skip every chart built after it in this script.
+// Keeps the Add Enrollment template link in step with the chosen school year.
+function updateEnrollmentTemplateLink(form) {
+  const link = document.getElementById("enrollmentTemplateLink");
+  if (!link || !form) return;
+  link.href = "' . base_url('enrollment/template') . '?year=" + encodeURIComponent(form.school_year.value);
+}
+
 const enrollChartEl = document.getElementById("enrollChart");
 if (enrollChartEl) {
+  // Male vs female side by side. Years saved without a split (e.g. from a
+  // DepEd KPI report) fall back to a single "Students" bar.
+  const enrollTotals = ' . json_encode(array_map('intval', array_column($enrollment, 'students'))) . ';
+  const enrollHasSplit = ' . json_encode(array_filter($enrollment, static fn ($r) => $r['male'] !== null || $r['female'] !== null) !== []) . ';
   new Chart(enrollChartEl, {
     type: "bar",
     data: {
       labels: ' . json_encode(array_column($enrollment, 'grade_level')) . ',
-      datasets: [{
-        label: "Students",
-        data: ' . json_encode(array_column($enrollment, 'students')) . ',
-        backgroundColor: chartColor(.25),
-        borderColor: maroon,
-        borderWidth: 1,
-        borderRadius: 4,
-        maxBarThickness: 28,
-      }]
+      datasets: enrollHasSplit ? [
+        { label: "Male",   data: ' . json_encode(array_map(static fn ($r) => (int) $r['male'], $enrollment)) . ',   backgroundColor: maroon,      borderRadius: 4, maxBarThickness: 22 },
+        { label: "Female", data: ' . json_encode(array_map(static fn ($r) => (int) $r['female'], $enrollment)) . ', backgroundColor: chartColor(.3), borderColor: maroon, borderWidth: 1, borderRadius: 4, maxBarThickness: 22 }
+      ] : [
+        { label: "Students", data: enrollTotals, backgroundColor: chartColor(.25), borderColor: maroon, borderWidth: 1, borderRadius: 4, maxBarThickness: 28 }
+      ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: enrollHasSplit, position: "bottom", labels: { boxWidth: 12, boxHeight: 12 } },
+        tooltip: { callbacks: { footer: (items) => enrollHasSplit ? "Total: " + enrollTotals[items[0].dataIndex] : "" } }
+      },
+      scales: { y: { beginAtZero: true, grid: { color: chartGridColor() } }, x: { grid: { display: false } } }
+    }
   });
 }
 

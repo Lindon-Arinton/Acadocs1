@@ -22,7 +22,7 @@
 
 <?php if ($flash): ?>
 <div class="alert alert-<?= e($flash['type']) ?> d-flex align-items-center gap-2 mb-4">
-  <i class="bi bi-check-circle-fill"></i><?= e($flash['msg']) ?>
+  <i class="bi <?= $flash['type'] === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' ?>"></i><?= e($flash['msg']) ?>
 </div>
 <?php endif; ?>
 
@@ -34,7 +34,8 @@
         <label class="small fw-semibold text-muted mb-0">School Year:</label>
         <input type="text" name="year" value="<?= e($year) ?>" list="mpsYearOptions"
                pattern="\d{4}-\d{4}" placeholder="e.g. 2026-2027" required
-               class="form-control form-control-sm" style="width:130px;"
+               inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2026-2027"
+               class="form-control form-control-sm sy-input" style="width:130px;"
                onblur="if(this.checkValidity() && this.value!==this.defaultValue) this.form.submit()"
                onkeydown="if(event.key==='Enter'){event.preventDefault(); if(this.checkValidity()) this.form.submit();}">
         <datalist id="mpsYearOptions">
@@ -70,7 +71,7 @@
 </div>
 <?php else: ?>
 <form method="POST" action="<?= base_url('performance/mps') ?>">
-  <input type="hidden" name="school_year" value="<?= e($year) ?>">
+  <input type="hidden" name="school_year" value="<?= e($year) ?>" data-sy-hidden>
   <input type="hidden" name="term" value="<?= (int) $term ?>">
 
   <?php foreach ($periods as $shortKey => $label): ?>
@@ -147,7 +148,9 @@
               <label class="form-label">School Year</label>
               <input type="text" name="school_year" value="<?= e($year) ?>" list="mpsYearOptions"
                      pattern="\d{4}-\d{4}" placeholder="e.g. 2026-2027" required
-                     class="form-control form-control-sm">
+                     inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2026-2027"
+                     class="form-control form-control-sm sy-input">
+              <div class="invalid-feedback">Use YYYY-YYYY with consecutive years, e.g. 2026-2027.</div>
             </div>
             <div class="col-6">
               <label class="form-label">Term</label>

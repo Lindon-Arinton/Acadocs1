@@ -136,7 +136,10 @@ class TimeRecords extends BaseController
             return $isAjax ? $this->ajaxError('Please choose a valid Excel file to upload.') : redirect()->to($redirect);
         }
 
-        if (! in_array(strtolower($file->getExtension() ?: ''), ['xlsx', 'xls'], true)) {
+        // Use the client's extension: biometric .xls exports are often raw
+        // BIFF streams whose MIME sniffs as octet-stream, so getExtension()
+        // guesses "bin". The importer validates the actual content.
+        if (! in_array(strtolower($file->getClientExtension()), ['xlsx', 'xls'], true)) {
             return $isAjax ? $this->ajaxError('Only .xlsx or .xls files are supported.') : redirect()->to($redirect);
         }
 
@@ -158,14 +161,18 @@ class TimeRecords extends BaseController
         }
 
         $message = sprintf(
-            'Imported %d row(s): %d present, %d late, %d absent (%d incomplete). %d row(s) skipped (non-school day).',
+            'Imported %d attendance record(s) from %d row(s): %d present, %d late, %d absent (%d incomplete).',
             $summary['inserted'] + $summary['updated'],
+            $summary['rows_read'],
             $summary['present'],
             $summary['late'],
             $summary['absent'],
             $summary['incomplete'],
-            $summary['skipped_non_school_day'],
         );
+
+        if ($summary['skipped_non_school_day'] > 0) {
+            $message .= ' ' . $summary['skipped_non_school_day'] . ' row(s) skipped (non-school day).';
+        }
 
         if ($summary['placeholders_created'] !== []) {
             $message .= ' Unmapped AC-No (no name in scanner) recorded as placeholders: ' . implode(', ', $summary['placeholders_created']) . '.';

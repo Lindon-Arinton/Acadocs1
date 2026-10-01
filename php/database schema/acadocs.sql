@@ -338,13 +338,14 @@ CREATE TABLE IF NOT EXISTS `document_links` (
 CREATE TABLE IF NOT EXISTS `enrollment_by_level` (
   `id` int(10) UNSIGNED NOT NULL,
   `school_year` varchar(20) NOT NULL,
+  `month` varchar(7) NOT NULL DEFAULT '',
   `grade_level` varchar(50) NOT NULL,
   `students` int(10) UNSIGNED NOT NULL,
   `male` int(10) UNSIGNED DEFAULT NULL,
   `female` int(10) UNSIGNED DEFAULT NULL,
   `sections` int(10) UNSIGNED NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `enrollment_year_grade` (`school_year`,`grade_level`)
+  UNIQUE KEY `enrollment_year_month_grade` (`school_year`,`month`,`grade_level`)
 ) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

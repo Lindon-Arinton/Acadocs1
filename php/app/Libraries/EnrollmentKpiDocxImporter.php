@@ -264,10 +264,12 @@ class EnrollmentKpiDocxImporter
         $model = new EnrollmentByLevelModel();
 
         foreach ($enrollmentByGrade as $gradeLevel => $total) {
-            $existing = $model->where('school_year', $schoolYear)->where('grade_level', $gradeLevel)->first();
+            // month '' = year-level figure; monthly snapshots come from the Add Enrollment sheet.
+            $existing = $model->where('school_year', $schoolYear)->where('month', '')->where('grade_level', $gradeLevel)->first();
 
             $rowData = [
                 'school_year' => $schoolYear,
+                'month'       => '',
                 'grade_level' => $gradeLevel,
                 'students'    => $total,
             ];

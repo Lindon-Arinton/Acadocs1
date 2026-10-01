@@ -25,7 +25,7 @@ class MpsScoreImporter
     private const HEADER_SEARCH_WINDOW = 6;
 
     /** Minimum recognized subject columns for a row to count as a header row. */
-    private const MIN_SUBJECT_MATCHES = 3;
+    private const MIN_SUBJECT_MATCHES = 1; // a teacher's own template can have a single subject column
 
     /**
      * @param array<string,true>|null $allowedCells Restrict saved scores to
@@ -58,9 +58,12 @@ class MpsScoreImporter
             $periodByTitle[strtoupper($label)] = $label;
         }
 
+        // Known subjects, plus any other subject in the teacher's load (their
+        // template has a column for it even though it isn't in SUBJECTS).
         $subjectByTitle = [];
-        foreach (PerformanceMps::SUBJECTS as $subject) {
-            $subjectByTitle[strtoupper($subject)] = $subject;
+        $loadSubjects   = array_map(static fn (string $key) => explode('|', $key, 2)[1] ?? '', array_keys($allowedCells ?? []));
+        foreach (array_merge(PerformanceMps::SUBJECTS, array_filter($loadSubjects)) as $subject) {
+            $subjectByTitle[strtoupper($subject)] ??= $subject;
         }
 
         $gradeByTitle = [];
