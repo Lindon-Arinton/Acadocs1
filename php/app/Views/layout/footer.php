@@ -434,6 +434,60 @@ function promptSchoolYear(form, cfg) {
     });
 }
 
+/* ── Required / optional field markers ──────────────────────
+   Every .form-label gets a red * when its field is required, or a muted
+   "(optional)" when it isn't — derived from the field's own `required`
+   attribute, so forms never need hand-written markers. A select with no
+   blank option always has a value, so it counts as required. Re-run on
+   AJAX page swaps and whenever a modal opens (some forms toggle `required`
+   on the fly). A label can opt out with data-no-req-mark. */
+const REQ_MARK_SKIP_TYPES = ['hidden', 'checkbox', 'radio', 'button', 'submit', 'reset'];
+
+function reqMarkFields(label) {
+    if (label.htmlFor) {
+        const target = document.getElementById(label.htmlFor);
+        return target ? [target] : [];
+    }
+    return Array.from(label.parentElement.querySelectorAll('input, select, textarea')).filter(f =>
+        !REQ_MARK_SKIP_TYPES.includes((f.type || '').toLowerCase())
+        && !f.disabled
+        && !(f.readOnly && !f.required) // display-only value
+    );
+}
+
+function reqMarkIsRequired(field) {
+    if (field.required) return true;
+    if (field.tagName === 'SELECT' && !field.multiple) {
+        return field.options.length > 0 && !Array.from(field.options).some(o => o.value === '');
+    }
+    return false;
+}
+
+function applyRequiredMarkers(scope) {
+    (scope || document).querySelectorAll('label.form-label').forEach(label => {
+        if (label.hasAttribute('data-no-req-mark')) return;
+        label.querySelectorAll('.req-mark').forEach(el => el.remove());
+
+        const fields = reqMarkFields(label);
+        if (!fields.length) return;
+        if (/\(optional\)/i.test(label.textContent)) return; // already annotated by hand
+
+        const mark = document.createElement('span');
+        if (fields.some(reqMarkIsRequired)) {
+            mark.className = 'req-mark req-mark-required';
+            mark.textContent = ' *';
+            mark.title = 'Required';
+        } else {
+            mark.className = 'req-mark req-mark-optional';
+            mark.textContent = ' (optional)';
+        }
+        label.appendChild(mark);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => applyRequiredMarkers());
+document.addEventListener('show.bs.modal', e => applyRequiredMarkers(e.target));
+
 /* ── Person card (names rendered through personLink()) ──────
    Delegated on document so names on AJAX-loaded pages and in JS-built
    lists (e.g. the task detail modal) work too. Details are fetched on
@@ -840,6 +894,7 @@ function reinitPageWidgets(scope) {
     scope.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
     scope.querySelectorAll('.maroon-select').forEach(initMaroonSelect);
     scope.querySelectorAll('[data-counter]').forEach(el => animateCounter(el, parseInt(el.dataset.counter, 10)));
+    applyRequiredMarkers(scope);
 }
 
 /*

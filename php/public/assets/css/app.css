@@ -1552,3 +1552,7 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
   border-radius: 999px; background: rgba(128, 0, 0, .08); color: var(--primary);
 }
 [data-bs-theme="dark"] .person-chip { background: rgba(255, 255, 255, .08); color: var(--text); }
+
+/* ── Required / optional markers on form labels (applyRequiredMarkers()) ── */
+.req-mark-required { color: #dc2626; font-weight: 700; }
+.req-mark-optional { color: var(--muted); font-weight: 400; font-size: .85em; }

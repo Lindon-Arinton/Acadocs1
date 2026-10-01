@@ -145,7 +145,7 @@
             <input type="text" name="title" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Content <span class="text-muted small fw-normal">(optional)</span></label>
+            <label class="form-label">Content</label>
             <div class="btn-group btn-group-sm mb-1" role="group" aria-label="Text formatting">
               <button type="button" class="btn btn-outline-secondary" title="Bold" onclick="wrapSelection('announcementContent','**')">
                 <i class="bi bi-type-bold"></i>
