@@ -27,6 +27,10 @@
   --s-leave-bg:     #e0e7ff; --s-leave-tx:   #3730a3; --s-leave-bd:   #a5b4fc;
   /* chart palette — read by the chartColor() helpers in footer.php */
   --chart-rgb:      92, 10, 10;
+  /* Selected / active / hovered row highlight — theme-aware so text on it
+     stays readable in dark mode (never hardcode a light pink for these). */
+  --highlight-bg:   #fff0f0;
+  --highlight-tx:   var(--primary);
   --chart-2:        #9b3b3b;
 }
 
@@ -52,6 +56,8 @@
   --dark-glow:     rgba(220, 38, 38, .38);
   /* soft gold graphs on dark surfaces */
   --chart-rgb:      212, 178, 106;
+  --highlight-bg:   rgba(165, 42, 42, .28);
+  --highlight-tx:   #f2a7a7;
   --chart-2:        #ecd9a8;
 }
 
@@ -602,7 +608,7 @@ body.sidebar-collapsed #main-content { margin-left: 64px; }
 
 .status-filter-card { cursor: pointer; user-select: none; border-width: 2px; transition: transform .2s, box-shadow .2s, border-color .2s; }
 .status-filter-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
-.status-filter-card.active { border-color: var(--primary); background: #fff8f8; box-shadow: 0 6px 20px rgba(128,0,0,.12); }
+.status-filter-card.active { border-color: var(--primary); background: var(--highlight-bg); box-shadow: 0 6px 20px rgba(128,0,0,.12); }
 
 /* ── Compact side-by-side chart cards ────────────────────────── */
 .chart-card-sm { border-width: 2px; transition: box-shadow .2s, border-color .2s; }
@@ -868,8 +874,8 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
   transition: background .15s, color .15s;
 }
 .dropdown-toggle:hover, .dropdown-toggle:focus, .dropdown-toggle[aria-expanded="true"] {
-  background: #fff0f0;
-  color: var(--primary);
+  background: var(--highlight-bg);
+  color: var(--highlight-tx);
 }
 
 .profile-dropdown-toggle {
@@ -878,7 +884,7 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
   background: transparent;
 }
 .profile-dropdown-toggle:hover, .profile-dropdown-toggle:focus, .profile-dropdown-toggle[aria-expanded="true"] {
-  background: #fff0f0;
+  background: var(--highlight-bg);
 }
 
 /* ── Form controls ────────────────────────────────────────── */
@@ -1138,6 +1144,7 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
   padding: .6rem 1rem .3rem;
 }
 .chat-convo-item:hover, .chat-user-item:hover { background: var(--surface-hover); }
+.chat-convo-item.active, .chat-convo-item.active:hover { background: var(--highlight-bg); }
 
 /* Message toolbar (kebab/reply/react) — sits BESIDE the bubble (Messenger's
    layout), not stacked above it. Dimmed by default and full opacity on
@@ -1556,3 +1563,42 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
 /* ── Required / optional markers on form labels (applyRequiredMarkers()) ── */
 .req-mark-required { color: #dc2626; font-weight: 700; }
 .req-mark-optional { color: var(--muted); font-weight: 400; font-size: .85em; }
+
+/* ── Dark mode: readable highlights & accents ─────────────────
+   #800000 text on the near-black dark surfaces is barely legible, and the
+   light-mode pastel alerts/badges glare — swap both for dark-friendly tones. */
+[data-bs-theme="dark"] .notif-btn:hover,
+[data-bs-theme="dark"] .maroon-dp-nav,
+[data-bs-theme="dark"] .maroon-dp-grid button:hover:not(:disabled),
+[data-bs-theme="dark"] .maroon-dp-grid button.is-today,
+[data-bs-theme="dark"] .maroon-select-option.is-selected,
+[data-bs-theme="dark"] .nav-tabs .nav-link:hover,
+[data-bs-theme="dark"] .nav-tabs .nav-link.active,
+[data-bs-theme="dark"] .tab-pill.active,
+[data-bs-theme="dark"] .btn-outline-primary,
+[data-bs-theme="dark"] .btn-outline-maroon,
+[data-bs-theme="dark"] .chat-reaction-pill.mine,
+[data-bs-theme="dark"] .chat-reply-quote-name,
+[data-bs-theme="dark"] .section-toggle-btn:hover .section-toggle-arrow,
+[data-bs-theme="dark"] .dash-jump a:hover,
+[data-bs-theme="dark"] .dash-jump a i { color: var(--highlight-tx); }
+[data-bs-theme="dark"] .text-primary { color: var(--highlight-tx) !important; }
+[data-bs-theme="dark"] .btn-outline-primary,
+[data-bs-theme="dark"] .btn-outline-maroon { border-color: var(--primary-light); }
+[data-bs-theme="dark"] .btn-outline-primary:hover,
+[data-bs-theme="dark"] .btn-outline-maroon:hover { color: #fff; background: var(--primary); }
+[data-bs-theme="dark"] .maroon-select-option.is-selected,
+[data-bs-theme="dark"] .maroon-dp-grid button:hover:not(:disabled) { background: var(--highlight-bg); }
+[data-bs-theme="dark"] .maroon-select-option.is-selected:hover { color: #fff; }
+[data-bs-theme="dark"] .nav-tabs .nav-link.active { border-bottom-color: var(--primary-light); }
+[data-bs-theme="dark"] .tab-pill.active { background: var(--highlight-bg); }
+
+[data-bs-theme="dark"] .alert-success { background: rgba(16,185,129,.12); color: #6ee7b7; }
+[data-bs-theme="dark"] .alert-danger  { background: rgba(239,68,68,.12);  color: #fca5a5; }
+[data-bs-theme="dark"] .alert-warning { background: rgba(245,158,11,.12); color: #fcd34d; }
+[data-bs-theme="dark"] .badge-pending,
+[data-bs-theme="dark"] .badge-in-progress,
+[data-bs-theme="dark"] .cond-fair     { background: rgba(245,158,11,.16); color: #fcd34d; border-color: rgba(245,158,11,.3); }
+[data-bs-theme="dark"] .badge-returned,
+[data-bs-theme="dark"] .cond-poor     { background: rgba(239,68,68,.16);  color: #fca5a5; border-color: rgba(239,68,68,.3); }
+[data-bs-theme="dark"] .chat-convo-delete-btn:hover { background: rgba(239,68,68,.16); color: #f87171; }

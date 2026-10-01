@@ -103,7 +103,7 @@ include APPPATH . 'Views/layout/header.php';
         <div id="allUsersList">
           <?php foreach ($users as $u): [$rbg, $rtc] = $roleCfg[$u['role']] ?? ['#f3f4f6', '#374151']; ?>
           <button type="button" class="chat-user-item w-100 text-start border-0 bg-transparent align-items-center"
-                  style="display:flex;gap:.5rem;padding:.6rem 1rem;border-bottom:1px solid #f3f4f6;cursor:pointer;"
+                  style="display:flex;gap:.5rem;padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;"
                   data-role="<?= e($u['role']) ?>" data-search="<?= e(mb_strtolower($u['name'])) ?>"
                   onclick="startDirectChat(<?= $u['id'] ?>, this)">
             <?php if (! empty($u['photo'])): ?>
@@ -665,7 +665,7 @@ function openConversation(id) {
     document.getElementById('chatShell')?.classList.add('chat-mobile-thread-active');
 
     document.querySelectorAll('.chat-convo-item').forEach(el => {
-        el.style.background = String(el.dataset.id) === String(id) ? '#fff0f0' : '';
+        el.classList.toggle('active', String(el.dataset.id) === String(id));
     });
 
     const item = document.querySelector('.chat-convo-item[data-id=\"' + id + '\"]');
@@ -908,7 +908,7 @@ function startEditMessage(messageId, currentBody) {
     textarea.className = 'form-control form-control-sm';
     textarea.value = currentBody;
     textarea.rows = 2;
-    textarea.style.cssText = 'font-size:.85rem;color:#111;';
+    textarea.style.cssText = 'font-size:.85rem;color:var(--text);background:var(--input-bg);';
     bubble.appendChild(textarea);
 
     const actions = document.createElement('div');
