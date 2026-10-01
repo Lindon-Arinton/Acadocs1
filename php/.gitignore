@@ -127,3 +127,6 @@ _modules/*
 
 /results/
 /phpunit.xml
+
+# Signing key for Office Online preview links (generated on first use)
+writable/preview_link.key

@@ -1,7 +1,8 @@
 </main><!-- /#main-content -->
 
 <?php if (hasRole('admin')): ?>
-<a href="<?= base_url('announcements') ?>#postAnnouncementCard" class="fab-announcement" title="New Announcement">
+<a href="<?= base_url('announcements?compose=1') ?>" class="fab-announcement" title="New Announcement"
+   onclick="if (document.getElementById('postAnnouncementModal')) { event.preventDefault(); openPostAnnouncementModal(); }">
   <i class="bi bi-megaphone-fill"></i>
 </a>
 <?php endif; ?>

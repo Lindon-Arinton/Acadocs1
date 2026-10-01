@@ -87,19 +87,18 @@ mysql -u root acadocs < "database schema/acadocs.sql"
 > authoritative snapshot if `migrate` and the migrations directory ever
 > disagree on a long-lived, hand-seeded database like this one.
 
-<<<<<<< Updated upstream
-### 4. (Optional) Install LibreOffice for full-fidelity template preview
-=======
-### 4. (Optional) Install LibreOffice for the "Convert to PDF" template download
->>>>>>> Stashed changes
+### 4. (Optional) Install LibreOffice for file preview and the "Convert to PDF" download
 
 ```powershell
 winget install --id TheDocumentFoundation.LibreOffice
 ```
 
-`App\Libraries\OfficeConverter` auto-detects it at its default install path —
-no configuration needed. Skip this step entirely if you don't need it; see
-[Template preview](#template-preview).
+On a Linux server: `sudo apt install libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress`.
+
+`App\Libraries\OfficeConverter` auto-detects it at its default install path
+(Windows, Linux `/usr/bin/soffice` / `/opt/libreoffice*`, macOS) — set
+`libreoffice.path` in `.env` only for an unusual location. Skip this step
+entirely if you don't need it; see [Template preview](#template-preview).
 
 ### 5. Serve the app
 
@@ -164,7 +163,7 @@ public/
 | `deped_kpi_reports`            | Imported DepEd KPI report rows backing the dashboard trend chart |
 | `enrollment_by_level`          | Student headcount per grade level                               |
 | `performance_by_level`         | MPS/NDS scores per grade level                                   |
-| `performance_by_subject`       | MPS per subject and instructor                                   |
+| `performance_by_subject`       | MPS per subject and teacher                                      |
 | `mps_test_scores`              | Raw imported MPS test-score rows                                 |
 | `parent_meetings`              | PTA conference attendance records (API-only; no page route)      |
 | `document_links`               | ADAS-managed external resource links                             |
@@ -236,6 +235,24 @@ button rather than sharing space.
 
 None of these are required for the app to function — each tier degrades to
 the next rather than failing.
+
+**Office Online fallback (deployed sites only).** When LibreOffice can't
+render a Word/Excel/PowerPoint file (not installed, or conversion fails),
+template previews and task-submission previews fall back to Microsoft's
+viewer (`view.officeapps.live.com`). The viewer downloads the file from
+Microsoft's servers, so `App\Libraries\OfficeOnlinePreview` gives it a signed
+link (`/public-file/...`, valid 30 minutes, outside the login guard) instead
+of the normal file URL. Notes:
+
+- It switches itself off when `app.baseURL` is `localhost`, a LAN/private IP or
+  a dot-less intranet name — Microsoft can't reach those. Use HTTPS when deployed.
+- Size limits: Word/PowerPoint ~10 MB, Excel ~5 MB; larger files show
+  "preview unavailable".
+- Previewed documents are sent to Microsoft. To forbid that, add
+  `preview.officeOnline = false` to `.env`.
+- Links are signed with `encryption.key` from `.env` if set, otherwise with a
+  key generated into `writable/preview_link.key` (gitignored — keep it out of
+  the repository; deleting it just invalidates outstanding links).
 
 ### Motion loading overlays
 `app/Views/layout/header.php` + `footer.php` carry two full-screen animated

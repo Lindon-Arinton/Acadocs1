@@ -11,6 +11,10 @@ $routes->get('logout', 'Shared\Auth::logout');
 $routes->match(['get', 'post'], 'forgot-password', 'Shared\PasswordReset::forgot');
 $routes->match(['get', 'post'], 'reset-password', 'Shared\PasswordReset::reset');
 
+// Signed, expiring file link for Microsoft's Office Online viewer (it has no
+// session, so this can't sit behind authGuard) — see OfficeOnlinePreview.
+$routes->get('public-file/(template|docfile)/(:num)/(:num)/([a-f0-9]{40})/(:any)', 'Shared\PublicFile::show/$1/$2/$3/$4');
+
 // ── API auth (not behind authGuard — this is how a session is obtained) ──
 $routes->post('api/auth/login', 'Api\AuthController::login');
 $routes->post('api/auth/logout', 'Api\AuthController::logout');

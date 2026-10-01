@@ -4,6 +4,7 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Libraries\OfficeConverter;
+use App\Libraries\OfficeOnlinePreview;
 use App\Models\DocumentFileModel;
 use App\Models\DocumentModel;
 use App\Models\TeacherModel;
@@ -56,6 +57,13 @@ class DocumentFileDownload extends BaseController
                     ->setHeader('Content-Type', 'application/pdf')
                     ->setHeader('Content-Disposition', 'inline; filename="' . pathinfo($file['file_name'], PATHINFO_FILENAME) . '.pdf"')
                     ->setBody(file_get_contents($pdfPath));
+            }
+
+            // LibreOffice unavailable/failed: let Office Online render it (this
+            // endpoint is an iframe's src, so a redirect is all it takes).
+            $embedUrl = OfficeOnlinePreview::embedUrl('docfile', (int) $file['id'], $file['file_path'], $file['file_name']);
+            if ($embedUrl !== null) {
+                return redirect()->to($embedUrl);
             }
         }
 

@@ -1,8 +1,17 @@
 <?php include APPPATH . 'Views/layout/header.php'; ?>
 
 <div class="page-header">
-  <h4><i class="bi bi-megaphone-fill me-2"></i>Announcements</h4>
-  <p>School-wide announcements, forms &amp; questionnaires</p>
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <h4><i class="bi bi-megaphone-fill me-2"></i>Announcements</h4>
+      <p>School-wide announcements, forms &amp; questionnaires</p>
+    </div>
+    <?php if (hasRole('admin','adas')): ?>
+    <button type="button" class="btn btn-light" style="position:relative;z-index:1;" onclick="openPostAnnouncementModal()">
+      <i class="bi bi-plus-lg me-1"></i>New Announcement
+    </button>
+    <?php endif; ?>
+  </div>
 </div>
 
 <?php if ($flash): ?>
@@ -18,8 +27,8 @@
 <?php endif; ?>
 
 <div class="row g-4">
-  <!-- Left: list -->
-  <div class="col-lg-<?= hasRole('admin','adas') ? '8' : '12' ?>">
+  <!-- Announcement list -->
+  <div class="col-12">
     <!-- Filter tabs + search + sort -->
     <form method="GET" action="<?= base_url('announcements') ?>" id="filterForm" class="mb-4">
       <div class="tab-pills mb-3">
@@ -101,18 +110,21 @@
     </div>
     <?php endforeach; ?>
   </div>
+</div>
 
-  <!-- Right: post form -->
-  <?php if (hasRole('admin','adas')): ?>
-  <div class="col-lg-4" id="postAnnouncementCard">
-    <div class="card sticky-top" style="top:80px;">
-      <div class="card-header" style="background:var(--primary);color:#fff;">
-        <div class="card-title" style="color:#fff;"><i class="bi bi-plus-circle me-2"></i>Post Announcement</div>
+<?php if (hasRole('admin','adas')): ?>
+<!-- Post Announcement Modal (opened from the header button / the floating megaphone button) -->
+<div class="modal fade" id="postAnnouncementModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Post Announcement</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="card-body">
-        <form method="POST" action="<?= base_url('announcements') ?>" class="ajax-form"
-              data-confirm-title="Post this announcement?" data-confirm-text="It will be visible to everyone right away.">
-          <input type="hidden" name="action" value="add">
+      <form method="POST" action="<?= base_url('announcements') ?>" class="ajax-form"
+            data-confirm-title="Post this announcement?" data-confirm-text="It will be visible to everyone right away.">
+        <input type="hidden" name="action" value="add">
+        <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Type</label>
             <div class="maroon-select" style="width:100%;">
@@ -158,15 +170,16 @@
               </div>
             </div>
           </div>
-          <button type="submit" class="btn btn-primary w-100">
-            <i class="bi bi-send me-2"></i>Post Announcement
-          </button>
-        </form>
-      </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-send me-2"></i>Post Announcement</button>
+        </div>
+      </form>
     </div>
   </div>
-  <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <!-- View Announcement Modal -->
 <div class="modal fade" id="viewAnnouncementModal" tabindex="-1">
@@ -200,6 +213,16 @@ function viewAnnouncement(a, bg, tc, icon) {
     document.getElementById('viewAnnouncementDate').textContent = a.date_formatted;
     document.getElementById('viewAnnouncementContent').innerHTML = a.content_html;
     new bootstrap.Modal(document.getElementById('viewAnnouncementModal')).show();
+}
+
+function openPostAnnouncementModal() {
+    const el = document.getElementById('postAnnouncementModal');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+}
+
+// The floating megaphone button links here with ?compose=1: open the form straight away.
+if (" . json_encode(service('request')->getGet('compose') === '1') . ") {
+    openPostAnnouncementModal();
 }
 
 function wrapSelection(id, marker) {

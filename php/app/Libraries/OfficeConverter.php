@@ -11,6 +11,14 @@ class OfficeConverter
     private const CANDIDATE_PATHS = [
         'C:\\Program Files\\LibreOffice\\program\\soffice.com',
         'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.com',
+        // Linux servers (apt/dnf packages, snap, official .deb/.rpm in /opt)
+        '/usr/bin/soffice',
+        '/usr/bin/libreoffice',
+        '/usr/lib/libreoffice/program/soffice',
+        '/snap/bin/libreoffice',
+        '/opt/libreoffice/program/soffice',
+        // macOS
+        '/Applications/LibreOffice.app/Contents/MacOS/soffice',
     ];
 
     private ?string $sofficePath;
@@ -82,7 +90,20 @@ class OfficeConverter
 
     private function locateSoffice(): ?string
     {
+        // Explicit override, e.g. `libreoffice.path = /opt/libreoffice25.2/program/soffice` in .env.
+        $configured = (string) env('libreoffice.path', '');
+        if ($configured !== '' && is_file($configured)) {
+            return $configured;
+        }
+
         foreach (self::CANDIDATE_PATHS as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        // Versioned /opt installs (/opt/libreoffice7.6/program/soffice, ...).
+        foreach (glob('/opt/libreoffice*/program/soffice') ?: [] as $path) {
             if (is_file($path)) {
                 return $path;
             }

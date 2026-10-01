@@ -62,7 +62,7 @@ class Dashboard extends BaseController
         $allPerf          = $perfSubjectModel->where('school_year', $currentYear)->where('term', $currentTerm)->orderBy('mps', 'DESC')->findAll();
 
         // General average per subject across all grade levels — the default, uncluttered
-        // view; $allPerf (per grade+instructor) is only shown when the user clicks "View All".
+        // view; $allPerf (per grade+teacher) is only shown when the user clicks "View All".
         $scoresBySubject = [];
         foreach ($allPerf as $p) {
             $scoresBySubject[$p['subject']][] = (float) $p['mps'];
@@ -202,7 +202,7 @@ class Dashboard extends BaseController
             $insights[] = [
                 'tone' => 'danger',
                 'icon' => 'bi-exclamation-triangle-fill',
-                'text' => '<strong>' . e($lowest['subject']) . '</strong> (' . e($lowest['grade_level']) . ') has the lowest MPS at <strong>' . e($lowest['mps']) . '%</strong> — instructor ' . e($lowest['instructor']) . '.',
+                'text' => '<strong>' . e($lowest['subject']) . '</strong> (' . e($lowest['grade_level']) . ') has the lowest MPS at <strong>' . e($lowest['mps']) . '%</strong> — teacher ' . e($lowest['instructor']) . '.',
             ];
         }
 

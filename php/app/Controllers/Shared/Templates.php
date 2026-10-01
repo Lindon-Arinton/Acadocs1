@@ -5,6 +5,7 @@ namespace App\Controllers\Shared;
 use App\Controllers\BaseController;
 use App\Libraries\CertificateGenerator;
 use App\Libraries\OfficeConverter;
+use App\Libraries\OfficeOnlinePreview;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -357,7 +358,7 @@ class Templates extends BaseController
                     ->setBody(file_get_contents($pdfPath));
             }
 
-            return $this->previewUnavailable();
+            return $this->officeOnlineOrUnavailable($template);
         }
 
         if (in_array($ext, self::SPREADSHEET_PREVIEW_EXT, true)) {
@@ -369,10 +370,28 @@ class Templates extends BaseController
                     ->setBody($html);
             }
 
-            return $this->previewUnavailable();
+            return $this->officeOnlineOrUnavailable($template);
         }
 
         return $this->previewUnavailable();
+    }
+
+    /**
+     * No local rendering (e.g. LibreOffice not installed on this server): hand
+     * the page an Office Online embed URL instead, if this deployment allows it.
+     * The page's JS reads the header and embeds that URL in an iframe.
+     */
+    private function officeOnlineOrUnavailable(array $template)
+    {
+        $embedUrl = OfficeOnlinePreview::embedUrl('template', (int) $template['id'], $template['file_path'], $template['file_name']);
+
+        if ($embedUrl === null) {
+            return $this->previewUnavailable();
+        }
+
+        return $this->response
+            ->setHeader('X-Preview-Embed-Url', $embedUrl)
+            ->setBody('');
     }
 
     /**

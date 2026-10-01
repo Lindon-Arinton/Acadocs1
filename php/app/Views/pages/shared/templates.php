@@ -474,6 +474,17 @@ function loadTemplatePreview(t, previewUrl, downloadBase) {
 
     fetch(previewUrl)
         .then(res => {
+            // No local rendering on this server: the endpoint hands back an
+            // Office Online viewer URL (signed, expiring file link) to embed.
+            const embedUrl = res.ok ? res.headers.get('X-Preview-Embed-Url') : null;
+            if (embedUrl) {
+                const frame = document.createElement('iframe');
+                frame.style.cssText = 'width:100%;height:65vh;border:1px solid #e5e7eb;border-radius:8px;background:#fff;';
+                frame.src = embedUrl;
+                box.innerHTML = '';
+                box.appendChild(frame);
+                return null;
+            }
             if (!res.ok || res.headers.get('X-Preview-Available') === '0') {
                 showPreviewUnavailable(box, downloadBase, t.fileName);
                 return null;

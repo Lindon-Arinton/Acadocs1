@@ -400,7 +400,7 @@ if ($complianceRate === null) {
       <table class="table table-hover mb-0">
         <thead>
           <tr>
-            <th>Subject</th><th>Grade Level</th><th>Instructor</th>
+            <th>Subject</th><th>Grade Level</th><th>Teacher</th>
             <th class="text-end">MPS</th><th class="text-center">Status</th>
           </tr>
         </thead>
