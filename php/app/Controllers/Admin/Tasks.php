@@ -287,7 +287,7 @@ class Tasks extends BaseController
                 'deadline'      => date('M d, Y h:i A', strtotime($task['deadline'])),
                 'assigneeCount' => count($pendingUsers) + count($submissions),
             ],
-            'submissions' => array_map(static fn (array $s) => [
+            'submissions' => array_map(static fn (array $s) => submissionTiming($s['submitted_at'], $task['deadline']) + [
                 'id'            => (int) $s['id'],
                 'userId'        => (int) $s['user_id'],
                 'submitterName' => $s['submitter_name'],
@@ -298,6 +298,7 @@ class Tasks extends BaseController
                     'id'   => (int) $f['id'],
                     'name' => $f['file_name'],
                     'ext'  => strtolower(pathinfo($f['file_name'], PATHINFO_EXTENSION)),
+                    'annotated' => TaskSubmissionFileModel::hasAnnotation($f),
                 ], $s['files']),
                 'feedback' => array_map(static fn (array $fb) => [
                     'comment' => $fb['comment'],

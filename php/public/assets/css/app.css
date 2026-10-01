@@ -1602,3 +1602,12 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
 [data-bs-theme="dark"] .badge-returned,
 [data-bs-theme="dark"] .cond-poor     { background: rgba(239,68,68,.16);  color: #fca5a5; border-color: rgba(239,68,68,.3); }
 [data-bs-theme="dark"] .chat-convo-delete-btn:hover { background: rgba(239,68,68,.16); color: #f87171; }
+
+/* ── Submission timing pills (submissionTimingBadge()) ── */
+.timing-badge { display: inline-flex; align-items: center; font-size: .68rem; font-weight: 600; padding: .15rem .5rem; border-radius: 999px; white-space: nowrap; }
+.timing-ontime { background: #d1fae5; color: #065f46; }
+.timing-late   { background: #fee2e2; color: #991b1b; }
+[data-bs-theme="dark"] .timing-ontime { background: rgba(16,185,129,.16); color: #6ee7b7; }
+[data-bs-theme="dark"] .timing-late   { background: rgba(239,68,68,.16);  color: #fca5a5; }
+.annot-badge { background: var(--highlight-bg); color: var(--highlight-tx); }
+.annot-badge:hover { text-decoration: underline !important; color: var(--highlight-tx); }

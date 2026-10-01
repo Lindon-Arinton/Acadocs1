@@ -506,6 +506,28 @@ function personLinkHtml(id, name) {
     return a.outerHTML;
 }
 
+/** JS twin of submissionTimingBadge(): "On time" / "Late · 2d 3h" pill. */
+function timingBadgeHtml(late, lateBy) {
+    const span = document.createElement('span');
+    span.className = 'timing-badge ' + (late ? 'timing-late' : 'timing-ontime');
+    span.innerHTML = late ? '<i class="bi bi-alarm-fill me-1"></i>' : '<i class="bi bi-check-circle-fill me-1"></i>';
+    span.append(late ? 'Late · ' + (lateBy || '') : 'On time');
+    return span.outerHTML;
+}
+
+/** Annotate button (reviewers) + "Marked up" link for one submitted file in a JS-built list. */
+function submissionFileExtrasHtml(fileId, annotated, canAnnotate) {
+    const base = '<?= base_url('task-submissions/') ?>' + encodeURIComponent(fileId);
+    let html = '';
+    if (canAnnotate) {
+        html += '<a class="btn btn-sm btn-outline-maroon" href="' + base + '/annotate" target="_blank" rel="noopener" title="Annotate (draw / write notes)"><i class="bi bi-pencil-square"></i></a>';
+    }
+    if (annotated) {
+        html += '<a class="timing-badge annot-badge text-decoration-none align-self-center" href="' + base + '/annotated" target="_blank" rel="noopener" title="Open the marked-up copy"><i class="bi bi-pencil-fill me-1"></i>Marked up</a>';
+    }
+    return html;
+}
+
 function personCardChips(items, emptyText) {
     if (!items.length) {
         return '<span class="small text-muted">' + emptyText + '</span>';
@@ -941,7 +963,8 @@ function isAjaxNavExempt(url) {
     // "template" (singular) covers file-download endpoints like
     // enrollment-kpis/template and performance/mps/template — not the
     // plural /templates list page, which is a normal AJAX-navigable view.
-    return /\/(download|logout|login|template)(\/|$|\?)/.test(url.pathname) || /\/(file|preview)(\/|$|\?)/.test(url.pathname);
+    // "annotate"/"annotated" are the full-screen annotator and its saved PDF.
+    return /\/(download|logout|login|template)(\/|$|\?)/.test(url.pathname) || /\/(file|preview|annotate|annotated)(\/|$|\?)/.test(url.pathname);
 }
 
 /*

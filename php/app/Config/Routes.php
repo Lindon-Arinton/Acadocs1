@@ -56,6 +56,10 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'my-tasks', 'Shared\MyTasks::index');
     $routes->get('task-submissions/(:num)/download', 'Shared\TaskDownload::show/$1');
     $routes->get('task-submissions/(:num)/preview', 'Shared\TaskDownload::preview/$1');
+    $routes->get('task-submissions/(:num)/annotate', 'Shared\TaskDownload::annotate/$1');
+    $routes->post('task-submissions/(:num)/annotate', 'Shared\TaskDownload::saveAnnotation/$1');
+    $routes->get('task-submissions/(:num)/annotation-source', 'Shared\TaskDownload::annotationSource/$1');
+    $routes->get('task-submissions/(:num)/annotated', 'Shared\TaskDownload::annotated/$1');
     $routes->match(['get', 'post'], 'profile', 'Shared\Profile::index');
     $routes->get('people/(:num)', 'Shared\People::show/$1');
     $routes->post('notifications/(:num)/read', 'Shared\Notifications::markRead/$1');

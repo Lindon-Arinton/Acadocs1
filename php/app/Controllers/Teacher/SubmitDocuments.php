@@ -112,10 +112,7 @@ class SubmitDocuments extends BaseController
 
             if ($existing) {
                 foreach ($fileModel->forSubmission($existing['id']) as $oldFile) {
-                    if (is_file($oldFile['file_path'])) {
-                        unlink($oldFile['file_path']);
-                    }
-                    $fileModel->delete($oldFile['id']);
+                    $fileModel->deleteWithFiles($oldFile); // also drops any reviewer-annotated copy
                 }
                 $submissionModel->update($existing['id'], $data);
                 $submissionId = $existing['id'];

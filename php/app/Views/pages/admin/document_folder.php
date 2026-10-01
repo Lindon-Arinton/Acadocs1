@@ -39,6 +39,12 @@ $canReview = hasRole('admin', 'adas');
                 <span class="small text-truncate" style="max-width:260px;"><i class="bi bi-paperclip me-1 text-muted"></i><?= e($file['file_name']) ?></span>
                 <a href="<?= base_url('task-submissions/' . $file['id'] . '/preview') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Preview"><i class="bi bi-eye"></i></a>
                 <a href="<?= base_url('task-submissions/' . $file['id'] . '/download') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Download"><i class="bi bi-download"></i></a>
+                <?php if ($canReview): ?>
+                <a href="<?= base_url('task-submissions/' . $file['id'] . '/annotate') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-maroon py-0 px-2" title="Annotate (draw / write notes)"><i class="bi bi-pencil-square"></i></a>
+                <?php endif; ?>
+                <?php if (\App\Models\TaskSubmissionFileModel::hasAnnotation($file)): ?>
+                <a href="<?= base_url('task-submissions/' . $file['id'] . '/annotated') ?>" target="_blank" rel="noopener" class="timing-badge annot-badge text-decoration-none" title="Open the marked-up copy"><i class="bi bi-pencil-fill me-1"></i>Marked up</a>
+                <?php endif; ?>
               </div>
               <?php endforeach; ?>
               <?php if (empty($submission['files'])): ?>
@@ -50,7 +56,11 @@ $canReview = hasRole('admin', 'adas');
               </div>
               <?php endif; ?>
             </td>
-            <td class="small text-muted"><?= date('M d, Y h:i A', strtotime($submission['submitted_at'])) ?></td>
+            <td class="small text-muted text-nowrap">
+              <div><?= date('M d, Y', strtotime($submission['submitted_at'])) ?></div>
+              <div><?= date('h:i A', strtotime($submission['submitted_at'])) ?></div>
+              <div class="mt-1"><?= submissionTimingBadge($submission['submitted_at'], $task['deadline']) ?></div>
+            </td>
             <td><span class="status-pill <?= submissionBadge($submission['status']) ?>"><?= e($submission['status']) ?></span></td>
             <?php if ($canReview): ?>
             <td class="text-nowrap">

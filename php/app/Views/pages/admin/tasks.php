@@ -286,6 +286,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div id="viewSubmittedMeta" class="small text-muted mb-3 d-flex flex-wrap align-items-center gap-2"></div>
         <p class="text-muted small fw-semibold mb-2">Files</p>
         <div id="viewFilesList" class="mb-3"></div>
 
@@ -517,7 +518,8 @@ function renderTaskDetailSubmissions(submissions) {
             + '<div class=\"d-flex justify-content-between align-items-start mb-2\">'
             + '<div><h6 class=\"fw-bold mb-1\">' + personLinkHtml(s.userId, s.submitterName) + '</h6>'
             + '<span class=\"text-muted small\"><i class=\"bi bi-paperclip me-1\"></i>' + s.files.length + ' file' + (s.files.length !== 1 ? 's' : '')
-            + ' &middot; Submitted ' + taskEscapeHtml(s.submittedAt) + '</span></div>'
+            + ' &middot; Submitted ' + taskEscapeHtml(s.submittedAt) + '</span>'
+            + '<div class=\"mt-1\">' + timingBadgeHtml(s.late, s.lateBy) + '</div></div>'
             + '<span class=\"status-pill ' + statusClass + '\">' + taskEscapeHtml(s.status) + '</span>'
             + '</div>'
             + notesHtml
@@ -547,6 +549,7 @@ function viewSubmission(index) {
 
     document.getElementById('viewSubmitterName').textContent = data.submitterName;
     document.getElementById('viewSubmissionId').value = data.id;
+    document.getElementById('viewSubmittedMeta').innerHTML = '<span><i class=\"bi bi-clock me-1\"></i>Submitted ' + taskEscapeHtml(data.submittedAt) + '</span>' + timingBadgeHtml(data.late, data.lateBy);
 
     document.getElementById('viewFilesList').innerHTML = data.files.map(function (f) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)
@@ -556,6 +559,7 @@ function viewSubmission(index) {
             + '<span class=\"small text-truncate me-2\"><i class=\"bi bi-file-earmark me-1\"></i>' + taskEscapeHtml(f.name) + '</span>'
             + '<div class=\"d-flex gap-1 flex-shrink-0\">' + previewBtn
             + '<a class=\"btn btn-sm btn-outline-secondary\" href=\"' + TASK_FILE_BASE + f.id + '/download\"><i class=\"bi bi-download\"></i></a>'
+            + submissionFileExtrasHtml(f.id, f.annotated, true)
             + '</div></div>';
     }).join('');
 

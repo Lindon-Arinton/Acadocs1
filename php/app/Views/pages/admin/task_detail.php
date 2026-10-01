@@ -47,6 +47,7 @@
               <i class="bi bi-paperclip me-1"></i><?= count($s['files']) ?> file<?= count($s['files']) !== 1 ? 's' : '' ?>
               · Submitted <?= date('M d, Y h:i A', strtotime($s['submitted_at'])) ?>
             </span>
+            <div class="mt-1"><?= submissionTimingBadge($s['submitted_at'], $task['deadline']) ?></div>
           </div>
           <span class="status-pill <?= submissionBadge($s['status']) ?>"><?= e($s['status']) ?></span>
         </div>
@@ -56,13 +57,15 @@
         <?php endif; ?>
 
         <button type="button" class="btn btn-sm btn-outline-maroon"
-                onclick='viewSubmission(<?= json_encode([
+                onclick='viewSubmission(<?= json_encode(submissionTiming($s['submitted_at'], $task['deadline']) + [
                     'id'            => (int) $s['id'],
                     'submitterName' => $s['submitter_name'],
+                    'submittedAt'   => date('M d, Y h:i A', strtotime($s['submitted_at'])),
                     'files'         => array_map(static fn ($f) => [
                         'id'   => (int) $f['id'],
                         'name' => $f['file_name'],
                         'ext'  => strtolower(pathinfo($f['file_name'], PATHINFO_EXTENSION)),
+                        'annotated' => \App\Models\TaskSubmissionFileModel::hasAnnotation($f),
                     ], $s['files']),
                     'feedback'      => array_map(static fn ($fb) => [
                         'comment' => $fb['comment'],
@@ -114,6 +117,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div id="viewSubmittedMeta" class="small text-muted mb-3 d-flex flex-wrap align-items-center gap-2"></div>
         <p class="text-muted small fw-semibold mb-2">Files</p>
         <div id="viewFilesList" class="mb-3"></div>
 
@@ -155,6 +159,7 @@ function escapeHtml(s) {
 function viewSubmission(data) {
     document.getElementById("viewSubmitterName").textContent = data.submitterName;
     document.getElementById("viewSubmissionId").value = data.id;
+    document.getElementById("viewSubmittedMeta").innerHTML = \'<span><i class="bi bi-clock me-1"></i>Submitted \' + escapeHtml(data.submittedAt) + "</span>" + timingBadgeHtml(data.late, data.lateBy);
 
     document.getElementById("viewFilesList").innerHTML = data.files.map(function (f) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)
@@ -164,6 +169,7 @@ function viewSubmission(data) {
             + \'<span class="small text-truncate me-2"><i class="bi bi-file-earmark me-1"></i>\' + escapeHtml(f.name) + "</span>"
             + \'<div class="d-flex gap-1 flex-shrink-0">\' + previewBtn
             + \'<a class="btn btn-sm btn-outline-secondary" href="\' + TASK_FILE_BASE + f.id + \'/download"><i class="bi bi-download"></i></a>\'
+            + submissionFileExtrasHtml(f.id, f.annotated, true)
             + "</div></div>";
     }).join("");
 
