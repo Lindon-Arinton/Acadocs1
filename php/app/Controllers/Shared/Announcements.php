@@ -59,13 +59,17 @@ class Announcements extends BaseController
                             'title'   => $title,
                             'sub'     => $type . ' · ' . date('M d', strtotime($date)),
                             'url'     => base_url('announcements') . '?id=' . $announcementId,
+                            'ref_type' => 'announcement',
+                            'ref_id'  => $announcementId,
                             'is_read' => 0,
                         ]);
                     }
 
                     $message = 'Announcement posted successfully.';
                 } elseif ($action === 'delete') {
-                    $model->delete((int) $this->request->getPost('id'));
+                    $announcementId = (int) $this->request->getPost('id');
+                    $model->delete($announcementId);
+                    (new NotificationModel())->deleteForRef('announcement', $announcementId);
                     $message = 'Announcement deleted.';
                 }
             } catch (\Throwable $e) {

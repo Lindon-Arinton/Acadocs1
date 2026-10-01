@@ -101,7 +101,9 @@ class Tasks extends BaseController
                     $taskModel->update((int) $this->request->getPost('id'), ['status' => 'Open']);
                     $message = 'Task reopened.';
                 } elseif ($action === 'delete') {
-                    $taskModel->delete((int) $this->request->getPost('id'));
+                    $taskId = (int) $this->request->getPost('id');
+                    (new NotificationModel())->deleteForTask($taskId); // before the delete cascades away its submissions
+                    $taskModel->delete($taskId);
                     $message = 'Task deleted.';
                 }
             } catch (\Throwable $e) {
