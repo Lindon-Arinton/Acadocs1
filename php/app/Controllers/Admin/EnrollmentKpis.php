@@ -6,22 +6,11 @@ use App\Controllers\BaseController;
 use App\Libraries\EnrollmentKpiDocxImporter;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
-use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\Metadata\Protection;
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\SimpleType\DocProtect;
-use PhpOffice\PhpWord\SimpleType\Jc;
 
 class EnrollmentKpis extends BaseController
 {
-    /** Display labels for the blank template, in the order the DepEd form uses. */
-    private const TEMPLATE_INDICATORS = [
-        'Gross Enrolment Rate', 'Net Enrolment Rate', 'Cohort Survival Rate',
-        'Repetition Rate', 'Promotion Rate', 'Retention Rate', 'Graduation Rate',
-        'Completion Rate', 'Transition Rate', 'Drop Out Rate',
-    ];
-
-    private const TEMPLATE_GRADE_LEVELS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+    /** Bundled blank DepEd KPI report, served when no template has been uploaded. */
+    private const DEFAULT_TEMPLATE = APPPATH . 'Templates/KEY-PERFORMANCE-INDICATOR.docx';
 
     public function import()
     {
@@ -101,97 +90,22 @@ class EnrollmentKpis extends BaseController
             return redirect()->to('/dashboard');
         }
 
-        // The template has no school year of its own by default — it takes
-        // whatever year the admin currently has entered in the Import modal's
-        // School Year field (see admin/dashboard.php, which keeps this link's
-        // href in sync with that field as the admin types).
-        $year      = trim((string) $this->request->getGet('year'));
-        $yearValid = (bool) preg_match('/^\d{4}-\d{4}$/', $year);
-
+        // The template carries no school year — the admin is asked for it
+        // when importing the filled-in report (see the Import KPI modal).
         // Prefer a real DepEd-issued .docx uploaded via Templates (Enrollment
-        // category) — guarantees exact letterhead/pagination fidelity. Only
-        // fall back to generating an approximation if nothing's been uploaded.
+        // category) if there is one; otherwise serve the bundled blank form.
         $uploaded = $this->findUploadedKpiTemplate();
         if ($uploaded !== null && is_file($uploaded['file_path'])) {
-            if ($yearValid) {
-                $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kpi_report_template_' . uniqid() . '.docx';
-                if ($this->stampYearInDocx($uploaded['file_path'], $tempFile, $year)) {
-                    return $this->response->download($tempFile, null)->setFileName($uploaded['file_name']);
-                }
-            }
-
             return $this->response->download($uploaded['file_path'], null)->setFileName($uploaded['file_name']);
         }
 
-        $yearLabel = $yearValid ? 'SY ' . $year : '(School Year)';
-
-        $center = ['alignment' => Jc::CENTER];
-
-        $phpWord = new PhpWord();
-        // Whole document is locked; the permission range added below (the whole
-        // body) is the one exception, so only the header stays read-only. Real
-        // Word headers/footers are separate document parts, so putting the
-        // letterhead in an actual header (rather than body text styled to look
-        // like one) keeps it out of the body's page flow and repeats it on any
-        // page the form overflows onto.
-        $phpWord->getSettings()->setDocumentProtection(new Protection(DocProtect::READ_ONLY));
-
-        $section = $phpWord->addSection();
-
-        $header = $section->addHeader();
-        $header->addText('Republic of the Philippines', ['bold' => true, 'size' => 12], $center);
-        $header->addText('Department of Education', ['bold' => true, 'size' => 22], $center);
-        $header->addText('REGION IV-A, CALABARZON', ['bold' => true, 'size' => 11], $center);
-        $header->addText('SCHOOLS DIVISION OF BATANGAS PROVINCE', ['bold' => true, 'size' => 11], $center);
-        $header->addText('MATABUNGKAY NATIONAL HIGH SCHOOL', ['bold' => true, 'size' => 11], $center);
-        $header->addText('MATABUNGKAY, LIAN, BATANGAS', ['bold' => true, 'size' => 11], $center);
-
-        $section->addTextBreak(1);
-        $section->addText('KEY PERFORMANCE INDICATOR', ['bold' => true, 'size' => 12], $center);
-        $section->addText($yearLabel, ['bold' => true, 'size' => 12], $center);
-        $section->addTextBreak(1);
-
-        $indicatorTable = $section->addTable(['borderSize' => 6, 'borderColor' => '000000']);
-        $indicatorTable->addRow();
-        $indicatorTable->addCell(9000, ['gridSpan' => 2])->addText('Indicator', ['bold' => true], $center);
-
-        foreach (self::TEMPLATE_INDICATORS as $label) {
-            $indicatorTable->addRow();
-            $indicatorTable->addCell(4500)->addText($label, ['bold' => true]);
-            $indicatorTable->addCell(4500)->addText('');
-        }
-
-        $section->addTextBreak(1);
-        $section->addText('Enrolment per Grade Level', ['bold' => true], $center);
-
-        $gradeTable = $section->addTable(['borderSize' => 6, 'borderColor' => '000000']);
-        $gradeTable->addRow();
-        foreach (['Grade Level', 'Total'] as $header) {
-            $gradeTable->addCell(4500)->addText($header, ['bold' => true], $center);
-        }
-        foreach (self::TEMPLATE_GRADE_LEVELS as $grade) {
-            $gradeTable->addRow();
-            $gradeTable->addCell(4500)->addText($grade, ['bold' => true]);
-            $gradeTable->addCell(4500)->addText('');
-        }
-
-        $section->addTextBreak(3);
-        $section->addText('Prepared:');
-        $section->addTextBreak(2);
-        $section->addText('Guidance Designate');
-
-        $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'kpi_report_template_' . uniqid() . '.docx';
-        IOFactory::createWriter($phpWord, 'Word2007')->save($tempFile);
-        $this->exemptBodyFromProtection($tempFile);
-
-        return $this->response->download($tempFile, null)->setFileName('deped_kpi_report_template.docx');
+        return $this->response->download(self::DEFAULT_TEMPLATE, null)->setFileName('KEY-PERFORMANCE-INDICATOR.docx');
     }
 
     /**
      * Finds the most recently uploaded .docx in the "Enrollment" Templates
      * category — where the real DepEd KPI report template gets uploaded —
-     * so the download button can serve the actual file instead of a
-     * PhpWord-generated approximation.
+     * so the download button can serve it instead of the bundled default.
      */
     private function findUploadedKpiTemplate(): ?array
     {
@@ -206,88 +120,5 @@ class EnrollmentKpis extends BaseController
             ->orderBy('date_added', 'DESC')
             ->orderBy('id', 'DESC')
             ->first();
-    }
-
-    /**
-     * Copies an uploaded KPI template and swaps its "YYYY-YYYY" school-year
-     * run for $year, so the real DepEd-formatted template also reflects the
-     * year the admin has entered — never touches the uploaded original.
-     *
-     * Only rewrites a text run whose *entire* content is a bare year range
-     * (the regex has no wildcard around \d{4}-\d{4}, so it can't partially
-     * match inside a longer run like "Form No. 2024-2025-001"), which is how
-     * Word actually stored the title's year in the template on file. If nothing
-     * matches that shape, the copy is left untouched and the caller falls
-     * back to serving the original — better an unstamped year than a
-     * corrupted document.
-     */
-    private function stampYearInDocx(string $srcPath, string $destPath, string $year): bool
-    {
-        if (! copy($srcPath, $destPath)) {
-            return false;
-        }
-
-        $zip = new \ZipArchive();
-        if ($zip->open($destPath) !== true) {
-            return false;
-        }
-
-        $xml = $zip->getFromName('word/document.xml');
-        if ($xml === false) {
-            $zip->close();
-
-            return false;
-        }
-
-        // ${1}/${2} (not $1/$2): $year starts with a digit, and PCRE greedily
-        // reads backreference digits, so "$1" . "2026-2027" would parse as
-        // backreference 12 (nonexistent → empty) followed by "026-2027" —
-        // silently truncating the year and eating the opening <w:t> tag.
-        $stamped = preg_replace('/(<w:t[^>]*>)\d{4}-\d{4}(<\/w:t>)/', '${1}' . $year . '${2}', $xml, -1, $count);
-
-        if ($stamped === null || $count === 0) {
-            $zip->close();
-            unlink($destPath);
-
-            return false;
-        }
-
-        $zip->deleteName('word/document.xml');
-        $zip->addFromString('word/document.xml', $stamped);
-        $zip->close();
-
-        return true;
-    }
-
-    /**
-     * The document is fully read-only protected; this marks the entire body
-     * (title, both tables, signature block) as a Word "editing permission"
-     * exception. The letterhead lives in a real header part (word/header1.xml),
-     * a separate part this exception never touches, so it stays locked.
-     */
-    private function exemptBodyFromProtection(string $docxPath): void
-    {
-        $zip = new \ZipArchive();
-        if ($zip->open($docxPath) !== true) {
-            return;
-        }
-
-        $xml = $zip->getFromName('word/document.xml');
-        if ($xml === false) {
-            $zip->close();
-
-            return;
-        }
-
-        $sectPrPos = strpos($xml, '<w:sectPr');
-        if (strpos($xml, '<w:body>') !== false && $sectPrPos !== false) {
-            $xml = substr_replace($xml, '<w:permEnd w:id="100"/>', $sectPrPos, 0);
-            $xml = str_replace('<w:body>', '<w:body><w:permStart w:id="100" w:edGrp="everyone"/>', $xml);
-
-            $zip->deleteName('word/document.xml');
-            $zip->addFromString('word/document.xml', $xml);
-        }
-
-        $zip->close();
     }
 }

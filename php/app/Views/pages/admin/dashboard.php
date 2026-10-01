@@ -504,6 +504,11 @@ if ($complianceRate === null) {
                    inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2026-2027"
                    value="<?= e($currentYear) ?>" placeholder="e.g. 2026-2027" pattern="\d{4}-\d{4}" required
                    oninput="updateEnrollmentTemplateLink(this.form)">
+            <datalist id="kpiYearOptions">
+              <?php foreach ($years as $y): ?>
+              <option value="<?= e($y) ?>"></option>
+              <?php endforeach; ?>
+            </datalist>
             <div class="form-text">Uploading a month again replaces it; other months are kept.</div>
           </div>
           <div class="mb-3">
@@ -528,27 +533,14 @@ if ($complianceRate === null) {
         <h6 class="modal-title"><i class="bi bi-upload me-2"></i>Import KPI Report</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('enrollment-kpis/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this file?" data-confirm-text="Existing KPI data for the selected school year will be overwritten.">
+      <form method="POST" action="<?= base_url('enrollment-kpis/import') ?>" class="ajax-form" enctype="multipart/form-data" data-sy-prompt="school_year" data-confirm-text="Existing KPI data for this school year will be overwritten.">
+        <input type="hidden" name="school_year" value="">
         <div class="modal-body">
           <p class="text-muted" style="font-size:.82rem;">
-            Upload the DepEd "Key Performance Indicator" Word report (Indicator table plus the
-            "Enrolment per Grade Level" table). The document doesn't state its own school year, so
-            enter it below. Not sure of the format?
-            <a href="<?= base_url('enrollment-kpis/template') ?>?year=<?= urlencode($currentYear) ?>" id="kpiTemplateLink">Download the template</a>.
+            Upload the DepEd "Key Performance Indicator" Word report (the Indicator table). You'll be asked
+            which school year the data is for after you click Import. Not sure of the format?
+            <a href="<?= base_url('enrollment-kpis/template') ?>">Download the template</a>.
           </p>
-          <div class="mb-3">
-            <label class="form-label">School Year</label>
-            <input type="text" name="school_year" class="form-control form-control-sm sy-input" list="kpiYearOptions"
-                   inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2025-2026"
-                   value="<?= e($currentYear) ?>" placeholder="e.g. 2025-2026" pattern="\d{4}-\d{4}" required
-                   oninput="document.getElementById('kpiTemplateLink').href = '<?= base_url('enrollment-kpis/template') ?>?year=' + encodeURIComponent(this.value)">
-            <datalist id="kpiYearOptions">
-              <?php foreach ($years as $y): ?>
-              <option value="<?= e($y) ?>"></option>
-              <?php endforeach; ?>
-            </datalist>
-            <div class="form-text">Type a new school year (YYYY-YYYY) or pick an existing one. The template above will use this year.</div>
-          </div>
           <div class="mb-3">
             <label class="form-label">Word file (.docx)</label>
             <input type="file" name="import_file" class="form-control" accept=".docx" required>

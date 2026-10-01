@@ -290,6 +290,11 @@ document.addEventListener('submit', function (e) {
     const actionKey = form.dataset.confirmAction || form.querySelector('[name="action"]')?.value || 'default';
     const cfg = AJAX_ACTION_LABELS[actionKey] || AJAX_ACTION_LABELS.default;
 
+    if (form.dataset.syPrompt) {
+        promptSchoolYear(form, cfg);
+        return;
+    }
+
     Swal.fire({
         title: form.dataset.confirmTitle || cfg.title,
         text: form.dataset.confirmText || '',
@@ -304,6 +309,81 @@ document.addEventListener('submit', function (e) {
         if (result.isConfirmed) ajaxFormSubmit(form);
     });
 });
+
+/* ── School-year prompt for forms marked [data-sy-prompt] ────
+   The confirm dialog doubles as the year question: two 4-digit boxes with a
+   fixed dash between them ([2025]–[2026]). Filling the first box pre-fills
+   the second with the next year and jumps to it. The chosen year is written
+   into the form's hidden input named by data-sy-prompt before submitting. */
+function promptSchoolYear(form, cfg) {
+    const target = form.querySelector('[name="' + form.dataset.syPrompt + '"]');
+
+    // A Bootstrap modal traps focus inside itself, which would pull every
+    // click/keystroke back out of the SweetAlert boxes — so step out of the
+    // modal while asking, and bring it back (file still chosen) on Cancel.
+    const modalEl = form.closest('.modal');
+    const modal   = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+    if (modal) modal.hide();
+
+    const box = 'class="swal2-input sy-box" inputmode="numeric" maxlength="4" placeholder="YYYY" autocomplete="off"'
+              + ' style="width:6.5rem;margin:0;text-align:center;font-size:1.25rem;letter-spacing:.1em;"';
+
+    Swal.fire({
+        title: form.dataset.syPromptTitle || 'What school year is this data for?',
+        html: '<div style="display:flex;align-items:center;justify-content:center;gap:.6rem;margin-top:.5rem;">'
+            + '<input id="syStart" ' + box + '>'
+            + '<span style="font-size:1.6rem;font-weight:600;">&ndash;</span>'
+            + '<input id="syEnd" ' + box + '>'
+            + '</div>'
+            + (form.dataset.confirmText ? '<p class="text-muted small mt-3 mb-0">' + form.dataset.confirmText + '</p>' : ''),
+        icon: form.dataset.confirmIcon || cfg.icon,
+        showCancelButton: true,
+        confirmButtonText: cfg.confirmText,
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusConfirm: false,
+        didOpen: () => {
+            const start = document.getElementById('syStart');
+            const end   = document.getElementById('syEnd');
+            [start, end].forEach(input => input.addEventListener('input', () => {
+                input.value = input.value.replace(/\D/g, '').slice(0, 4);
+            }));
+            start.addEventListener('input', () => {
+                if (start.value.length === 4) {
+                    end.value = String(parseInt(start.value, 10) + 1);
+                    end.focus();
+                    end.select();
+                }
+            });
+            end.addEventListener('keydown', e => {
+                if (e.key === 'Backspace' && end.value === '') start.focus();
+            });
+            start.focus();
+            // Bootstrap may hand focus back to the modal's trigger button once
+            // its hide transition ends — reclaim it for the year box.
+            if (modalEl) modalEl.addEventListener('hidden.bs.modal', () => {
+                if (Swal.isVisible() && !end.contains(document.activeElement)) start.focus();
+            }, { once: true });
+        },
+        preConfirm: () => {
+            const year = document.getElementById('syStart').value + '-' + document.getElementById('syEnd').value;
+            if (!isValidSchoolYear(year)) {
+                Swal.showValidationMessage('Enter consecutive years, e.g. 2025 – 2026.');
+                return false;
+            }
+            return year;
+        },
+    }).then(result => {
+        if (!result.isConfirmed) {
+            if (modal) modal.show();
+            return;
+        }
+        target.value = result.value;
+        ajaxFormSubmit(form);
+    });
+}
 
 /* ── Logout confirmation ─────────────────────────────────── */
 function confirmLogout(e, link) {
