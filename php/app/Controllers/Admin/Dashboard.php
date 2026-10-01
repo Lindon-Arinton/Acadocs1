@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\MpsCalculator;
 use App\Models\DepedKpiReportModel;
 use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
@@ -199,38 +200,52 @@ class Dashboard extends BaseController
         $insights = [];
 
         if ($lowest !== null && (float) $lowest['mps'] < 80) {
+            // Name the teacher only when one is actually on record — imported or
+            // seeded rows carry a placeholder, and "teacher —" says nothing.
+            $instructor = trim((string) ($lowest['instructor'] ?? ''));
+            $handledBy  = in_array($instructor, MpsCalculator::UNKNOWN_INSTRUCTORS, true)
+                ? ''
+                : ', handled by <strong>' . e($instructor) . '</strong>';
+
             $insights[] = [
                 'tone' => 'danger',
                 'icon' => 'bi-exclamation-triangle-fill',
-                'text' => '<strong>' . e($lowest['subject']) . '</strong> (' . e($lowest['grade_level']) . ') has the lowest MPS at <strong>' . e($lowest['mps']) . '%</strong> — teacher ' . e($lowest['instructor']) . '.',
+                'text' => 'Learners in <strong>' . e($lowest['grade_level']) . ' ' . e($lowest['subject']) . '</strong> are struggling the most, with the lowest mean percentage score this term (<strong>' . e($lowest['mps']) . '%</strong>)' . $handledBy . '. This subject may need remediation or closer follow-up.',
             ];
         }
 
         if ($complianceRate !== null) {
+            $rate = '<strong>' . number_format($complianceRate, 1) . '%</strong>';
             if ($complianceRate < 60) {
-                $insights[] = ['tone' => 'danger', 'icon' => 'bi-clipboard-x-fill', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — well below the 85% target.'];
+                $insights[] = ['tone' => 'danger', 'icon' => 'bi-clipboard-x-fill', 'text' => 'Document submission is falling behind: only ' . $rate . ' of required submissions are in, well below the 85% target. Follow up with staff who have not submitted yet.'];
             } elseif ($complianceRate < 85) {
-                $insights[] = ['tone' => 'warning', 'icon' => 'bi-clipboard-check', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — below the 85% target.'];
+                $insights[] = ['tone' => 'warning', 'icon' => 'bi-clipboard-check', 'text' => 'Document submission is at ' . $rate . ', short of the 85% target. A reminder to staff may help close the gap.'];
             } else {
-                $insights[] = ['tone' => 'success', 'icon' => 'bi-clipboard-check-fill', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — on track.'];
+                $insights[] = ['tone' => 'success', 'icon' => 'bi-clipboard-check-fill', 'text' => 'Staff are keeping up with document submissions: ' . $rate . ' are in, meeting the 85% target.'];
             }
         }
 
         if ($dropoutDelta !== null) {
             $improved   = $dropoutDelta['delta'] <= 0;
+            $points     = '<strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' percentage points</strong>';
             $insights[] = [
                 'tone' => $improved ? 'success' : 'warning',
                 'icon' => $improved ? 'bi-graph-down-arrow' : 'bi-graph-up-arrow',
-                'text' => 'Drop-out rate ' . ($improved ? 'decreased by' : 'rose by') . ' <strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' pts</strong> vs ' . e($dropoutDelta['vsLabel']) . '.',
+                'text' => $improved
+                    ? 'Fewer learners are leaving school: the drop-out rate went down by ' . $points . ' compared with ' . e($dropoutDelta['vsLabel']) . '.'
+                    : 'More learners are leaving school: the drop-out rate went up by ' . $points . ' compared with ' . e($dropoutDelta['vsLabel']) . '. Consider identifying learners at risk of dropping out.',
             ];
         }
 
         if ($mpsDelta !== null) {
             $improved   = $mpsDelta['delta'] >= 0;
+            $points     = '<strong>' . number_format(abs($mpsDelta['delta']), 2) . ' points</strong>';
             $insights[] = [
                 'tone' => $improved ? 'success' : 'warning',
                 'icon' => $improved ? 'bi-arrow-up-circle-fill' : 'bi-arrow-down-circle-fill',
-                'text' => 'Average MPS ' . ($improved ? 'improved by' : 'declined by') . ' <strong>' . number_format(abs($mpsDelta['delta']), 2) . ' pts</strong> vs ' . e($mpsDelta['vsLabel']) . '.',
+                'text' => $improved
+                    ? 'Overall learner performance is improving: the school-wide average MPS rose by ' . $points . ' compared with ' . e($mpsDelta['vsLabel']) . '.'
+                    : 'Overall learner performance has slipped: the school-wide average MPS fell by ' . $points . ' compared with ' . e($mpsDelta['vsLabel']) . '. Low-scoring subjects may need attention.',
             ];
         }
 
@@ -240,17 +255,20 @@ class Dashboard extends BaseController
                 $insights[] = [
                     'tone' => 'success',
                     'icon' => 'bi-star-fill',
-                    'text' => '<strong>' . e($top['subject']) . '</strong> is the top-performing subject at <strong>' . e($top['mps']) . '%</strong>.',
+                    'text' => '<strong>' . e($top['subject']) . '</strong> is the school\'s strongest subject this term, with an average MPS of <strong>' . e($top['mps']) . '%</strong> across grade levels.',
                 ];
             }
         }
 
         if ($enrolleesDelta !== null) {
             $up         = $enrolleesDelta['delta'] >= 0;
+            $percent    = '<strong>' . number_format(abs($enrolleesDelta['delta']), 1) . '%</strong>';
             $insights[] = [
                 'tone' => 'info',
                 'icon' => $up ? 'bi-people-fill' : 'bi-person-dash-fill',
-                'text' => 'Enrollment ' . ($up ? 'rose' : 'fell') . ' <strong>' . number_format(abs($enrolleesDelta['delta']), 1) . '%</strong> vs ' . e($enrolleesDelta['vsLabel']) . '.',
+                'text' => $up
+                    ? 'The school is serving more learners: enrollment grew by ' . $percent . ' compared with ' . e($enrolleesDelta['vsLabel']) . '.'
+                    : 'Enrollment went down by ' . $percent . ' compared with ' . e($enrolleesDelta['vsLabel']) . '. Check for transfers or learners who did not return.',
             ];
         }
 
@@ -259,7 +277,7 @@ class Dashboard extends BaseController
             $insights[] = [
                 'tone' => $pending >= 10 ? 'warning' : 'info',
                 'icon' => 'bi-hourglass-split',
-                'text' => '<strong>' . $pending . '</strong> document' . ($pending === 1 ? '' : 's') . ' awaiting review.',
+                'text' => '<strong>' . $pending . '</strong> submitted document' . ($pending === 1 ? ' is' : 's are') . ' still waiting for review.',
             ];
         }
 

@@ -133,7 +133,7 @@ class PerformanceMps extends BaseController
             }
 
             try {
-                (new MpsCalculator())->saveSectionScores($year, $term, $entries);
+                (new MpsCalculator())->saveSectionScores($year, $term, $entries, currentUser()['name'] ?? null);
             } catch (\Throwable $e) {
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to($redirect);
             }
@@ -284,7 +284,8 @@ class PerformanceMps extends BaseController
                 $uploadPath . DIRECTORY_SEPARATOR . $fileName,
                 $year,
                 $term,
-                $this->gradeSubjectOnly($this->handledCells($this->currentTeacherRow($year, $term)))
+                $this->gradeSubjectOnly($this->handledCells($this->currentTeacherRow($year, $term))),
+                currentUser()['name'] ?? null
             );
         } catch (\Throwable $e) {
             return $isAjax ? $this->ajaxError('Import failed: ' . $e->getMessage()) : redirect()->to($redirect);

@@ -38,7 +38,7 @@ class MpsScoreImporter
      *   warnings: string[], errors: string[],
      * }
      */
-    public function import(string $filePath, string $schoolYear, int $term, ?array $allowedCells = null): array
+    public function import(string $filePath, string $schoolYear, int $term, ?array $allowedCells = null, ?string $instructor = null): array
     {
         $summary = [
             'periods_found' => [],
@@ -147,7 +147,7 @@ class MpsScoreImporter
             return $summary;
         }
 
-        (new MpsCalculator())->saveScores($schoolYear, $term, $scoresByPeriod);
+        (new MpsCalculator())->saveScores($schoolYear, $term, $scoresByPeriod, $instructor);
 
         return $summary;
     }
