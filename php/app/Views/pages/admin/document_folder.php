@@ -32,7 +32,7 @@ $canReview = hasRole('admin', 'adas');
           <?php foreach ($submissions as $i => $submission): ?>
           <tr>
             <td class="text-muted small"><?= $i + 1 ?></td>
-            <td class="fw-semibold"><?= e($submission['submitter_name']) ?></td>
+            <td class="fw-semibold"><?= personLink((int) $submission['user_id'], $submission['submitter_name']) ?></td>
             <td>
               <?php foreach ($submission['files'] as $file): ?>
               <div class="d-flex align-items-center gap-2 mb-1">

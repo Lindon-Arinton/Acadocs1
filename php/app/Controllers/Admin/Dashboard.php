@@ -9,6 +9,7 @@ use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
 use App\Models\PerformanceByLevelModel;
 use App\Models\PerformanceBySubjectModel;
+use App\Models\UserModel;
 
 class Dashboard extends BaseController
 {
@@ -139,7 +140,8 @@ class Dashboard extends BaseController
         $dropoutDelta   = $this->seriesDelta($dropoutSeries, false);
         $mpsDelta       = $this->seriesDelta($mpsYearSeries, false);
 
-        $insights = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary);
+        $insightTeachers = $this->teacherIdsByName((string) ($lowest['instructor'] ?? ''));
+        $insights        = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary, $insightTeachers);
 
         return view('pages/admin/dashboard', [
             'pageTitle'          => 'Admin Dashboard',
@@ -186,6 +188,7 @@ class Dashboard extends BaseController
      * @param array<string,mixed>|null                $lowest
      * @param array<int,array{subject:string,mps:float}> $avgPerf
      * @param array<string,int>                       $docSummary
+     * @param array<string,int>                       $insightTeachers teacher name => user id (see teacherIdsByName())
      * @return array<int,array{tone:string,icon:string,text:string}>
      */
     private function buildInsights(
@@ -195,17 +198,24 @@ class Dashboard extends BaseController
         ?array $lowest,
         array $avgPerf,
         ?float $complianceRate,
-        array $docSummary
+        array $docSummary,
+        array $insightTeachers = []
     ): array {
         $insights = [];
 
         if ($lowest !== null && (float) $lowest['mps'] < 80) {
             // Name the teacher only when one is actually on record — imported or
             // seeded rows carry a placeholder, and "teacher —" says nothing.
+            // A name that matches a teacher account becomes a person-card link
+            // (personLink(), modal in layout/footer.php).
             $instructor = trim((string) ($lowest['instructor'] ?? ''));
-            $handledBy  = in_array($instructor, MpsCalculator::UNKNOWN_INSTRUCTORS, true)
-                ? ''
-                : ', handled by <strong>' . e($instructor) . '</strong>';
+            $names      = [];
+            if (! in_array($instructor, MpsCalculator::UNKNOWN_INSTRUCTORS, true)) {
+                foreach (array_filter(array_map('trim', explode(',', $instructor))) as $name) {
+                    $names[] = '<strong>' . personLink($insightTeachers[$name] ?? null, $name) . '</strong>';
+                }
+            }
+            $handledBy = $names === [] ? '' : ', handled by ' . implode(', ', $names);
 
             $insights[] = [
                 'tone' => 'danger',
@@ -285,6 +295,26 @@ class Dashboard extends BaseController
         usort($insights, static fn ($a, $b) => $order[$a['tone']] <=> $order[$b['tone']]);
 
         return array_slice($insights, 0, 5);
+    }
+
+    /**
+     * User-account ids of the teachers named in an instructor string ("A" or
+     * "A, B"), so the Insights panel can turn each name into a person-card
+     * link. A name with no matching teacher account is left out.
+     *
+     * @return array<string,int> name => user id
+     */
+    private function teacherIdsByName(string $instructor): array
+    {
+        $instructor = trim($instructor);
+        if (in_array($instructor, MpsCalculator::UNKNOWN_INSTRUCTORS, true)) {
+            return [];
+        }
+
+        $names = array_values(array_filter(array_map('trim', explode(',', $instructor))));
+        $users = (new UserModel())->select('id, name')->where('role', 'teacher')->whereIn('name', $names)->findAll();
+
+        return array_map('intval', array_column($users, 'id', 'name'));
     }
 
     /**

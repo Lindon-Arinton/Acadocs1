@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Libraries\TimeRecordImporter;
 use App\Models\HolidayModel;
 use App\Models\TimeRecordModel;
+use App\Models\UserModel;
 
 class TimeRecords extends BaseController
 {
@@ -108,7 +109,15 @@ class TimeRecords extends BaseController
 
         $records = $builder->findAll();
 
+        // employee_id is "AC-{users.ac_no}" — map it back to the account so the
+        // name can open the person card (personLink()).
+        $userIdsByEmployeeId = [];
+        foreach ((new UserModel())->select('id, ac_no')->where('ac_no IS NOT NULL')->where('ac_no !=', '')->findAll() as $u) {
+            $userIdsByEmployeeId['AC-' . $u['ac_no']] = (int) $u['id'];
+        }
+
         return view('pages/shared/time_records', [
+            'userIdsByEmployeeId' => $userIdsByEmployeeId,
             'pageTitle'    => 'Time Records',
             'records'      => $records,
             'summary'      => $summary,

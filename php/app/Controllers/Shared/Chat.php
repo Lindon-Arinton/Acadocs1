@@ -29,6 +29,14 @@ class Chat extends BaseController
             return $this->create();
         }
 
+        // chat?user=ID — jump straight into a direct chat with that person
+        // (e.g. the dashboard's teacher-details "Chat" button), starting one
+        // if none exists yet.
+        $withUserId = (int) ($this->request->getGet('user') ?? 0);
+        if ($withUserId && $withUserId !== (int) $user['id'] && (new UserModel())->find($withUserId)) {
+            return redirect()->to('/chat?open=' . $this->findOrCreateDirect((int) $user['id'], $withUserId));
+        }
+
         $conversationModel = new ConversationModel();
         $participantModel  = new ConversationParticipantModel();
         $messageModel      = new MessageModel();
@@ -102,6 +110,27 @@ class Chat extends BaseController
         ]);
     }
 
+    /** The direct conversation between two users, created if they've never chatted. */
+    private function findOrCreateDirect(int $userId, int $otherId): int
+    {
+        $conversationModel = new ConversationModel();
+        $existing          = $conversationModel->findDirectBetween($userId, $otherId);
+        if ($existing) {
+            return (int) $existing['id'];
+        }
+
+        $convoId = (int) $conversationModel->insert([
+            'type'       => 'direct',
+            'name'       => null,
+            'created_by' => $userId,
+        ]);
+        $participantModel = new ConversationParticipantModel();
+        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $userId]);
+        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $otherId]);
+
+        return $convoId;
+    }
+
     private function create()
     {
         $isAjax = $this->request->isAJAX();
@@ -122,19 +151,7 @@ class Chat extends BaseController
                 if (! $other) {
                     $error = 'Please choose a valid user.';
                 } else {
-                    $existing = $conversationModel->findDirectBetween((int) $user['id'], $otherId);
-
-                    if ($existing) {
-                        $convoId = (int) $existing['id'];
-                    } else {
-                        $convoId = $conversationModel->insert([
-                            'type'       => 'direct',
-                            'name'       => null,
-                            'created_by' => $user['id'],
-                        ]);
-                        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $user['id']]);
-                        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $otherId]);
-                    }
+                    $convoId = $this->findOrCreateDirect((int) $user['id'], $otherId);
                     $message = 'Chat started with ' . $other['name'] . '.';
                 }
             } elseif ($action === 'create_group') {

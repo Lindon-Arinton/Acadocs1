@@ -112,7 +112,7 @@
                 <div style="width:30px;height:30px;border-radius:50%;background:<?= $rbg ?>;color:<?= $rtc ?>;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                   <?= strtoupper(substr($u['name'],0,1)) ?>
                 </div>
-                <span class="fw-semibold"><?= e($u['name']) ?></span>
+                <span class="fw-semibold"><?= personLink((int) $u['id'], $u['name']) ?></span>
                 <?php if ($isMe): ?>
                 <span class="badge badge-secondary" style="font-size:.62rem;">You</span>
                 <?php endif; ?>

@@ -133,7 +133,7 @@
           <?php foreach ($records as $r): ?>
           <tr>
             <td class="text-muted"><?= e($r['employee_id']) ?></td>
-            <td class="fw-semibold"><?= e($r['employee_name']) ?></td>
+            <td class="fw-semibold"><?= personLink($userIdsByEmployeeId[$r['employee_id']] ?? null, $r['employee_name']) ?></td>
             <td class="text-center">
               <?php if ($r['time_in']): ?>
               <span class="d-inline-flex align-items-center gap-1">

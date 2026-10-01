@@ -42,7 +42,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div>
-            <h6 class="fw-bold mb-1"><?= e($s['submitter_name']) ?></h6>
+            <h6 class="fw-bold mb-1"><?= personLink((int) $s['user_id'], $s['submitter_name']) ?></h6>
             <span class="text-muted small">
               <i class="bi bi-paperclip me-1"></i><?= count($s['files']) ?> file<?= count($s['files']) !== 1 ? 's' : '' ?>
               · Submitted <?= date('M d, Y h:i A', strtotime($s['submitted_at'])) ?>
@@ -94,7 +94,7 @@
           <div style="width:26px;height:26px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <?= strtoupper(substr($u['name'], 0, 1)) ?>
           </div>
-          <span class="small"><?= e($u['name']) ?></span>
+          <span class="small"><?= personLink((int) $u['id'], $u['name']) ?></span>
         </li>
         <?php endforeach; ?>
         <?php if (empty($pendingUsers)): ?>

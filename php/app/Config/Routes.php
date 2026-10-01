@@ -57,6 +57,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('task-submissions/(:num)/download', 'Shared\TaskDownload::show/$1');
     $routes->get('task-submissions/(:num)/preview', 'Shared\TaskDownload::preview/$1');
     $routes->match(['get', 'post'], 'profile', 'Shared\Profile::index');
+    $routes->get('people/(:num)', 'Shared\People::show/$1');
     $routes->post('notifications/(:num)/read', 'Shared\Notifications::markRead/$1');
     $routes->match(['get', 'post'], 'chat', 'Shared\Chat::index');
     $routes->get('chat/(:num)/messages', 'Shared\Chat::messages/$1');

@@ -515,7 +515,7 @@ function renderTaskDetailSubmissions(submissions) {
             : '';
         return '<div class=\"card mb-3\"><div class=\"card-body\">'
             + '<div class=\"d-flex justify-content-between align-items-start mb-2\">'
-            + '<div><h6 class=\"fw-bold mb-1\">' + taskEscapeHtml(s.submitterName) + '</h6>'
+            + '<div><h6 class=\"fw-bold mb-1\">' + personLinkHtml(s.userId, s.submitterName) + '</h6>'
             + '<span class=\"text-muted small\"><i class=\"bi bi-paperclip me-1\"></i>' + s.files.length + ' file' + (s.files.length !== 1 ? 's' : '')
             + ' &middot; Submitted ' + taskEscapeHtml(s.submittedAt) + '</span></div>'
             + '<span class=\"status-pill ' + statusClass + '\">' + taskEscapeHtml(s.status) + '</span>'
@@ -537,7 +537,7 @@ function renderTaskDetailPending(pendingUsers) {
         const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
         return '<li class=\"list-group-item py-2 px-3 d-flex align-items-center gap-2\">'
             + '<div style=\"width:26px;height:26px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">' + taskEscapeHtml(initial) + '</div>'
-            + '<span class=\"small\">' + taskEscapeHtml(u.name) + '</span></li>';
+            + '<span class=\"small\">' + personLinkHtml(u.id, u.name) + '</span></li>';
     }).join('');
 }
 

@@ -7,6 +7,55 @@
 </a>
 <?php endif; ?>
 
+<!-- Person card: opened by any name rendered through personLink() -->
+<div class="modal fade" id="personInfoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-person-badge me-2"></i>Profile</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="personInfoLoading" class="text-center text-muted py-4 small">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading…
+        </div>
+        <div id="personInfoBody" class="d-none">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div id="personInfoAvatar" class="person-card-avatar"></div>
+            <div>
+              <div id="personInfoName" class="fw-bold"></div>
+              <div id="personInfoRole" class="small text-muted"></div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="small text-muted mb-1"><i class="bi bi-envelope me-1"></i>Email</div>
+            <a id="personInfoEmail" href="#" class="small"></a>
+          </div>
+          <div class="mb-3" id="personInfoAdvisoryWrap">
+            <div class="small text-muted mb-1"><i class="bi bi-house-door me-1"></i>Advisory</div>
+            <div id="personInfoAdvisory" class="small"></div>
+          </div>
+          <div id="personInfoTeaching">
+            <div class="mb-3">
+              <div class="small text-muted mb-1"><i class="bi bi-book me-1"></i>Subjects handled</div>
+              <div id="personInfoSubjects"></div>
+            </div>
+            <div>
+              <div class="small text-muted mb-1"><i class="bi bi-people me-1"></i>Sections handled</div>
+              <div id="personInfoSections"></div>
+            </div>
+          </div>
+        </div>
+        <div id="personInfoError" class="alert alert-danger small mb-0 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <a id="personInfoChat" href="#" class="btn btn-primary d-none"><i class="bi bi-chat-dots me-1"></i>Chat</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>window.Chart || document.write('<script src="<?= base_url('assets/js/chart.umd.min.js') ?>"><\/script>');</script>
@@ -384,6 +433,109 @@ function promptSchoolYear(form, cfg) {
         ajaxFormSubmit(form);
     });
 }
+
+/* ── Person card (names rendered through personLink()) ──────
+   Delegated on document so names on AJAX-loaded pages and in JS-built
+   lists (e.g. the task detail modal) work too. Details are fetched on
+   click from /people/{id}. */
+const ROLE_LABELS = { admin: 'Admin', teacher: 'Teacher', adas: 'ADAS' };
+
+/** JS twin of the personLink() PHP helper, for lists built client-side. */
+function personLinkHtml(id, name) {
+    const a = document.createElement(id ? 'a' : 'span');
+    a.textContent = name || '';
+    if (id) {
+        a.href = '#';
+        a.className = 'person-link';
+        a.dataset.personId = id;
+    }
+    return a.outerHTML;
+}
+
+function personCardChips(items, emptyText) {
+    if (!items.length) {
+        return '<span class="small text-muted">' + emptyText + '</span>';
+    }
+    return items.map(item => {
+        const chip = document.createElement('span');
+        chip.className = 'person-chip';
+        chip.textContent = item;
+        return chip.outerHTML;
+    }).join('');
+}
+
+function showPersonCard(id) {
+    const modalEl = document.getElementById('personInfoModal');
+    const $ = sel => modalEl.querySelector(sel);
+
+    $('#personInfoLoading').classList.remove('d-none');
+    $('#personInfoBody').classList.add('d-none');
+    $('#personInfoError').classList.add('d-none');
+    $('#personInfoChat').classList.add('d-none');
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+    fetch('<?= base_url('people') ?>/' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') throw new Error(data.message || 'Could not load this profile.');
+            const p = data.person;
+
+            const avatar = $('#personInfoAvatar');
+            avatar.innerHTML = '';
+            if (p.photo) {
+                const img = document.createElement('img');
+                img.src = p.photo;
+                img.alt = '';
+                avatar.appendChild(img);
+            } else {
+                avatar.textContent = (p.name || '?').charAt(0).toUpperCase();
+            }
+
+            $('#personInfoName').textContent = p.name;
+            $('#personInfoRole').textContent = [ROLE_LABELS[p.role] || p.role, p.position].filter(Boolean).join(' · ');
+
+            const email = $('#personInfoEmail');
+            email.textContent = p.email || 'No email on record';
+            email.href = p.email ? 'mailto:' + p.email : '#';
+
+            $('#personInfoAdvisoryWrap').classList.toggle('d-none', !p.advisory);
+            $('#personInfoAdvisory').textContent = p.advisory || '';
+
+            const isTeacher = p.role === 'teacher';
+            $('#personInfoTeaching').classList.toggle('d-none', !isTeacher);
+            if (isTeacher) {
+                $('#personInfoSubjects').innerHTML = personCardChips(p.subjects, 'No subject load on record.');
+                $('#personInfoSections').innerHTML = personCardChips(p.sections, 'No sections on record.');
+            }
+
+            const chat = $('#personInfoChat');
+            chat.href = p.chatUrl;
+            chat.classList.toggle('d-none', p.isSelf);
+
+            $('#personInfoLoading').classList.add('d-none');
+            $('#personInfoBody').classList.remove('d-none');
+        })
+        .catch(err => {
+            $('#personInfoLoading').classList.add('d-none');
+            const box = $('#personInfoError');
+            box.textContent = err.message || 'Could not load this profile.';
+            box.classList.remove('d-none');
+        });
+}
+
+document.addEventListener('click', function (e) {
+    const link = e.target.closest('.person-link[data-person-id]');
+    if (link) {
+        e.preventDefault(); // also tells the AJAX-nav click handler below to ignore it
+        showPersonCard(link.dataset.personId);
+        return;
+    }
+    // Leaving for the chat page: close the card first so its backdrop
+    // doesn't linger over the AJAX-swapped page.
+    if (e.target.closest('#personInfoChat')) {
+        bootstrap.Modal.getInstance(document.getElementById('personInfoModal'))?.hide();
+    }
+});
 
 /* ── Logout confirmation ─────────────────────────────────── */
 function confirmLogout(e, link) {

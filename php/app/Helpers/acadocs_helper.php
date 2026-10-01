@@ -52,3 +52,19 @@ if (! function_exists('richText')) {
         return nl2br($html);
     }
 }
+
+if (! function_exists('personLink')) {
+    /**
+     * A person's name that opens the shared person-card modal (see
+     * layout/footer.php) when clicked. Falls back to plain escaped text when
+     * the name isn't tied to a user account.
+     */
+    function personLink(?int $userId, string $name, string $class = ''): string
+    {
+        if (! $userId) {
+            return e($name);
+        }
+
+        return '<a href="#" class="person-link' . ($class !== '' ? ' ' . e($class) : '') . '" data-person-id="' . (int) $userId . '">' . e($name) . '</a>';
+    }
+}

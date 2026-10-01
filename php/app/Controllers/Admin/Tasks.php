@@ -289,6 +289,7 @@ class Tasks extends BaseController
             ],
             'submissions' => array_map(static fn (array $s) => [
                 'id'            => (int) $s['id'],
+                'userId'        => (int) $s['user_id'],
                 'submitterName' => $s['submitter_name'],
                 'status'        => $s['status'],
                 'notes'         => $s['notes'],
@@ -303,7 +304,7 @@ class Tasks extends BaseController
                     'date'    => date('M d, Y', strtotime($fb['date'])),
                 ], $s['feedback']),
             ], $submissions),
-            'pendingUsers' => array_map(static fn (array $u) => ['name' => $u['name']], $pendingUsers),
+            'pendingUsers' => array_map(static fn (array $u) => ['id' => (int) $u['id'], 'name' => $u['name']], $pendingUsers),
         ]);
     }
 }
