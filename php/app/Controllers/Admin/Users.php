@@ -5,6 +5,8 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\TeacherModel;
 use App\Models\TeacherSubjectModel;
+use App\Models\BiometricEmployeeModel;
+use App\Models\TimeRecordModel;
 use App\Models\UserModel;
 
 class Users extends BaseController
@@ -33,6 +35,21 @@ class Users extends BaseController
                 }
             }
 
+            // Biometric number (scanner "AC-No"): optional, digits only, one account per number.
+            $acNo = trim((string) $this->request->getPost('ac_no'));
+            if (in_array($action, ['add', 'edit'], true) && $acNo !== '') {
+                if (! ctype_digit($acNo) || strlen($acNo) > 20) {
+                    return $isAjax ? $this->ajaxError('Biometric No. must be digits only (e.g. 37).') : redirect()->to('/users');
+                }
+                $acNo  = ltrim($acNo, '0') ?: '0'; // the scanner exports "037" and "37" alike
+                $taken = $model->where('ac_no', $acNo)->where('id !=', (int) ($this->request->getPost('id') ?? 0))->first();
+                if ($taken) {
+                    return $isAjax
+                        ? $this->ajaxError('Biometric No. ' . $acNo . ' is already assigned to ' . $taken['name'] . '.')
+                        : redirect()->to('/users');
+                }
+            }
+
             try {
                 if ($action === 'add') {
                     $role = $this->request->getPost('role');
@@ -42,13 +59,15 @@ class Users extends BaseController
                         'email'    => $this->request->getPost('email'),
                         'password' => password_hash($this->request->getPost('password'), PASSWORD_BCRYPT),
                         'role'     => $role,
+                        'ac_no'    => $acNo !== '' ? $acNo : null,
                     ]);
+                    $linked = $acNo !== '' ? $this->linkBiometric((int) $userId, $acNo, (string) $this->request->getPost('name')) : 0;
 
                     if ($role === 'teacher') {
                         $this->syncTeacherProfile((int) $userId, $model->find($userId));
                     }
 
-                    $message = 'User created successfully.';
+                    $message = 'User created successfully.' . ($linked ? ' Linked ' . $linked . ' existing time record(s) from Biometric No. ' . $acNo . '.' : '');
                 } elseif ($action === 'edit') {
                     $userId = (int) $this->request->getPost('id');
                     $role   = $this->request->getPost('role');
@@ -57,13 +76,17 @@ class Users extends BaseController
                         'name'  => $this->request->getPost('name'),
                         'email' => $this->request->getPost('email'),
                         'role'  => $role,
+                        'ac_no' => $acNo !== '' ? $acNo : null,
                     ]);
+                    // Past records stay with this person (they're tied by account, not number);
+                    // a new number also picks up its not-yet-linked scans.
+                    $linked = $acNo !== '' ? $this->linkBiometric($userId, $acNo, (string) $this->request->getPost('name')) : 0;
 
                     if ($role === 'teacher') {
                         $this->syncTeacherProfile($userId, $model->find($userId));
                     }
 
-                    $message = 'User updated successfully.';
+                    $message = 'User updated successfully.' . ($linked ? ' Linked ' . $linked . ' existing time record(s) from Biometric No. ' . $acNo . '.' : '');
                 } elseif ($action === 'delete') {
                     if ((int) $this->request->getPost('id') === (int) currentUser()['id']) {
                         return $isAjax ? $this->ajaxError('You cannot delete your own account.') : redirect()->to('/users');
@@ -93,7 +116,7 @@ class Users extends BaseController
         $sort       = $this->request->getGet('sort') ?? 'role';
         $department = $this->request->getGet('dept') ?? 'all';
 
-        $builder = $model->select('id,name,email,role,created_at')
+        $builder = $model->select('id,name,email,role,ac_no,created_at')
             ->groupStart()
                 ->like('name', $search)
                 ->orLike('email', $search)
@@ -130,7 +153,15 @@ class Users extends BaseController
             $users = array_values(array_filter($users, static fn ($u) => in_array($department, $u['departments'], true)));
         }
 
+        // Scanner numbers seen in imports but not yet tied to an account — offered
+        // as suggestions in the Biometric No. field.
+        $unlinkedBiometrics = (new BiometricEmployeeModel())->select('ac_no, name')
+            ->whereNotIn('ac_no', array_merge(['__none__'], array_filter(array_column($model->select('ac_no')->where('ac_no IS NOT NULL')->findAll(), 'ac_no'))))
+            ->orderBy('CAST(ac_no AS UNSIGNED)', 'ASC', false)
+            ->findAll();
+
         return view('pages/admin/users', [
+            'unlinkedBiometrics' => $unlinkedBiometrics,
             'pageTitle'   => 'User Management',
             'users'       => $users,
             'search'      => $search,
@@ -147,6 +178,18 @@ class Users extends BaseController
      * teacher_subjects rows, from the Add/Edit User form's teacher-only
      * fields (advisory_status, advisory_section, grade_level, subjects[]).
      */
+    /**
+     * Ties a biometric number to an account: its unclaimed time records move
+     * to the account, and any "Unmapped (AC-x)" scanner placeholder for that
+     * number is dropped (the account now names it).
+     */
+    private function linkBiometric(int $userId, string $acNo, string $name): int
+    {
+        (new BiometricEmployeeModel())->where('ac_no', $acNo)->delete();
+
+        return (new TimeRecordModel())->claimForUser($userId, $acNo, $name);
+    }
+
     private function syncTeacherProfile(int $userId, ?array $user): void
     {
         if (! $user) {

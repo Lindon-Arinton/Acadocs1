@@ -62,7 +62,7 @@
     <div class="table-responsive">
       <table class="table mb-0" id="users-table">
         <thead>
-          <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Joined</th><th class="text-center">Actions</th></tr>
+          <tr><th>#</th><th>Name</th><th>Email</th><th>Biometric No.</th><th>Role</th><th>Department</th><th>Joined</th><th class="text-center">Actions</th></tr>
         </thead>
         <tbody>
           <?php
@@ -96,6 +96,7 @@
                 'id'    => $u['id'],
                 'name'  => $u['name'],
                 'email' => $u['email'],
+                'acNo'  => $u['ac_no'] ?? '',
                 'role'  => $u['role'],
                 'gradeLevel' => $teacher['grade_level'] ?? '',
                 'advisoryStatus' => $advisoryStatus,
@@ -119,6 +120,13 @@
               </div>
             </td>
             <td class="text-muted"><?= e($u['email']) ?></td>
+            <td>
+              <?php if (! empty($u['ac_no'])): ?>
+              <span class="badge bg-light text-dark border">AC-<?= e($u['ac_no']) ?></span>
+              <?php else: ?>
+              <span class="text-muted small">Not linked</span>
+              <?php endif; ?>
+            </td>
             <td>
               <span class="badge" style="background:<?= $rbg ?>;color:<?= $rtc ?>;border:1px solid <?= $rtc ?>33;">
                 <?= e(ucfirst($u['role'])) ?>
@@ -234,6 +242,15 @@ function teacherFieldsBlock(string $idPrefix, array $gradeLevels): void { ?>
               <label class="form-label">Email Address</label>
               <input type="email" name="email" class="form-control" required>
             </div>
+            <div class="col-12">
+              <label class="form-label" for="addUserAcNo">Biometric No. (AC-No)</label>
+              <div class="input-group">
+                <span class="input-group-text">AC-</span>
+                <input type="text" name="ac_no" id="addUserAcNo" class="form-control" inputmode="numeric" pattern="\d{1,20}" maxlength="20"
+                       list="biometricOptions" placeholder="e.g. 37" autocomplete="off">
+              </div>
+              <div class="form-text">The number this person uses on the biometric scanner. It links their time records to this account; past records stay with them even if the number changes later.</div>
+            </div>
             <div class="col-6">
               <label class="form-label">Role</label>
               <div class="maroon-select" style="width:100%;">
@@ -285,6 +302,15 @@ function teacherFieldsBlock(string $idPrefix, array $gradeLevels): void { ?>
               <input type="email" name="email" id="editUserEmail" class="form-control" required>
             </div>
             <div class="col-12">
+              <label class="form-label" for="editUserAcNo">Biometric No. (AC-No)</label>
+              <div class="input-group">
+                <span class="input-group-text">AC-</span>
+                <input type="text" name="ac_no" id="editUserAcNo" class="form-control" inputmode="numeric" pattern="\d{1,20}" maxlength="20"
+                       list="biometricOptions" placeholder="e.g. 37" autocomplete="off">
+              </div>
+              <div class="form-text">The number this person uses on the biometric scanner. It links their time records to this account; past records stay with them even if the number changes later.</div>
+            </div>
+            <div class="col-12">
               <label class="form-label">Role</label>
               <div class="maroon-select" style="width:100%;">
                 <select name="role" id="editUserRole" class="maroon-select-native" onchange="toggleTeacherFields('edit', this.value)">
@@ -307,6 +333,13 @@ function teacherFieldsBlock(string $idPrefix, array $gradeLevels): void { ?>
     </div>
   </div>
 </div>
+
+<!-- Biometric No. suggestions: scanner numbers seen in imports but not yet tied to an account -->
+<datalist id="biometricOptions">
+  <?php foreach ($unlinkedBiometrics ?? [] as $b): ?>
+  <option value="<?= e($b['ac_no']) ?>"><?= e($b['name']) ?> — from scanner, not linked yet</option>
+  <?php endforeach; ?>
+</datalist>
 
 <!-- Reset Password Modal -->
 <div class="modal fade" id="resetPwModal" tabindex="-1">
@@ -405,6 +438,7 @@ function editUser(data) {
     document.getElementById('editUserId').value = data.id;
     document.getElementById('editUserName').value = data.name;
     document.getElementById('editUserEmail').value = data.email;
+    document.getElementById('editUserAcNo').value = data.acNo || '';
 
     const roleSelect = document.getElementById('editUserRole');
     roleSelect.value = data.role;

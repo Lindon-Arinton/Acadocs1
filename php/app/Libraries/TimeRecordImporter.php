@@ -109,6 +109,9 @@ class TimeRecordImporter
 
             [$acNoRaw, $nameRaw, $department, $dateRaw, $timeRaw] = array_pad($row, 5, null);
             $acNo = trim((string) $acNoRaw);
+            if (is_numeric($acNo)) {
+                $acNo = (string) (int) $acNo; // "037" / "37.0" -> "37", same as the punch-log layout and User Management
+            }
 
             if ($acNo === '') {
                 continue;
@@ -160,6 +163,7 @@ class TimeRecordImporter
             $wasUpdate = $this->upsertTimeRecord(
                 employeeId: 'AC-' . $acNo,
                 employeeName: $employee['name'],
+                userId: $employee['user_id'] ?? null,
                 date: $date,
                 timeIn: $timeIn,
                 timeOut: $timeOut,
@@ -368,7 +372,7 @@ class TimeRecordImporter
                     $summary['incomplete']++;
                 }
 
-                $this->saveRecord($existingIds, $summary, $employeeId, $employee['name'], $date, $timeIn, $timeOut, $status, $remarks);
+                $this->saveRecord($existingIds, $summary, $employeeId, $employee['name'], $date, $timeIn, $timeOut, $status, $remarks, $employee['user_id'] ?? null);
             }
 
             $first = array_key_first($info['days']);
@@ -383,7 +387,7 @@ class TimeRecordImporter
                 }
 
                 $summary['absent']++;
-                $this->saveRecord($existingIds, $summary, $employeeId, $employee['name'], $date, null, null, 'Absent', 'No punches recorded (import)');
+                $this->saveRecord($existingIds, $summary, $employeeId, $employee['name'], $date, null, null, 'Absent', 'No punches recorded (import)', $employee['user_id'] ?? null);
             }
         }
 
@@ -503,11 +507,13 @@ class TimeRecordImporter
         ?string $timeOut,
         string $status,
         string $remarks,
+        ?int $userId = null,
     ): void {
         $data = [
             'date'          => $date,
             'employee_name' => $employeeName,
             'employee_id'   => $employeeId,
+            'user_id'       => $userId,
             'time_in'       => $timeIn,
             'time_out'      => $timeOut,
             'status'        => $status,
@@ -553,7 +559,7 @@ class TimeRecordImporter
     {
         $user = $this->users->where('ac_no', $acNo)->first();
         if ($user !== null) {
-            return ['name' => $user['name'], 'is_new_placeholder' => false];
+            return ['name' => $user['name'], 'is_new_placeholder' => false, 'user_id' => (int) $user['id']];
         }
 
         $isRealName = $name !== '' && $name !== $acNo && ! ctype_digit($name);
@@ -568,7 +574,7 @@ class TimeRecordImporter
             ];
             $this->employees->insert($data);
 
-            return ['name' => $data['name'], 'is_new_placeholder' => ! $isRealName];
+            return ['name' => $data['name'], 'is_new_placeholder' => ! $isRealName, 'user_id' => null];
         }
 
         if ($isRealName && (bool) $existing['is_placeholder']) {
@@ -584,10 +590,10 @@ class TimeRecordImporter
         if ($isRealName && $name !== $existing['name']) {
             $this->employees->update($existing['id'], ['name' => $name]);
 
-            return ['name' => $name, 'is_new_placeholder' => false];
+            return ['name' => $name, 'is_new_placeholder' => false, 'user_id' => null];
         }
 
-        return ['name' => $existing['name'], 'is_new_placeholder' => false];
+        return ['name' => $existing['name'], 'is_new_placeholder' => false, 'user_id' => null];
     }
 
     private function parseDate(mixed $raw): string
@@ -642,6 +648,7 @@ class TimeRecordImporter
     private function upsertTimeRecord(
         string $employeeId,
         string $employeeName,
+        ?int $userId,
         string $date,
         ?string $timeIn,
         ?string $timeOut,
@@ -657,6 +664,7 @@ class TimeRecordImporter
             'date'          => $date,
             'employee_name' => $employeeName,
             'employee_id'   => $employeeId,
+            'user_id'       => $userId,
             'time_in'       => $timeIn,
             'time_out'      => $timeOut,
             'status'        => $status,

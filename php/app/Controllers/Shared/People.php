@@ -58,6 +58,7 @@ class People extends BaseController
                 'role'     => $user['role'],
                 'position' => (string) ($user['position'] ?? ''),
                 'email'    => (string) $user['email'],
+                'acNo'     => (string) ($user['ac_no'] ?? ''),
                 'photo'    => $photo,
                 'advisory' => $advisory,
                 'subjects' => array_values(array_unique($subjects)),

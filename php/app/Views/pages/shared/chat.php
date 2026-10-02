@@ -647,6 +647,8 @@ function renderMessages(messages, participants) {
             meta.id = 'msgMeta-' + m.id;
         } else {
             const nameSpan = document.createElement('span');
+            nameSpan.className = 'person-link';
+            nameSpan.dataset.personId = m.sender_id;
             if (m.sender_role === 'admin') {
                 nameSpan.style.color = '#800000';
                 nameSpan.style.fontWeight = '700';
@@ -754,6 +756,11 @@ function openConversation(id) {
 
     const nameCol = document.createElement('div');
     const nameSpan = document.createElement('div');
+    if (activeConversationType === 'direct' && activeConversationOtherId) {
+        nameSpan.className = 'person-link';
+        nameSpan.dataset.personId = activeConversationOtherId;
+        nameSpan.title = 'View profile';
+    }
     if (isAdmin) {
         nameSpan.style.color = '#800000';
         nameSpan.textContent = name + ' (Principal)';
@@ -1124,6 +1131,11 @@ function openInfoPanel() {
     nameEl.className = 'fw-semibold';
     nameEl.style.fontSize = '.88rem';
     nameEl.textContent = name;
+    if (activeConversationType === 'direct' && activeConversationOtherId) {
+        nameEl.classList.add('person-link');
+        nameEl.dataset.personId = activeConversationOtherId;
+        nameEl.title = 'View profile';
+    }
     headerEl.appendChild(avatar);
     headerEl.appendChild(nameEl);
     if (activeConversationType === 'group') {
@@ -1190,7 +1202,8 @@ function renderMembersList(members) {
         info.className = 'flex-grow-1';
         info.style.minWidth = '0';
         const nameDiv = document.createElement('div');
-        nameDiv.className = 'fw-semibold text-truncate';
+        nameDiv.className = 'fw-semibold text-truncate person-link';
+        nameDiv.dataset.personId = m.user_id;
         nameDiv.style.fontSize = '.82rem';
         nameDiv.textContent = m.name + (m.is_me ? ' (You)' : '');
         const roleDiv = document.createElement('div');

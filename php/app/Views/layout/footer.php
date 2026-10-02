@@ -31,6 +31,10 @@
             <div class="small text-muted mb-1"><i class="bi bi-envelope me-1"></i>Email</div>
             <a id="personInfoEmail" href="#" class="small"></a>
           </div>
+          <div class="mb-3">
+            <div class="small text-muted mb-1"><i class="bi bi-fingerprint me-1"></i>Biometric No. (AC-No)</div>
+            <div id="personInfoAcNo" class="small"></div>
+          </div>
           <div class="mb-3" id="personInfoAdvisoryWrap">
             <div class="small text-muted mb-1"><i class="bi bi-house-door me-1"></i>Advisory</div>
             <div id="personInfoAdvisory" class="small"></div>
@@ -573,6 +577,10 @@ function showPersonCard(id) {
             const email = $('#personInfoEmail');
             email.textContent = p.email || 'No email on record';
             email.href = p.email ? 'mailto:' + p.email : '#';
+
+            const acNo = $('#personInfoAcNo');
+            acNo.textContent = p.acNo ? 'AC-' + p.acNo : 'Not linked yet';
+            acNo.classList.toggle('text-muted', !p.acNo);
 
             $('#personInfoAdvisoryWrap').classList.toggle('d-none', !p.advisory);
             $('#personInfoAdvisory').textContent = p.advisory || '';

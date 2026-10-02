@@ -109,11 +109,13 @@ class TimeRecords extends BaseController
 
         $records = $builder->findAll();
 
-        // employee_id is "AC-{users.ac_no}" — map it back to the account so the
-        // name can open the person card (personLink()).
+        // Each record carries its owner's account (time_records.user_id) — map it so
+        // the name can open the person card (personLink()); unlinked scans stay plain.
         $userIdsByEmployeeId = [];
-        foreach ((new UserModel())->select('id, ac_no')->where('ac_no IS NOT NULL')->where('ac_no !=', '')->findAll() as $u) {
-            $userIdsByEmployeeId['AC-' . $u['ac_no']] = (int) $u['id'];
+        foreach ($records as $r) {
+            if (! empty($r['user_id'])) {
+                $userIdsByEmployeeId[$r['employee_id']] = (int) $r['user_id'];
+            }
         }
 
         return view('pages/shared/time_records', [

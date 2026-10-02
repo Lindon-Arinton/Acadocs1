@@ -127,7 +127,7 @@ has a **downloadable blank template** in the expected format.
 | **Add Enrollment** | Admin, ADAS | Excel (.xlsx / .xls / .csv) — the school's per-section enrollment sheet | Reads every sheet (one per count date), finds the GRADE 7–10 blocks, adds up male/female per section, counts sections, uses the latest count of each month, and checks the sums against the sheet's own TOTAL rows | **Enrollment chart** (per grade, male vs female), **Total Enrollees** tile with year-over-year change and sparkline |
 | **Import KPI Report** | Admin, ADAS | Word (.docx) — DepEd "Key Performance Indicator" report | Finds the Indicator table and reads each rate; asks which school year the data is for (YYYY – YYYY prompt) | **Drop-Out Rate** tile, **KPI trend chart**, historical KPI table |
 | **Enter / Import MPS Scores** | Teacher | Excel (.xlsx / .xls) — the school's MPS workbook, or typed in on the form | Reads Summative Test 1, Summative Test 2 and Term Examination grids, accepts only the teacher's own subjects/grades, then **computes MPS per subject and per grade level** | **Average MPS** tile, **Performance chart** per grade level, subject ranking, lowest-subject alert |
-| **Import Time Records** | Admin, ADAS | Excel — biometric scanner export (punch log or daily record) | Groups punches per employee per day, takes earliest time-in and latest time-out, marks **Late** after 7:30 AM, marks **Absent** when there's no punch, skips weekends and holidays, matches employees by AC-No | Daily attendance table, **personal Present/Absent counts** on the Teacher dashboard |
+| **Import Time Records** | Admin, ADAS | Excel — biometric scanner export (punch log or daily record) | Groups punches per employee per day, takes earliest time-in and latest time-out, marks **Late** after 7:30 AM, marks **Absent** when there's no punch, skips weekends and holidays, matches employees by AC-No and ties each record to the person's account (so history stays with them even if their number changes) | Daily attendance table, **personal Present/Absent counts** on the Teacher dashboard |
 | **Generate Certificates** | ADAS | Word template + Excel recipient list | Fills the template's `${Field}` placeholders once per Excel row | One certificate per recipient, bundled into a single ZIP |
 
 ### Automatic Insights (decision support)
@@ -171,7 +171,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Document Links** | Adds and deletes links to external resources (category: Forms, Guidelines, Questionnaires, Templates; access level: All Users, Teachers, Admin). |
 | **Templates** | Views, previews, and downloads templates (with an optional "Convert to PDF" download). |
 | **Property Management** | Views the property inventory (view-only). |
-| **User Management** | Adds, edits, and deletes accounts of **any** role (including other admins) and resets passwords. For teachers, also sets advisory, grade level, and subjects. |
+| **User Management** | Adds, edits, and deletes accounts of **any** role (including other admins) and resets passwords. For teachers, also sets advisory, grade level, and subjects. Sets each person's **Biometric No. (AC-No)** — the number they use on the scanner — which links their time records to their account (numbers must be unique; unlinked scanner numbers are suggested). |
 | **Chat** | Direct messages **and creating group chats**; manages group members. |
 | **Profile / Notifications** | Updates personal info, photo, and password; receives notifications (e.g. new submissions). |
 
@@ -202,7 +202,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Time Records** | Imports biometric exports (data feed), edits records, and manages holidays — the main role responsible for attendance encoding. |
 | **Templates (manager)** | The **only role that manages the template library**: creates and deletes categories, uploads and deletes templates. Also **generates certificates in bulk** from a Word template and an Excel recipient list. |
 | **Property Management** | Views the inventory (view-only). |
-| **User Management** | Adds, edits, deletes, and resets passwords of **teacher and ADAS** accounts; cannot create or modify admin accounts. |
+| **User Management** | Adds, edits, deletes, and resets passwords of **teacher and ADAS** accounts, including their **Biometric No. (AC-No)**; cannot create or modify admin accounts. |
 | **Chat** | Direct messages; can take part in groups but cannot create them. |
 | **Profile** | Updates personal info, photo, and password. |
 

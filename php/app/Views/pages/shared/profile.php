@@ -84,6 +84,11 @@ include APPPATH . 'Views/layout/header.php';
               <label class="form-label">Role</label>
               <input type="text" class="form-control" value="<?= e(ucfirst($profile['role'])) ?>" disabled>
             </div>
+            <div class="col-md-6">
+              <label class="form-label">Biometric No. (AC-No)</label>
+              <input type="text" class="form-control" value="<?= ! empty($profile['ac_no']) ? 'AC-' . e($profile['ac_no']) : 'Not linked yet' ?>" disabled
+                     title="Set by the principal or ADAS in User Management">
+            </div>
           </div>
           <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check-lg me-1"></i>Save Changes</button>
         </form>
