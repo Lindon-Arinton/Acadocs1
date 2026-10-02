@@ -84,7 +84,8 @@ in one database:
 | **Resource links** | External links to DepEd forms, guidelines, and questionnaires |
 | **Property inventory** | Items per grade and section with their condition |
 | **Communication** | Chat conversations, attachments, and notifications |
-| **User accounts** | All staff accounts, roles, and teacher subject loads |
+| **User accounts** | All staff accounts, roles, biometric numbers, and teacher subject loads |
+| **Reports** | Printable school performance reports generated from the same data as the dashboard |
 
 ---
 
@@ -135,7 +136,7 @@ short, plain-language findings computed from the fed data, sorted most
 urgent first (danger → warning → success → info) and capped at five:
 
 **Admin dashboard insights**
-- Lowest-performing subject (when its MPS is below 80%), with its grade level and — when on record — the teacher who handles it (recorded automatically when a teacher saves or imports MPS scores)
+- Lowest-performing subject (when its MPS is below 80%), with its grade level and — when on record — the teacher who handles it (recorded automatically when a teacher saves or imports MPS scores); the teacher's name is clickable and opens their profile
 - Submission compliance compared with the 85% target (critical below 60%)
 - Drop-out rate increase or decrease compared with the previous school year
 - Average MPS improvement or decline compared with the previous school year
@@ -146,7 +147,7 @@ urgent first (danger → warning → success → info) and capped at five:
 **Teacher dashboard insights**
 - Overdue tasks
 - The next task due
-- New feedback from the principal
+- New feedback on a submission, naming who wrote it
 - Personal task completion rate
 - Absences this month, or perfect attendance
 
@@ -158,17 +159,17 @@ urgent first (danger → warning → success → info) and capped at five:
 
 | Function | What it does |
 |----------|--------------|
-| **Admin Dashboard** | One-page overview of the school: Total Enrollees, Drop-Out Rate, Average MPS and Submission Compliance tiles (each with a trend sparkline and change vs last year); KPI trend chart; enrollment chart by grade level and month; performance chart per grade level; subject MPS ranking (average or full per-grade/teacher view); document status chart; recent submissions; and the **Insights** panel. A school-year selector switches every figure. |
+| **Admin Dashboard** | One-page overview of the school: Total Enrollees, Drop-Out Rate, Average MPS and Submission Compliance tiles (each with a trend sparkline and change vs last year); KPI trend chart; enrollment chart by grade level and month; MPS chart per grade level; subject MPS ranking (average or full per-grade/teacher view); document status chart; and the **Insights** panel. The **School Year** filter switches every figure, and its **Custom…** option shows a year range — the last 5 years, the last 10 years, or any range (e.g. 2014–2022) — for the trend chart, the DepEd history, and the insights. |
 | **Generate Report** | Opens a pop-up that pre-selects the school year (or year range) the dashboard is filtered to and lists checkboxes for each section: key figures, insights, enrollment by grade level, total enrollees, drop-out rate, average MPS, performance by learning area, DepEd historical KPIs, and document submission status. Produces a printable A4 report with the DepEd letterhead, charts and tables matching the dashboard, the insights, and a signature block — ready to print or save as PDF. Available to the principal and ADAS. |
 | **Add Enrollment** | Uploads the enrollment Excel sheet (data feed). Can download a blank sheet in the school's layout with section names pre-filled from teachers' subject loads. |
 | **Import KPI Report** | Uploads the DepEd KPI Word report (data feed) and enters its school year. Can download the blank KPI template. |
-| **Announcements** | Posts announcements, forms, and questionnaires; every user gets a notification. Can filter, search, sort, and delete. |
-| **Manage Documents** | Opens the folder of each task (created automatically on the first upload), sees every person's submitted files, previews/downloads them, and marks each one **Reviewed** or **Returned** (returning requires a comment saying what to fix). The submitter is notified. |
-| **Tasks & Assignments** | Creates tasks with title, description, and deadline, assigned to **all Teachers**, **all ADAS**, or **specific people** (filterable by department). Sees how many submitted out of how many are expected. Opens a task to **review submissions** (Reviewed / Returned), **leave feedback**, and **annotate files** — these approvals are principal-only, and each one records who did it and when. Can close, reopen, or delete tasks. Assignees are notified. |
-| **Time Records** | Views daily attendance of all staff (filter by date/status, search, sort), imports biometric exports, edits a record (time in/out, status, remarks), and manages the holiday list. |
+| **Announcements** | Posts announcements, forms, and questionnaires (only the title is required; content and a **photo** are optional); every user gets a notification. Opening one shows a pop-up with the photo (or the type's icon), title, date, **posted by**, and content, closed with **I Understand**; the photo can be viewed full size. Any announcement can be **shared to chat** (people or group chats), where it appears as a card. Can filter, search, sort, and delete. |
+| **Manage Documents** | Opens the folder of each task (created automatically on the first upload) and sees every person's submitted files, with the date and time uploaded and an **On time / Late** badge. Previews files in a pop-up, downloads, or **annotates** them. Marks each **Pending** upload **Reviewed** or **Returned** (returning requires a comment saying what to fix); a decided upload can only be switched to the other decision. Each status shows **who reviewed it and when**. The submitter is notified. |
+| **Tasks & Assignments** | Creates tasks with title, description, and deadline, assigned to **all Teachers**, **all ADAS**, or **specific people** (filterable by department). Sees how many submitted out of how many are expected, who hasn't submitted yet, and whether each submission was **on time or late** (and by how much). Opens a task to **review submissions**, **leave feedback**, and **annotate files** — drawing, highlighting, and writing notes directly on a file and saving a marked-up copy the teacher can open (the original is never changed). These approvals are principal-only, and each one records who did it and when. **Open in Manage Documents** jumps to the task's folder. Can close, reopen, or delete tasks. Assignees are notified. |
+| **Time Records** | Views daily attendance of all staff (filter by date/status, search, sort), imports biometric exports, edits a record (time in/out, status, remarks), and manages the holiday list. Employee names open their profile. |
 | **Document Links** | Adds and deletes links to external resources (category: Forms, Guidelines, Questionnaires, Templates; access level: All Users, Teachers, Admin). |
 | **Templates** | Views, previews, and downloads templates (with an optional "Convert to PDF" download). |
-| **Property Management** | Views the property inventory (view-only). |
+| **Property Management** | Views the property inventory (view-only), filtered by grade, section, and condition. |
 | **User Management** | Adds, edits, and deletes accounts of **any** role (including other admins) and resets passwords. For teachers, also sets advisory, grade level, and subjects. Sets each person's **Biometric No. (AC-No)** — the number they use on the scanner — which links their time records to their account (numbers must be unique; unlinked scanner numbers are suggested). |
 | **Chat** | Direct messages **and creating group chats**; manages group members. |
 | **Profile / Notifications** | Updates personal info, photo, and password; receives notifications (e.g. new submissions). |
@@ -177,21 +178,21 @@ urgent first (danger → warning → success → info) and capped at five:
 
 | Function | What it does |
 |----------|--------------|
-| **My Dashboard** | Personal overview: task statistics (total, completed, pending, overdue), recent activity, own Present/Absent count (filterable by month), latest announcements, document links for teachers, recent feedback from the principal, and personal **Insights**. |
-| **To Do List** | Sees every task assigned to teachers or to them personally, sorted by deadline. Submits files (PDF, Word, Excel, PowerPoint, images; up to 10 MB each) with notes; can resubmit to replace files. Sees status (Pending / Reviewed / Returned) and the principal's feedback. Admin and ADAS are notified on each submission. |
+| **My Dashboard** | Personal overview: task statistics (total, completed, pending, overdue), recent activity, own Present/Absent count (filterable by month), latest announcements, document links for teachers, recent feedback, and personal **Insights**. |
+| **To Do List** | Sees every task assigned to teachers or to them personally, sorted by deadline. Submits files (PDF, Word, Excel, PowerPoint, images; up to 10 MB each) with notes; can resubmit to replace files (a resubmission needs a fresh review). Sees when they submitted and whether it was **on time or late**, the status (Pending / Reviewed / Returned) with **who reviewed it**, the feedback with its author, and the principal's **marked-up copy** of their file, if any. Admin and ADAS are notified on each submission. |
 | **Enter MPS Scores** | Enters MPS per **section** for Summative Test 1, Summative Test 2, and Term Examination, by school year and term — only for the subjects, grades and sections in their own subject load. Or **imports** the MPS Excel workbook (data feed), with a downloadable template built from their subject load. The system computes subject and grade-level MPS automatically. |
 | **Announcements** | Reads announcements, forms, and questionnaires (read-only). |
 | **Document Links** | Opens shared resource links (read-only). |
 | **Templates** | Views, previews, and downloads templates. |
-| **Property Management** | **Adds and deletes** property items for a grade and section, with item name, quantity, and condition (Excellent / Good / Fair / Poor). Teachers are the only role that can add or delete items. |
+| **Property Management** | **Adds and deletes** property items for a grade and section, with item name, quantity, and condition (Excellent / Good / Fair / Poor), and filters the list by grade, section, and condition. Teachers are the only role that can add or delete items. |
 | **Chat** | Direct messages (start new conversations, reply, react, edit, unsend, send attachments). Can take part in groups but cannot create them. |
-| **Profile** | Updates personal info, photo, and password, and manages their **Subject Load** (subjects, grade levels, sections), which controls their MPS entry form. |
+| **Profile** | Updates personal info, photo, and password, and manages their **Subject Load** (subjects, grade levels, sections), which controls their MPS entry form. Shows their **Biometric No.** (read-only; set in User Management). |
 
 ### 4.3 ADAS (Administrative Assistant)
 
 | Function | What it does |
 |----------|--------------|
-| **Dashboard** | The same school-wide dashboard as the principal: KPI tiles, trend charts, enrollment and performance charts, Insights, and the school-year / year-range filter. |
+| **Dashboard** | The same school-wide dashboard as the principal: KPI tiles, trend charts, enrollment and performance charts, Insights, the school-year / year-range filter, and **Generate Report**. |
 | **Add Enrollment / Import KPI Report** | Feeds enrollment Excel sheets and DepEd KPI reports into the dashboard (data feed), same as the principal. |
 | **My Tasks** | Sees tasks assigned to ADAS or to them personally and submits files and notes; sees review status and feedback. |
 | **Tasks & Assignments** | Creates tasks for teachers, ADAS, or specific people and tracks who has and hasn't submitted. Can open, preview, and download every submission and see the principal's marked-up copies and feedback, but **reviewing, feedback, and annotating are reserved for the principal**. |
@@ -199,7 +200,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Document Links** | Adds and deletes resource links. |
 | **Time Records** | Imports biometric exports (data feed), edits records, and manages holidays — the main role responsible for attendance encoding. |
 | **Templates (manager)** | The **only role that manages the template library**: creates and deletes categories, uploads and deletes templates. |
-| **Property Management** | Views the inventory (view-only). |
+| **Property Management** | Views the inventory (view-only), filtered by grade, section, and condition. |
 | **User Management** | Adds, edits, deletes, and resets passwords of **teacher and ADAS** accounts, including their **Biometric No. (AC-No)**; cannot create or modify admin accounts. |
 | **Chat** | Direct messages; can take part in groups but cannot create them. |
 | **Profile** | Updates personal info, photo, and password. |
@@ -208,9 +209,12 @@ urgent first (danger → warning → success → info) and capped at five:
 
 - **Secure login** with a role-based sidebar; each page also checks the role on the server.
 - **Forgot password**: a 6-digit code is emailed to the user, who enters it with a new password.
-- **Notification bell** for new tasks, feedback, submissions, and announcements, each linking to the right page.
-- **Chat**: read receipts, typing indicator, online/last-seen status, emoji reactions, reply-to, edit and unsend, file attachments, mute and leave group.
-- **In-browser file preview** of Word, Excel, PowerPoint, and PDF files without downloading.
+- **Notification bell** for new tasks, feedback, submissions, and announcements, each linking to the right page. Deleting a task or announcement removes its notifications too.
+- **Profile cards**: clicking a person's name — in the Insights, Time Records, Manage Documents, Tasks, User Management, or Chat — opens a pop-up with their role, email, Biometric No., advisory class, subjects and sections handled, and a **Chat** button.
+- **Chat**: read receipts, typing indicator, online/last-seen status, emoji reactions, reply-to, edit and unsend, file attachments, shared announcement cards, mute and leave group.
+- **In-browser file preview** of Word, Excel, PDF, and image files without downloading.
+- **Clear forms**: required fields are marked with a red asterisk and the rest with "(optional)".
+- **Login page** with the live date and time.
 - **Light and dark mode**, and a layout that works on phones.
 
 ---
@@ -220,6 +224,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | Feature | Admin | Teacher | ADAS |
 |---------|:-----:|:-------:|:----:|
 | School-wide dashboard (KPIs, charts, insights) | ✓ | | ✓ |
+| Generate printable school report | ✓ | | ✓ |
 | Personal dashboard | | ✓ | |
 | Import enrollment / KPI report | ✓ | | ✓ |
 | Enter / import MPS scores | | ✓ | |
@@ -249,10 +254,10 @@ reviews, and decides**.
 
 ### Admin — monitor, review, decide
 
-1. Logs in to the **Admin Dashboard** and reads the KPI tiles, charts, and **Insights** to see where the school stands.
+1. Logs in to the **Admin Dashboard** and reads the KPI tiles, charts, and **Insights** to see where the school stands — for the current year or a range of years — and generates a printable report when needed.
 2. Feeds school-level data: uploads the **enrollment Excel sheet** and the **DepEd KPI report**; the dashboard updates automatically.
 3. Posts **tasks** (e.g. "Submit DLL for Week 5") to teachers, ADAS, or specific people, and posts **announcements**.
-4. Watches submission counts, then opens **Manage Documents** / the task page to **review** each submission — marks it Reviewed or Returns it with a comment.
+4. Watches submission counts and late submissions, then opens **Manage Documents** / the task page to **review** each submission — marks it Reviewed or Returns it with a comment, and can annotate the file directly.
 5. Uses insights (low MPS subject, low compliance, rising drop-out) to follow up with specific teachers.
 6. Manages **user accounts** and creates **group chats** for coordination.
 
@@ -288,7 +293,7 @@ reviews, and decides**.
 | **Starts the day with** | School KPIs and insights | Own tasks and feedback | School KPIs and insights |
 | **Data they feed** | Enrollment, DepEd KPI report | MPS scores | Enrollment, DepEd KPI report, biometric attendance |
 | **Tasks** | Creates, reviews, and approves | Receives and submits | Creates, tracks, and also submits |
-| **Documents** | Reviews all task folders | Uploads own files | Reviews submissions; manages templates |
+| **Documents** | Reviews, returns, and annotates submissions | Uploads own files; sees feedback and marked-up copies | Views submissions (no reviewing); manages templates |
 | **Scope of data seen** | Whole school | Only their own | Whole school, plus operational records (attendance, users, templates) |
 
 ---
@@ -303,6 +308,8 @@ reviews, and decides**.
 | Checking biometric logs row by row to mark who was late or absent | Import the scanner export; Present / Late / Absent is decided automatically, skipping weekends and holidays |
 | Collecting printed or USB documents and tracking who hasn't submitted | Teachers upload online; files are filed into task folders automatically with live submitted/expected counts |
 | Giving feedback face to face or on paper | Review status and written feedback stay attached to each submission, and the teacher is notified |
+| Marking up a printed document with a red pen | Annotate the submitted file on screen and save a marked-up copy the teacher can open |
+| Compiling a performance report for the division by hand | Generate Report produces a printable report with the DepEd letterhead, charts, tables, and insights |
 | Posting notices on boards or group chats | Announcements reach every user with an in-app notification |
 | Searching folders for the right form or template | One searchable template library with in-browser preview and PDF download |
 | Reading spreadsheets to spot problems | The Insights panel points out the lowest subject, compliance gaps, and drop-out changes automatically |
@@ -320,3 +327,4 @@ reviews, and decides**.
 | Charts | Chart.js |
 | File reading/writing | PhpSpreadsheet (Excel), PhpWord (Word) |
 | File preview | docx-preview, LibreOffice (optional), Office Online viewer (deployed sites) |
+| Annotation | PDF.js (renders files), pdf-lib (saves the marked-up copy) |
