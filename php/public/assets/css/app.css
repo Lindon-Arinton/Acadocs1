@@ -1630,6 +1630,15 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
 .dash-header-year .maroon-select { flex: 1; min-width: 0; }
 @media (max-width: 400px) { .dash-header-actions { grid-template-columns: 1fr; } }
 
+/* ── Performance by Learning Area: clickable subject rows (open the subject detail modal) ── */
+.perf-subject-row { cursor: pointer; }
+.perf-subject-row:hover td, .perf-subject-row:focus-visible td { background: var(--highlight-bg); }
+.perf-subject-row:hover .bi-chevron-right { color: var(--primary); }
+.perf-subject-row:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+/* A person card opened from inside the subject modal sits above it. */
+#personInfoModal { z-index: 1065; }
+.modal-backdrop ~ .modal-backdrop { z-index: 1060; }
+
 /* ── Dashboard year-range modal options ── */
 .year-range-option {
   display: flex; align-items: flex-start; gap: .75rem; padding: .75rem .9rem; margin: 0;

@@ -246,6 +246,9 @@ class Dashboard extends BaseController
             'perfLevel'          => $perfLevel,
             'lowest'             => $lowest,
             'allPerf'            => $allPerf,
+            // Teacher name => user id for every instructor in $allPerf, so the
+            // subject detail modal / View All table can link names to person cards.
+            'perfTeachers'       => $this->teacherIdsByName(implode(', ', array_column($allPerf, 'instructor'))),
             'avgPerf'            => $avgPerf,
             'docSummary'         => $docSummary,
             'complianceRate'     => $complianceRate,

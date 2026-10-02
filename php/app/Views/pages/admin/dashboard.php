@@ -383,7 +383,46 @@ if ($complianceRate === null) {
         <i class="bi bi-list-ul me-1"></i>View All
       </button>
     </div>
-    <div class="table-responsive">
+    <?php
+      $mpsBadge = static fn ($mps): array => $mps >= 85 ? ['Excellent', 'badge-submitted'] : ($mps >= 75 ? ['Satisfactory', 'badge-reviewed'] : ['Needs Improvement', 'badge-returned']);
+      // "A, B" => linked names (person card) for teachers with an account; placeholders => "Not assigned".
+      $teacherCell = static function (string $instructor) use ($perfTeachers): string {
+          $instructor = trim($instructor);
+          if (in_array($instructor, \App\Libraries\MpsCalculator::UNKNOWN_INSTRUCTORS, true)) {
+              return '<span class="text-muted fst-italic">Not assigned</span>';
+          }
+          $names = array_filter(array_map('trim', explode(',', $instructor)));
+
+          return implode(', ', array_map(static fn ($n) => personLink($perfTeachers[$n] ?? null, $n), $names));
+      };
+      $perfBySubject = [];
+      foreach ($allPerf as $p) {
+          $perfBySubject[$p['subject']][] = $p;
+      }
+    ?>
+    <div class="table-responsive" id="perfSummaryTable">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Subject</th><th class="text-center">Grade Levels</th>
+            <th class="text-end">Average MPS</th><th class="text-center">Status</th><th style="width:1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($avgPerf as $p): $badge = $mpsBadge($p['mps']); ?>
+          <tr class="perf-subject-row" role="button" tabindex="0" title="View <?= e($p['subject']) ?> by grade level and teacher"
+              data-subject="<?= e($p['subject']) ?>" onclick="openSubjectDetail(this)" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openSubjectDetail(this); }">
+            <td class="fw-semibold"><?= e($p['subject']) ?></td>
+            <td class="text-center text-muted"><?= count($perfBySubject[$p['subject']] ?? []) ?></td>
+            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
+            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
+            <td class="text-muted"><i class="bi bi-chevron-right"></i></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-responsive d-none" id="perfFullTable">
       <table class="table table-hover mb-0">
         <thead>
           <tr>
@@ -391,27 +430,12 @@ if ($complianceRate === null) {
             <th class="text-end">MPS</th><th class="text-center">Status</th>
           </tr>
         </thead>
-        <tbody id="perfSummaryBody">
-          <?php foreach ($avgPerf as $p):
-            $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
-          ?>
-          <tr>
-            <td class="fw-semibold"><?= e($p['subject']) ?></td>
-            <td class="text-muted">All Grades</td>
-            <td class="text-muted">—</td>
-            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
-            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-        <tbody id="perfFullBody" class="d-none">
-          <?php foreach ($allPerf as $p):
-            $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
-          ?>
+        <tbody>
+          <?php foreach ($allPerf as $p): $badge = $mpsBadge($p['mps']); ?>
           <tr>
             <td class="fw-semibold"><?= e($p['subject']) ?></td>
             <td class="text-muted"><?= e($p['grade_level']) ?></td>
-            <td class="text-muted"><?= e($p['instructor']) ?></td>
+            <td><?= $teacherCell((string) $p['instructor']) ?></td>
             <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
             <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
           </tr>
@@ -640,8 +664,61 @@ if ($complianceRate === null) {
   </div>
 </div>
 
+<!-- Learning-area detail: one subject's MPS per grade level and teacher (clicked row in Performance by Learning Area) -->
+<div class="modal fade" id="subjectDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-mortarboard me-2"></i><span id="subjectDetailTitle"></span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <?php foreach ($avgPerf as $p): $rows = $perfBySubject[$p['subject']] ?? []; usort($rows, static fn ($a, $b) => strnatcmp((string) $a['grade_level'], (string) $b['grade_level'])); $badge = $mpsBadge($p['mps']); ?>
+        <div class="d-none" data-subject-detail="<?= e($p['subject']) ?>">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+            <span>SY <?= e(str_replace('-', '–', $currentYear)) ?> · Term <?= (int) $currentTerm ?></span>
+            <span class="ms-auto">Average MPS <span class="badge bg-light text-dark border fw-bold ms-1"><?= $p['mps'] ?>%</span></span>
+            <span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr><th>Grade Level</th><th>Teacher</th><th class="text-end">MPS</th><th class="text-center">Status</th></tr>
+              </thead>
+              <tbody>
+                <?php foreach ($rows as $r): $rowBadge = $mpsBadge($r['mps']); ?>
+                <tr>
+                  <td class="fw-semibold"><?= e($r['grade_level']) ?></td>
+                  <td><?= $teacherCell((string) $r['instructor']) ?></td>
+                  <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $r['mps'] ?>%</span></td>
+                  <td class="text-center"><span class="status-pill <?= $rowBadge[1] ?>"><?= $rowBadge[0] ?></span></td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php
 $extraScript = '<script>
+/* ── Performance by Learning Area: clicked subject => its per-grade / per-teacher breakdown ── */
+function openSubjectDetail(row) {
+  const subject = row.dataset.subject;
+  document.getElementById("subjectDetailTitle").textContent = subject;
+  document.querySelectorAll("[data-subject-detail]").forEach(el => {
+    el.classList.toggle("d-none", el.dataset.subjectDetail !== subject);
+  });
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("subjectDetailModal")).show();
+}
+
 /* ── Generate Report: printable report of the ticked sections, same filters as the dashboard ── */
 const REPORT_URL   = ' . json_encode(base_url('dashboard/report')) . ';
 const REPORT_MONTH = ' . json_encode($enrollmentMonth ?? null) . ';
@@ -763,8 +840,8 @@ function applyYearRange() {
 const maroon = chartColor(), maroonLight = chartColorAlt(), maroonDark = "#560000", crimson = "#dc143c";
 
 function togglePerfBreakdown() {
-  const summary = document.getElementById("perfSummaryBody");
-  const full = document.getElementById("perfFullBody");
+  const summary = document.getElementById("perfSummaryTable");
+  const full = document.getElementById("perfFullTable");
   const btn = document.getElementById("perfViewAllBtn");
   const showingFull = !full.classList.contains("d-none");
   full.classList.toggle("d-none", showingFull);
