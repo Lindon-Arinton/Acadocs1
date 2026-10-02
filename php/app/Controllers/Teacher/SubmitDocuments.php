@@ -107,6 +107,8 @@ class SubmitDocuments extends BaseController
                 'user_id'      => $user['id'],
                 'notes'        => $this->request->getPost('notes') ?? '',
                 'status'       => 'Pending',
+                'reviewed_by'  => null, // a new upload needs a fresh review
+                'reviewed_at'  => null,
                 'submitted_at' => date('Y-m-d H:i:s'),
             ];
 
@@ -189,7 +191,7 @@ class SubmitDocuments extends BaseController
             $task['submission'] = $submission;
             $task['files']      = $submission ? $fileModel->forSubmission($submission['id']) : [];
             $task['feedback']   = $submission
-                ? $feedbackModel->where('task_submission_id', $submission['id'])->orderBy('date', 'DESC')->findAll()
+                ? $feedbackModel->forSubmission((int) $submission['id'])
                 : [];
         }
         unset($task);

@@ -167,7 +167,13 @@ class Tasks extends BaseController
         $feedbackModel   = new TaskFeedbackModel();
 
         if ($this->request->getMethod() === 'POST') {
-            $isAjax       = $this->request->isAJAX();
+            $isAjax = $this->request->isAJAX();
+
+            // Feedback marks the submission Reviewed — the principal's call only.
+            if (! hasRole('admin')) {
+                return $isAjax ? $this->ajaxError('Only the principal can review submissions.', 403) : redirect()->to('/tasks/' . $id);
+            }
+
             $submissionId = (int) $this->request->getPost('submission_id');
             $comment      = trim($this->request->getPost('comment') ?? '');
 
@@ -176,9 +182,14 @@ class Tasks extends BaseController
                     $feedbackModel->insert([
                         'task_submission_id' => $submissionId,
                         'comment'             => $comment,
+                        'author_id'           => currentUser()['id'],
                         'date'                => date('Y-m-d'),
                     ]);
-                    $submissionModel->update($submissionId, ['status' => 'Reviewed']);
+                    $submissionModel->update($submissionId, [
+                        'status'      => 'Reviewed',
+                        'reviewed_by' => currentUser()['id'],
+                        'reviewed_at' => date('Y-m-d H:i:s'),
+                    ]);
 
                     $submission = $submissionModel->find($submissionId);
                     if ($submission) {
@@ -214,9 +225,8 @@ class Tasks extends BaseController
         $fileModel   = new TaskSubmissionFileModel();
         $submissions = $submissionModel->forTask($id);
         foreach ($submissions as &$submission) {
-            $submission['feedback'] = $feedbackModel->where('task_submission_id', $submission['id'])
-                ->orderBy('date', 'DESC')->findAll();
-            $submission['files'] = $fileModel->forSubmission($submission['id']);
+            $submission['feedback'] = $feedbackModel->forSubmission((int) $submission['id']);
+            $submission['files']    = $fileModel->forSubmission($submission['id']);
         }
         unset($submission);
 
@@ -262,9 +272,8 @@ class Tasks extends BaseController
 
         $submissions = $submissionModel->forTask($id);
         foreach ($submissions as &$submission) {
-            $submission['feedback'] = $feedbackModel->where('task_submission_id', $submission['id'])
-                ->orderBy('date', 'DESC')->findAll();
-            $submission['files'] = $fileModel->forSubmission($submission['id']);
+            $submission['feedback'] = $feedbackModel->forSubmission((int) $submission['id']);
+            $submission['files']    = $fileModel->forSubmission($submission['id']);
         }
         unset($submission);
 
@@ -294,6 +303,8 @@ class Tasks extends BaseController
                 'userId'        => (int) $s['user_id'],
                 'submitterName' => $s['submitter_name'],
                 'status'        => $s['status'],
+                'reviewerName'  => $s['reviewer_name'] ?? null,
+                'reviewedAt'    => $s['reviewed_at'] ? date('M d, Y h:i A', strtotime($s['reviewed_at'])) : null,
                 'notes'         => $s['notes'],
                 'submittedAt'   => date('M d, Y h:i A', strtotime($s['submitted_at'])),
                 'files'         => array_map(static fn (array $f) => [
@@ -304,9 +315,11 @@ class Tasks extends BaseController
                 ], $s['files']),
                 'feedback' => array_map(static fn (array $fb) => [
                     'comment' => $fb['comment'],
+                    'author'  => $fb['author_name'] ?? null,
                     'date'    => date('M d, Y', strtotime($fb['date'])),
                 ], $s['feedback']),
             ], $submissions),
+            'canReview'    => hasRole('admin'),
             'pendingUsers' => array_map(static fn (array $u) => ['id' => (int) $u['id'], 'name' => $u['name']], $pendingUsers),
         ]);
     }

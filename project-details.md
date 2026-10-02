@@ -124,10 +124,10 @@ has a **downloadable blank template** in the expected format.
 
 | Data feed | Who imports | File | What the system does automatically | Output it produces |
 |-----------|-------------|------|-------------------------------------|--------------------|
-| **Add Enrollment** | Admin | Excel (.xlsx / .xls / .csv) — the school's per-section enrollment sheet | Reads every sheet (one per count date), finds the GRADE 7–10 blocks, adds up male/female per section, counts sections, uses the latest count of each month, and checks the sums against the sheet's own TOTAL rows | **Enrollment chart** (per grade, male vs female), **Total Enrollees** tile with year-over-year change and sparkline |
-| **Import KPI Report** | Admin | Word (.docx) — DepEd "Key Performance Indicator" report | Finds the Indicator table and reads each rate; asks which school year the data is for (YYYY – YYYY prompt) | **Drop-Out Rate** tile, **KPI trend chart**, historical KPI table |
+| **Add Enrollment** | Admin, ADAS | Excel (.xlsx / .xls / .csv) — the school's per-section enrollment sheet | Reads every sheet (one per count date), finds the GRADE 7–10 blocks, adds up male/female per section, counts sections, uses the latest count of each month, and checks the sums against the sheet's own TOTAL rows | **Enrollment chart** (per grade, male vs female), **Total Enrollees** tile with year-over-year change and sparkline |
+| **Import KPI Report** | Admin, ADAS | Word (.docx) — DepEd "Key Performance Indicator" report | Finds the Indicator table and reads each rate; asks which school year the data is for (YYYY – YYYY prompt) | **Drop-Out Rate** tile, **KPI trend chart**, historical KPI table |
 | **Enter / Import MPS Scores** | Teacher | Excel (.xlsx / .xls) — the school's MPS workbook, or typed in on the form | Reads Summative Test 1, Summative Test 2 and Term Examination grids, accepts only the teacher's own subjects/grades, then **computes MPS per subject and per grade level** | **Average MPS** tile, **Performance chart** per grade level, subject ranking, lowest-subject alert |
-| **Import Time Records** | Admin, ADAS | Excel — biometric scanner export (punch log or daily record) | Groups punches per employee per day, takes earliest time-in and latest time-out, marks **Late** after 7:30 AM, marks **Absent** when there's no punch, skips weekends and holidays, matches employees by AC-No | Daily attendance table, **attendance summary** on the ADAS dashboard, **personal Present/Absent counts** on Teacher and ADAS dashboards |
+| **Import Time Records** | Admin, ADAS | Excel — biometric scanner export (punch log or daily record) | Groups punches per employee per day, takes earliest time-in and latest time-out, marks **Late** after 7:30 AM, marks **Absent** when there's no punch, skips weekends and holidays, matches employees by AC-No | Daily attendance table, **personal Present/Absent counts** on the Teacher dashboard |
 | **Generate Certificates** | ADAS | Word template + Excel recipient list | Fills the template's `${Field}` placeholders once per Excel row | One certificate per recipient, bundled into a single ZIP |
 
 ### Automatic Insights (decision support)
@@ -165,7 +165,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Import KPI Report** | Uploads the DepEd KPI Word report (data feed) and enters its school year. Can download the blank KPI template. |
 | **Announcements** | Posts announcements, forms, and questionnaires; every user gets a notification. Can filter, search, sort, and delete. |
 | **Manage Documents** | Opens the folder of each task (created automatically on the first upload), sees every person's submitted files, previews/downloads them, and marks each one **Reviewed** or **Returned** (returning requires a comment saying what to fix). The submitter is notified. |
-| **Tasks & Assignments** | Creates tasks with title, description, and deadline, assigned to **all Teachers**, **all ADAS**, or **specific people** (filterable by department). Sees how many submitted out of how many are expected. Opens a task to review submissions and leave feedback; can close, reopen, or delete tasks. Assignees are notified. |
+| **Tasks & Assignments** | Creates tasks with title, description, and deadline, assigned to **all Teachers**, **all ADAS**, or **specific people** (filterable by department). Sees how many submitted out of how many are expected. Opens a task to **review submissions** (Reviewed / Returned), **leave feedback**, and **annotate files** — these approvals are principal-only, and each one records who did it and when. Can close, reopen, or delete tasks. Assignees are notified. |
 | **Time Records** | Views daily attendance of all staff (filter by date/status, search, sort), imports biometric exports, edits a record (time in/out, status, remarks), and manages the holiday list. |
 | **Document Links** | Adds and deletes links to external resources (category: Forms, Guidelines, Questionnaires, Templates; access level: All Users, Teachers, Admin). |
 | **Templates** | Views, previews, and downloads templates (with an optional "Convert to PDF" download). |
@@ -192,9 +192,10 @@ urgent first (danger → warning → success → info) and capped at five:
 
 | Function | What it does |
 |----------|--------------|
-| **My Dashboard** | Today's school-wide attendance summary (Present, Late, Absent, On Leave) and own Present/Absent count (filterable by month). |
+| **Dashboard** | The same school-wide dashboard as the principal: KPI tiles, trend charts, enrollment and performance charts, Insights, and the school-year / year-range filter. |
+| **Add Enrollment / Import KPI Report** | Feeds enrollment Excel sheets and DepEd KPI reports into the dashboard (data feed), same as the principal. |
 | **My Tasks** | Sees tasks assigned to ADAS or to them personally and submits files and notes; sees review status and feedback. |
-| **Tasks & Assignments** | Like the admin: creates tasks for teachers, ADAS, or specific people, tracks submissions, reviews them, and gives feedback. |
+| **Tasks & Assignments** | Creates tasks for teachers, ADAS, or specific people and tracks who has and hasn't submitted. Can open, preview, and download every submission and see the principal's marked-up copies and feedback, but **reviewing, feedback, and annotating are reserved for the principal**. |
 | **Announcements** | Posts and deletes announcements, forms, and questionnaires. |
 | **Document Links** | Adds and deletes resource links. |
 | **Time Records** | Imports biometric exports (data feed), edits records, and manages holidays — the main role responsible for attendance encoding. |
@@ -219,12 +220,13 @@ urgent first (danger → warning → success → info) and capped at five:
 
 | Feature | Admin | Teacher | ADAS |
 |---------|:-----:|:-------:|:----:|
-| School-wide dashboard (KPIs, charts, insights) | ✓ | | |
-| Personal dashboard | | ✓ | ✓ |
-| Import enrollment / KPI report | ✓ | | |
+| School-wide dashboard (KPIs, charts, insights) | ✓ | | ✓ |
+| Personal dashboard | | ✓ | |
+| Import enrollment / KPI report | ✓ | | ✓ |
 | Enter / import MPS scores | | ✓ | |
 | Import time records, edit attendance, holidays | ✓ | | ✓ |
-| Create tasks and review submissions | ✓ | | ✓ |
+| Create tasks and track submissions | ✓ | | ✓ |
+| Review submissions (Reviewed / Returned), give feedback, annotate files | ✓ | | |
 | Submit files to tasks | | ✓ | ✓ |
 | Manage Documents (task folders) | ✓ | | |
 | Post announcements / add document links | ✓ | | ✓ |
@@ -270,25 +272,25 @@ reviews, and decides**.
 
 ### ADAS — process records, support operations
 
-1. Logs in to **My Dashboard** and sees today's staff attendance summary.
+1. Logs in to the school **Dashboard** (same view as the principal) and feeds **enrollment sheets** and **DepEd KPI reports** into it.
 2. **Imports the biometric export** into Time Records; the system marks Present / Late / Absent automatically. Corrects records and keeps the **holiday list** current.
 3. Maintains the **template library** and **generates certificates in bulk** for events (e.g. recognition, seminars) from an Excel list.
-4. Helps the principal by **posting announcements and links**, **creating tasks**, and **reviewing submissions**.
+4. Helps the principal by **posting announcements and links**, **creating tasks**, and **tracking who hasn't submitted**. Approving the work itself is left to the principal.
 5. Creates and maintains **teacher and ADAS accounts**.
 6. Submits their own assigned work under **My Tasks**.
 
-*Focus:* operational and clerical processing. ADAS has wide management access but not the school-wide analytics dashboard, and cannot manage admin accounts.
+*Focus:* operational and clerical processing, plus keeping the school dashboard's data up to date. ADAS sees the same dashboard as the principal but cannot manage admin accounts.
 
 ### Workflow differences at a glance
 
 | | Admin | Teacher | ADAS |
 |---|---|---|---|
 | **Main purpose** | Monitor and decide | Submit and report | Process and support |
-| **Starts the day with** | School KPIs and insights | Own tasks and feedback | Today's attendance |
-| **Data they feed** | Enrollment, DepEd KPI report | MPS scores | Biometric attendance, certificate lists |
-| **Tasks** | Creates and reviews | Receives and submits | Creates, reviews, and also submits |
+| **Starts the day with** | School KPIs and insights | Own tasks and feedback | School KPIs and insights |
+| **Data they feed** | Enrollment, DepEd KPI report | MPS scores | Enrollment, DepEd KPI report, biometric attendance, certificate lists |
+| **Tasks** | Creates, reviews, and approves | Receives and submits | Creates, tracks, and also submits |
 | **Documents** | Reviews all task folders | Uploads own files | Reviews submissions; manages templates |
-| **Scope of data seen** | Whole school | Only their own | Operational records (attendance, users, templates) |
+| **Scope of data seen** | Whole school | Only their own | Whole school, plus operational records (attendance, users, templates) |
 
 ---
 

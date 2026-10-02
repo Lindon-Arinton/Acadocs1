@@ -53,24 +53,12 @@ class Documents extends BaseController
             return redirect()->to('/documents');
         }
 
-        $submissions = (new TaskSubmissionModel())
-            ->select('task_submissions.*, users.name AS submitter_name')
-            ->join('users', 'users.id = task_submissions.user_id')
-            ->where('task_submissions.task_id', $task['id'])
-            ->orderBy('task_submissions.submitted_at', 'DESC')
-            ->findAll();
+        $submissions = (new TaskSubmissionModel())->forTask((int) $task['id']);
 
         $submissionIds = array_column($submissions, 'id');
         $filesGrouped  = (new TaskSubmissionFileModel())->forSubmissions($submissionIds);
 
-        $feedbackGrouped = [];
-        if ($submissionIds) {
-            $feedbackRows = (new TaskFeedbackModel())->whereIn('task_submission_id', $submissionIds)
-                ->orderBy('id', 'DESC')->findAll();
-            foreach ($feedbackRows as $row) {
-                $feedbackGrouped[$row['task_submission_id']][] = $row;
-            }
-        }
+        $feedbackGrouped = (new TaskFeedbackModel())->forSubmissions($submissionIds);
 
         foreach ($submissions as &$submission) {
             $submission['files']    = $filesGrouped[$submission['id']] ?? [];
@@ -96,8 +84,10 @@ class Documents extends BaseController
         $isAjax  = $this->request->isAJAX();
         $backUrl = '/documents' . ($folderId ? '?folder=' . $folderId : '');
 
-        if (! hasRole('admin', 'adas')) {
-            return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to($backUrl);
+        // Approving teachers' work is the principal's call; ADAS can view
+        // submissions but not mark them Reviewed/Returned.
+        if (! hasRole('admin')) {
+            return $isAjax ? $this->ajaxError('Only the principal can review submissions.', 403) : redirect()->to($backUrl);
         }
 
         $submissionModel = new TaskSubmissionModel();
@@ -120,12 +110,17 @@ class Documents extends BaseController
         }
 
         try {
-            $submissionModel->update($submissionId, ['status' => $status]);
+            $submissionModel->update($submissionId, [
+                'status'      => $status,
+                'reviewed_by' => currentUser()['id'],
+                'reviewed_at' => date('Y-m-d H:i:s'),
+            ]);
 
             if ($comment !== '') {
                 (new TaskFeedbackModel())->insert([
                     'task_submission_id' => $submissionId,
                     'comment'            => $comment,
+                    'author_id'          => currentUser()['id'],
                     'date'               => date('Y-m-d'),
                 ]);
             }

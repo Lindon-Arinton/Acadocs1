@@ -124,7 +124,6 @@ app/
 ├── Controllers/
 │   ├── Admin/                  — principal-facing controllers (Dashboard, Documents, Users, Tasks, Properties...)
 │   ├── Teacher/                — TeacherDashboard, SubmitDocuments, PerformanceMps
-│   ├── Adas/                   — AdasDashboard
 │   ├── Shared/                 — controllers reachable by more than one role (Chat, Templates, TimeRecords, Announcements, DocumentLinks, MyTasks, Profile...)
 │   └── Api/                    — JSON REST controllers, one per resource
 ├── Models/                     — one Model per table
@@ -189,9 +188,8 @@ with `role = 'adas'`.
 
 | Feature                        | Admin | Teacher | ADAS |
 |----------------------------------|:-----:|:-------:|:----:|
-| Admin Dashboard                  | ✓     |         |      |
+| School Dashboard (KPIs, charts, insights, enrollment/KPI import) | ✓     |         | ✓    |
 | Teacher Dashboard (+ own present/absent count) |       | ✓       |      |
-| ADAS Dashboard (+ own present/absent count)    |       |         | ✓    |
 | Submit Documents                 | ✓     | ✓       |      |
 | Manage Documents                 | ✓     |         |      |
 | Tasks & Assignments (create)     | ✓     |         |      |
@@ -279,7 +277,7 @@ behind `authGuard`):
 
 ```
 /login, /logout
-/dashboard, /teacher-dashboard, /adas-dashboard
+/dashboard, /teacher-dashboard  (/adas-dashboard redirects to /dashboard)
 /submit-documents, /documents, /documents/(:num)/file, /documents/(:num)/download
 /performance/mps
 /announcements, /time-records, /deped-documents, /document-links

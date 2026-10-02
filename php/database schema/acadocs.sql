@@ -854,11 +854,14 @@ CREATE TABLE IF NOT EXISTS `task_feedback` (
   `id` int(10) UNSIGNED NOT NULL,
   `task_submission_id` int(10) UNSIGNED NOT NULL,
   `comment` text NOT NULL,
+  `author_id` int(10) UNSIGNED DEFAULT NULL,
   `date` date NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `task_submission_id` (`task_submission_id`),
-  CONSTRAINT `task_feedback_ibfk_1` FOREIGN KEY (`task_submission_id`) REFERENCES `task_submissions` (`id`) ON DELETE CASCADE
+  KEY `task_feedback_author_fk` (`author_id`),
+  CONSTRAINT `task_feedback_ibfk_1` FOREIGN KEY (`task_submission_id`) REFERENCES `task_submissions` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `task_feedback_author_fk` FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -875,13 +878,17 @@ CREATE TABLE IF NOT EXISTS `task_submissions` (
   `file_name` varchar(255) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `status` enum('Pending','Reviewed','Returned') DEFAULT 'Pending',
+  `reviewed_by` int(10) UNSIGNED DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
   `submitted_at` datetime NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `task_id` (`task_id`,`user_id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `task_submissions_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `task_submissions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  KEY `task_submissions_reviewed_by_fk` (`reviewed_by`),
+  CONSTRAINT `task_submissions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `task_submissions_reviewed_by_fk` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

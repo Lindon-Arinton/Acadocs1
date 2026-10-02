@@ -301,6 +301,7 @@
         <div id="viewFeedbackThread"></div>
 
         <hr>
+        <?php if (hasRole('admin')): ?>
         <form method="POST" action="" id="taskFeedbackForm" class="ajax-form"
               data-confirm-action="update" data-confirm-title="Send this feedback?"
               data-confirm-text="Only the submitter will be able to see it.">
@@ -309,6 +310,9 @@
           <textarea name="comment" class="form-control mb-2" rows="3" required placeholder="Only this person will see your feedback..."></textarea>
           <button type="submit" class="btn btn-maroon btn-sm"><i class="bi bi-send me-2"></i>Send Feedback</button>
         </form>
+        <?php else: ?>
+        <p class="small text-muted mb-0"><i class="bi bi-lock me-1"></i>Only the principal can review submissions and give feedback.</p>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -445,6 +449,7 @@ const TASKS_BASE = '" . base_url('tasks/') . "';
 const TASK_FILE_BASE = '" . base_url('task-submissions/') . "';
 const PREVIEWABLE_EXT = ['doc','docx','xls','xlsx','ppt','pptx','pdf','jpg','jpeg','png'];
 let currentTaskDetailSubmissions = [];
+let currentTaskCanReview = false; // principal only: review, feedback, annotate
 
 function openTaskDetailModal(taskId) {
     document.getElementById('taskDetailTitle').innerHTML = '<i class=\"bi bi-list-task me-2\"></i>Task';
@@ -453,7 +458,8 @@ function openTaskDetailModal(taskId) {
     document.getElementById('taskDetailContent').style.display = 'none';
     document.getElementById('taskDetailLoading').style.display = 'block';
     document.getElementById('taskDetailLoading').innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>Loading task details\\u2026';
-    document.getElementById('taskFeedbackForm').action = TASKS_BASE + taskId;
+    const feedbackForm = document.getElementById('taskFeedbackForm'); // principal only
+    if (feedbackForm) feedbackForm.action = TASKS_BASE + taskId;
 
     new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
 
@@ -475,6 +481,7 @@ function openTaskDetailModal(taskId) {
             }
 
             currentTaskDetailSubmissions = data.submissions;
+            currentTaskCanReview = !!data.canReview;
             renderTaskDetailSubmissions(data.submissions);
             renderTaskDetailPending(data.pendingUsers);
 
@@ -548,8 +555,10 @@ function viewSubmission(index) {
     if (!data) return;
 
     document.getElementById('viewSubmitterName').textContent = data.submitterName;
-    document.getElementById('viewSubmissionId').value = data.id;
-    document.getElementById('viewSubmittedMeta').innerHTML = '<span><i class=\"bi bi-clock me-1\"></i>Submitted ' + taskEscapeHtml(data.submittedAt) + '</span>' + timingBadgeHtml(data.late, data.lateBy);
+    const submissionIdEl = document.getElementById('viewSubmissionId'); // absent for ADAS (no feedback form)
+    if (submissionIdEl) submissionIdEl.value = data.id;
+    document.getElementById('viewSubmittedMeta').innerHTML = '<span><i class=\"bi bi-clock me-1\"></i>Submitted ' + taskEscapeHtml(data.submittedAt) + '</span>' + timingBadgeHtml(data.late, data.lateBy)
+        + (data.reviewerName ? '<span><i class=\"bi bi-person-check me-1\"></i>Reviewed by ' + taskEscapeHtml(data.reviewerName) + (data.reviewedAt ? ' · ' + taskEscapeHtml(data.reviewedAt) : '') + '</span>' : '');
 
     document.getElementById('viewFilesList').innerHTML = data.files.map(function (f) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)
@@ -559,7 +568,7 @@ function viewSubmission(index) {
             + '<span class=\"small text-truncate me-2\"><i class=\"bi bi-file-earmark me-1\"></i>' + taskEscapeHtml(f.name) + '</span>'
             + '<div class=\"d-flex gap-1 flex-shrink-0\">' + previewBtn
             + '<a class=\"btn btn-sm btn-outline-secondary\" href=\"' + TASK_FILE_BASE + f.id + '/download\"><i class=\"bi bi-download\"></i></a>'
-            + submissionFileExtrasHtml(f.id, f.annotated, true)
+            + submissionFileExtrasHtml(f.id, f.annotated, currentTaskCanReview)
             + '</div></div>';
     }).join('');
 
@@ -572,9 +581,9 @@ function viewSubmission(index) {
     const thread = document.getElementById('viewFeedbackThread');
     thread.innerHTML = data.feedback.length
         ? '<div class=\"p-3 rounded-3\" style=\"background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);\">'
-            + '<p class=\"small fw-semibold mb-2 text-muted\"><i class=\"bi bi-chat-dots me-1\"></i>Your Private Feedback</p>'
+            + '<p class=\"small fw-semibold mb-2 text-muted\"><i class=\"bi bi-chat-dots me-1\"></i>Private Feedback</p>'
             + data.feedback.map(function (fb) {
-                return '<p class=\"small mb-1\">' + taskEscapeHtml(fb.comment) + ' <span class=\"text-muted\">— ' + taskEscapeHtml(fb.date) + '</span></p>';
+                return '<p class=\"small mb-1\">' + taskEscapeHtml(fb.comment) + ' <span class=\"text-muted\">— ' + (fb.author ? taskEscapeHtml(fb.author) + ', ' : '') + taskEscapeHtml(fb.date) + '</span></p>';
             }).join('')
             + '</div>'
         : '';

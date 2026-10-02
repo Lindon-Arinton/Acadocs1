@@ -172,8 +172,9 @@ class TeacherDashboard extends BaseController
     private function recentFeedback(array $user): array
     {
         return (new TaskFeedbackModel())
-            ->select('task_feedback.*, tasks.title AS task_title')
+            ->select('task_feedback.*, tasks.title AS task_title, author.name AS author_name')
             ->join('task_submissions', 'task_submissions.id = task_feedback.task_submission_id')
+            ->join('users author', 'author.id = task_feedback.author_id', 'left')
             ->join('tasks', 'tasks.id = task_submissions.task_id')
             ->where('task_submissions.user_id', (int) $user['id'])
             ->where('task_feedback.date >=', date('Y-m-d', strtotime('-7 days')))
@@ -223,7 +224,8 @@ class TeacherDashboard extends BaseController
             $insights[] = [
                 'tone' => 'info',
                 'icon' => 'bi-chat-dots-fill',
-                'text' => 'New feedback from the principal on <strong>' . e($fb['task_title']) . '</strong>.',
+                // Credit whoever actually wrote it; older comments have no author on record.
+                'text' => 'New feedback' . (! empty($fb['author_name']) ? ' from <strong>' . e($fb['author_name']) . '</strong>' : '') . ' on <strong>' . e($fb['task_title']) . '</strong>.',
             ];
         }
 

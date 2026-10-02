@@ -24,7 +24,8 @@ $routes->get('api/auth/me', 'Api\AuthController::me');
 $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $routes) {
     $routes->get('dashboard', 'Admin\Dashboard::index');
     $routes->get('teacher-dashboard', 'Teacher\TeacherDashboard::index');
-    $routes->get('adas-dashboard', 'Adas\AdasDashboard::index');
+    // ADAS now shares the school dashboard; old links/bookmarks still land there.
+    $routes->get('adas-dashboard', static fn () => redirect()->to('/dashboard'));
     $routes->match(['get', 'post'], 'submit-documents', 'Teacher\SubmitDocuments::index');
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
     $routes->get('documents/(:num)/file', 'Shared\DocumentFile::show/$1');

@@ -30,12 +30,29 @@ class Dashboard extends BaseController
 
     public function index()
     {
+        // School-wide dashboard: the principal and ADAS (who also feed it
+        // enrollment / KPI data). Teachers have their own dashboard.
+        if (! hasRole('admin', 'adas')) {
+            return redirect()->to('/teacher-dashboard');
+        }
+
         $documentModel = new DocumentModel();
 
         $years = $this->availableYears();
 
+        // Optional year range (?range=2014-2022, from the "Other…" year filter):
+        // multi-year views (trend chart, tile sparklines/deltas, DepEd history,
+        // insights) only cover school years inside it, and the single-year
+        // widgets show its newest school year that has data.
+        $range = $this->parseRange((string) $this->request->getGet('range'));
+
         $requestedYear = $this->request->getGet('year');
-        $currentYear   = in_array($requestedYear, $years, true) ? $requestedYear : ($years[0] ?? self::CURRENT_YEAR);
+        if ($range !== null) {
+            $inRange     = array_values(array_filter($years, fn (string $y) => $this->yearInRange($y, $range)));
+            $currentYear = $inRange[0] ?? (($range['end'] - 1) . '-' . $range['end']);
+        } else {
+            $currentYear = in_array($requestedYear, $years, true) ? $requestedYear : ($years[0] ?? self::CURRENT_YEAR);
+        }
 
         // Nothing in the app writes to kpi_snapshots, so the school-wide KPI
         // cards are sourced the same way the old Enrollment & KPIs page did:
@@ -83,8 +100,16 @@ class Dashboard extends BaseController
         $complianceRate = $documentModel->submissionComplianceRate();
 
         // Enrollment KPIs section (merged from the old Admin\EnrollmentKpis::index()).
-        $latestMpsYear = (new PerformanceByLevelModel())->select('school_year')->orderBy('school_year', 'DESC')->first();
-        $mpsSourceYear = $latestMpsYear['school_year'] ?? self::MPS_SOURCE_YEAR;
+        $latestMpsYear = (new PerformanceByLevelModel())->select('school_year')->orderBy('school_year', 'DESC');
+        if ($range !== null) {
+            $latestMpsYear->where('school_year >=', $range['start'] . '-' . ($range['start'] + 1))
+                ->where('school_year <=', ($range['end'] - 1) . '-' . $range['end']);
+        }
+        $latestMpsYear = $latestMpsYear->first();
+        // In a range with no MPS at all, point at the range's newest year (no rows -> empty chart)
+        // rather than falling back to a year outside the range.
+        $mpsSourceYear = $latestMpsYear['school_year']
+            ?? ($range !== null ? ($range['end'] - 1) . '-' . $range['end'] : self::MPS_SOURCE_YEAR);
 
         $mpsByTerm = (new PerformanceByLevelModel())
             ->where('school_year', $mpsSourceYear)
@@ -119,6 +144,13 @@ class Dashboard extends BaseController
         // "Average MPS" tile's sparkline/delta compare against: last year's
         // school-wide average, not last term's.
         $avgMpsByYear = $this->avgMpsByYear();
+
+        if ($range !== null) {
+            $keep             = fn (array $r) => $this->yearInRange($r['school_year'], $range);
+            $depedKpis        = array_values(array_filter($depedKpis, $keep));
+            $enrollmentTotals = array_values(array_filter($enrollmentTotals, $keep));
+            $avgMpsByYear     = array_values(array_filter($avgMpsByYear, $keep));
+        }
 
         $enrolleesSeries = array_map(
             static fn ($r) => ['label' => 'SY ' . $r['school_year'], 'value' => $r['total']],
@@ -173,6 +205,8 @@ class Dashboard extends BaseController
             'dropoutDelta'       => $dropoutDelta,
             'mpsDelta'           => $mpsDelta,
             'insights'           => $insights,
+            'range'              => $range,
+            'currentSchoolYearStart' => self::currentSchoolYearStart(),
         ]);
     }
 
@@ -412,6 +446,46 @@ class Dashboard extends BaseController
             static fn ($r) => ['school_year' => $r['school_year'], 'avg_mps' => round((float) $r['avg_mps'], 2)],
             $rows
         );
+    }
+
+    /**
+     * "2014-2022" -> covers SY 2014-2015 through SY 2021-2022 (both calendar
+     * years of every school year fall inside the span). Null when absent or
+     * malformed; spans are capped at 30 years.
+     *
+     * @return array{start:int,end:int,label:string,count:int}|null
+     */
+    private function parseRange(string $raw): ?array
+    {
+        if (! preg_match('/^(\d{4})-(\d{4})$/', $raw, $m)) {
+            return null;
+        }
+
+        [$start, $end] = [(int) $m[1], (int) $m[2]];
+        if ($end <= $start || $end - $start > 30) {
+            return null;
+        }
+
+        return [
+            'start' => $start,
+            'end'   => $end,
+            'label' => $start . '–' . $end,
+            'count' => $end - $start,
+        ];
+    }
+
+    /** @param array{start:int,end:int} $range */
+    private function yearInRange(string $schoolYear, array $range): bool
+    {
+        $first = (int) substr($schoolYear, 0, 4);
+
+        return $first >= $range['start'] && $first + 1 <= $range['end'];
+    }
+
+    /** First calendar year of the school year in progress (a school year starts in June). */
+    private static function currentSchoolYearStart(): int
+    {
+        return (int) date('n') >= 6 ? (int) date('Y') : (int) date('Y') - 1;
     }
 
     /**

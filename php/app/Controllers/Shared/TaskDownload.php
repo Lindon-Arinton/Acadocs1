@@ -5,6 +5,7 @@ namespace App\Controllers\Shared;
 use App\Controllers\BaseController;
 use App\Libraries\OfficeConverter;
 use App\Models\NotificationModel;
+use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
 use App\Models\TaskSubmissionFileModel;
 use App\Models\TaskSubmissionModel;
@@ -77,7 +78,7 @@ class TaskDownload extends BaseController
      */
     public function annotate(int $fileId)
     {
-        if (! hasRole('admin', 'adas')) {
+        if (! hasRole('admin')) {
             throw PageNotFoundException::forPageNotFound();
         }
 
@@ -111,7 +112,7 @@ class TaskDownload extends BaseController
     /** The bytes the annotator draws on: the annotated copy if any, else the original (as PDF where possible). */
     public function annotationSource(int $fileId)
     {
-        if (! hasRole('admin', 'adas')) {
+        if (! hasRole('admin')) {
             throw PageNotFoundException::forPageNotFound();
         }
 
@@ -145,8 +146,8 @@ class TaskDownload extends BaseController
     /** Stores the annotator's flattened PDF and lets the submitter know. */
     public function saveAnnotation(int $fileId)
     {
-        if (! hasRole('admin', 'adas')) {
-            return $this->ajaxError('You are not authorized to do this.', 403);
+        if (! hasRole('admin')) {
+            return $this->ajaxError('Only the principal can annotate submissions.', 403);
         }
 
         $file   = $this->authorizedFile($fileId);
@@ -173,6 +174,15 @@ class TaskDownload extends BaseController
         $submission = (new TaskSubmissionModel())->find($file['task_submission_id']);
         $task       = (new TaskModel())->find($submission['task_id']);
         $submitter  = (new UserModel())->find((int) $submission['user_id']);
+
+        // Leave an attributed note in the submission's feedback thread, so the
+        // record shows who marked the file up (and when).
+        (new TaskFeedbackModel())->insert([
+            'task_submission_id' => (int) $submission['id'],
+            'comment'            => 'Added notes directly on ' . $file['file_name'] . ' — open the "Marked up" copy to see them.',
+            'author_id'          => currentUser()['id'],
+            'date'               => date('Y-m-d'),
+        ]);
 
         if ($submitter && (int) $submitter['id'] !== (int) currentUser()['id']) {
             (new NotificationModel())->upsertGrouped(

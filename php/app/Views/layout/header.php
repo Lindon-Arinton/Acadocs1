@@ -327,8 +327,8 @@ try {
     <div class="sidebar-section">
       <div class="sidebar-section-label">ADAS</div>
       <div class="sidebar-section-items">
-        <a href="<?= base_url('adas-dashboard') ?>" class="nav-link <?= str_contains($uri,'adas-dashboard')?'active':'' ?>">
-          <i class="bi bi-house-fill nav-icon"></i><span class="sidebar-label">My Dashboard</span>
+        <a href="<?= base_url('dashboard') ?>" class="nav-link <?= preg_match('#/dashboard([/?]|$)#',$uri)?'active':'' ?>">
+          <i class="bi bi-speedometer2 nav-icon"></i><span class="sidebar-label">Dashboard</span>
         </a>
         <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>

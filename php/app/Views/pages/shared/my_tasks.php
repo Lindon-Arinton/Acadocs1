@@ -72,6 +72,9 @@ $monthEnd   = date('Y-m-t');
       <span class="status-pill <?= submissionBadge($submission['status']) ?>">
         <?= e($submission['status'] === 'Returned' ? 'Returned - please revise' : $submission['status']) ?>
       </span>
+      <?php if ($submission['status'] !== 'Pending' && ! empty($submission['reviewer_name'])): ?>
+      <span class="small text-muted">by <?= e($submission['reviewer_name']) ?></span>
+      <?php endif; ?>
       <?php elseif ($t['status'] === 'Closed'): ?>
       <span class="status-pill badge-returned">Missed</span>
       <?php else: ?>
@@ -132,10 +135,10 @@ $monthEnd   = date('Y-m-t');
     <?php if (! empty($t['feedback'])): ?>
     <div class="p-3 rounded-3 mb-3 task-section" style="background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);">
       <div class="task-kicker mb-2" style="color:var(--maroon);">
-        <i class="bi bi-chat-dots me-1"></i>Principal Feedback (private)
+        <i class="bi bi-chat-dots me-1"></i>Feedback (private)
       </div>
       <?php foreach ($t['feedback'] as $fb): ?>
-      <p class="small mb-1"><?= e($fb['comment']) ?> <span class="text-muted">— <?= date('M d, Y', strtotime($fb['date'])) ?></span></p>
+      <p class="small mb-1"><?= e($fb['comment']) ?> <span class="text-muted">— <?= ! empty($fb['author_name']) ? e($fb['author_name']) . ', ' : '' ?><?= date('M d, Y', strtotime($fb['date'])) ?></span></p>
       <?php endforeach; ?>
     </div>
     <?php endif; ?>

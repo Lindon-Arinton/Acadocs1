@@ -9,7 +9,7 @@
       <p class="mb-0">Here's an overview of your school's performance.</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap" style="position:relative;z-index:1;">
-      <?php if (hasRole('admin')): ?>
+      <?php if (hasRole('admin', 'adas')): ?>
       <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
         <i class="bi bi-people me-1"></i>Add Enrollment
       </button>
@@ -19,10 +19,13 @@
       <?php endif; ?>
       <label class="text-white small fw-semibold mb-0" for="dashboard-year-filter">School Year:</label>
       <div class="maroon-select maroon-select-sm" style="width:auto;">
-        <select id="dashboard-year-filter" class="maroon-select-native"
-                onchange="location.href='<?= base_url('dashboard') ?>?year=' + encodeURIComponent(this.value)">
+        <select id="dashboard-year-filter" class="maroon-select-native" onchange="onDashboardYearChange(this)">
+          <option value="__other">Custom…</option>
+          <?php if ($range !== null): ?>
+          <option value="__range" selected><?= e($range['label']) ?> (<?= (int) $range['count'] ?> yrs)</option>
+          <?php endif; ?>
           <?php foreach ($years as $y): ?>
-          <option value="<?= e($y) ?>" <?= $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+          <option value="<?= e($y) ?>" <?= $range === null && $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
           <?php endforeach; ?>
         </select>
         <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
@@ -34,6 +37,19 @@
     </div>
   </div>
 </div>
+
+<?php if ($range !== null): ?>
+<div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2 mb-3 small" style="border-left:4px solid var(--primary);">
+  <i class="bi bi-calendar-range"></i>
+  <span>
+    Showing trends for <strong>SY <?= $range['start'] ?>–<?= $range['start'] + 1 ?></strong> to
+    <strong>SY <?= $range['end'] - 1 ?>–<?= $range['end'] ?></strong> (<?= (int) $range['count'] ?> school years).
+    Single-year cards show <strong>SY <?= e(str_replace('-', '–', $currentYear)) ?></strong>, the latest in this range.
+  </span>
+  <a href="#" class="ms-auto fw-semibold text-decoration-none" onclick="openYearRangeModal(); return false;"><i class="bi bi-sliders me-1"></i>Change</a>
+  <a href="<?= base_url('dashboard') ?>" class="fw-semibold text-decoration-none"><i class="bi bi-x-circle me-1"></i>Clear</a>
+</div>
+<?php endif; ?>
 
 <?php
 // Sparkline SVG markup is identical for the three trend tiles — only the
@@ -200,7 +216,7 @@ if ($complianceRate === null) {
                 <label class="small text-muted mb-0" for="enrollment-month-filter">Month:</label>
                 <div class="maroon-select maroon-select-sm" style="width:auto;">
                   <select id="enrollment-month-filter" class="maroon-select-native"
-                          onchange="loadPage('<?= base_url('dashboard') ?>?year=<?= urlencode($currentYear) ?>&month=' + encodeURIComponent(this.value), { scroll: false })">
+                          onchange="loadPage('<?= base_url('dashboard') ?>?<?= $range !== null ? 'range=' . $range['start'] . '-' . $range['end'] : 'year=' . urlencode($currentYear) ?>&month=' + encodeURIComponent(this.value), { scroll: false })">
                     <?php foreach (array_reverse($enrollmentMonths) as $m): ?>
                     <option value="<?= e($m) ?>" <?= $m === $enrollmentMonth ? 'selected' : '' ?>><?= e(date('F Y', strtotime($m . '-01'))) ?></option>
                     <?php endforeach; ?>
@@ -477,7 +493,7 @@ if ($complianceRate === null) {
   <?php endif; ?>
 </div>
 
-<?php if (hasRole('admin')): ?>
+<?php if (hasRole('admin', 'adas')): ?>
 <!-- Add Enrollment Modal -->
 <div class="modal fade" id="addEnrollmentModal" tabindex="-1">
   <div class="modal-dialog">
@@ -556,8 +572,124 @@ if ($complianceRate === null) {
 </div>
 <?php endif; ?>
 
+<!-- Year range ("Custom…" in the School Year filter) -->
+<div class="modal fade" id="yearRangeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-calendar-range me-2"></i>Choose a Year Range</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Trend charts, the DepEd history table and the year-over-year comparisons will only cover these school years.</p>
+        <?php
+          $syNow = $currentSchoolYearStart;
+          $presets = [5 => [$syNow - 4, $syNow + 1], 10 => [$syNow - 9, $syNow + 1]];
+        ?>
+        <div class="d-flex flex-column gap-2">
+          <?php foreach ($presets as $n => [$from, $to]): ?>
+          <label class="year-range-option">
+            <input type="radio" name="yearRangeChoice" value="<?= $from ?>-<?= $to ?>" class="form-check-input mt-0">
+            <span>
+              <span class="fw-semibold d-block">Last <?= $n ?> years</span>
+              <span class="small text-muted">SY <?= $from ?>–<?= $from + 1 ?> to SY <?= $to - 1 ?>–<?= $to ?></span>
+            </span>
+          </label>
+          <?php endforeach; ?>
+          <label class="year-range-option">
+            <input type="radio" name="yearRangeChoice" value="custom" class="form-check-input mt-0">
+            <span class="flex-grow-1">
+              <span class="fw-semibold d-block">Custom range</span>
+              <span class="d-flex align-items-center gap-2 mt-2">
+                <input type="text" id="yearRangeFrom" class="form-control form-control-sm text-center" style="width:90px;"
+                       inputmode="numeric" maxlength="4" placeholder="From" value="<?= $range['start'] ?? '' ?>">
+                <span class="fw-semibold">–</span>
+                <input type="text" id="yearRangeTo" class="form-control form-control-sm text-center" style="width:90px;"
+                       inputmode="numeric" maxlength="4" placeholder="To" value="<?= $range['end'] ?? '' ?>">
+              </span>
+              <span class="small text-muted d-block mt-1" id="yearRangePreview">e.g. 2014 – 2022</span>
+            </span>
+          </label>
+        </div>
+        <div class="text-danger small mt-2 d-none" id="yearRangeError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="applyYearRange()"><i class="bi bi-funnel me-1"></i>Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php
 $extraScript = '<script>
+/* ── School Year filter: a single year, or "Custom…" for a year range ── */
+const DASHBOARD_URL = ' . json_encode(base_url('dashboard')) . ';
+const yearFilterEl = document.getElementById("dashboard-year-filter");
+yearFilterEl.dataset.prev = yearFilterEl.value;
+
+function onDashboardYearChange(sel) {
+  if (sel.value === "__other") {
+    sel.value = sel.dataset.prev; // keep showing the current choice behind the modal
+    openYearRangeModal();
+    return;
+  }
+  if (sel.value === "__range") return;
+  location.href = DASHBOARD_URL + "?year=" + encodeURIComponent(sel.value);
+}
+
+const CURRENT_RANGE = ' . json_encode($range !== null ? $range['start'] . '-' . $range['end'] : null) . ';
+
+function openYearRangeModal() {
+  document.getElementById("yearRangeError").classList.add("d-none");
+  if (CURRENT_RANGE) {
+    const preset = document.querySelector("input[name=yearRangeChoice][value=\"" + CURRENT_RANGE + "\"]");
+    (preset || document.querySelector("input[name=yearRangeChoice][value=custom]")).checked = true;
+  }
+  updateYearRangePreview();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("yearRangeModal")).show();
+}
+
+function updateYearRangePreview() {
+  const from = parseInt(document.getElementById("yearRangeFrom").value, 10);
+  const to   = parseInt(document.getElementById("yearRangeTo").value, 10);
+  const el   = document.getElementById("yearRangePreview");
+  el.textContent = from >= 1000 && to > from
+    ? "SY " + from + "–" + (from + 1) + " to SY " + (to - 1) + "–" + to + " (" + (to - from) + " school year" + (to - from === 1 ? "" : "s") + ")"
+    : "e.g. 2014 – 2022";
+}
+
+["yearRangeFrom", "yearRangeTo"].forEach(id => {
+  const input = document.getElementById(id);
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "").slice(0, 4);
+    document.querySelector("input[name=yearRangeChoice][value=custom]").checked = true;
+    updateYearRangePreview();
+  });
+  input.addEventListener("focus", () => { document.querySelector("input[name=yearRangeChoice][value=custom]").checked = true; });
+});
+
+function applyYearRange() {
+  const choice = document.querySelector("input[name=yearRangeChoice]:checked");
+  const errEl  = document.getElementById("yearRangeError");
+  const fail   = msg => { errEl.textContent = msg; errEl.classList.remove("d-none"); };
+
+  if (!choice) return fail("Pick a range first.");
+
+  let range = choice.value;
+  if (range === "custom") {
+    const from = parseInt(document.getElementById("yearRangeFrom").value, 10);
+    const to   = parseInt(document.getElementById("yearRangeTo").value, 10);
+    if (!(from >= 1000) || !(to >= 1000)) return fail("Enter both years as 4 digits, e.g. 2014 and 2022.");
+    if (to <= from) return fail("The second year must be after the first.");
+    if (to - from > 30) return fail("Please choose 30 years or fewer.");
+    range = from + "-" + to;
+  }
+
+  bootstrap.Modal.getInstance(document.getElementById("yearRangeModal"))?.hide();
+  location.href = DASHBOARD_URL + "?range=" + encodeURIComponent(range);
+}
+
 const maroon = chartColor(), maroonLight = chartColorAlt(), maroonDark = "#560000", crimson = "#dc143c";
 
 function togglePerfBreakdown() {

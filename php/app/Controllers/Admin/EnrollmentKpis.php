@@ -14,7 +14,7 @@ class EnrollmentKpis extends BaseController
 
     public function import()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 
@@ -86,7 +86,7 @@ class EnrollmentKpis extends BaseController
 
     public function template()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 

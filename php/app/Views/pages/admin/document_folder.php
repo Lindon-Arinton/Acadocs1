@@ -18,7 +18,8 @@
 <?php endif; ?>
 
 <?php
-$canReview = hasRole('admin', 'adas');
+// Only the principal approves (Reviewed/Returned) and annotates; ADAS can view.
+$canReview = hasRole('admin');
 ?>
 
 <div class="card">
@@ -52,7 +53,7 @@ $canReview = hasRole('admin', 'adas');
               <?php endif; ?>
               <?php if (! empty($submission['feedback'])): ?>
               <div class="small text-muted mt-1" title="Latest comment">
-                <i class="bi bi-chat-left-text me-1"></i><?= e(mb_strimwidth($submission['feedback'][0]['comment'], 0, 90, '…')) ?>
+                <i class="bi bi-chat-left-text me-1"></i><?= e(mb_strimwidth($submission['feedback'][0]['comment'], 0, 90, '…')) ?><?= ! empty($submission['feedback'][0]['author_name']) ? ' <span class="fst-italic">— ' . e($submission['feedback'][0]['author_name']) . '</span>' : '' ?>
               </div>
               <?php endif; ?>
             </td>
@@ -61,7 +62,12 @@ $canReview = hasRole('admin', 'adas');
               <div><?= date('h:i A', strtotime($submission['submitted_at'])) ?></div>
               <div class="mt-1"><?= submissionTimingBadge($submission['submitted_at'], $task['deadline']) ?></div>
             </td>
-            <td><span class="status-pill <?= submissionBadge($submission['status']) ?>"><?= e($submission['status']) ?></span></td>
+            <td>
+              <span class="status-pill <?= submissionBadge($submission['status']) ?>"><?= e($submission['status']) ?></span>
+              <?php if ($submission['status'] !== 'Pending' && ! empty($submission['reviewer_name'])): ?>
+              <div class="small text-muted mt-1 text-nowrap">by <?= e($submission['reviewer_name']) ?><?= $submission['reviewed_at'] ? ' · ' . date('M d, Y', strtotime($submission['reviewed_at'])) : '' ?></div>
+              <?php endif; ?>
+            </td>
             <?php if ($canReview): ?>
             <td class="text-nowrap">
               <button type="button" class="btn btn-sm btn-outline-success" title="Mark as Reviewed"

@@ -9,7 +9,7 @@ class Auth extends BaseController
 {
     private const ROLE_DASHBOARDS = [
         'teacher' => '/teacher-dashboard',
-        'adas'    => '/adas-dashboard',
+        // admin and adas share the school dashboard (/dashboard, the default)
     ];
 
     public function login()
