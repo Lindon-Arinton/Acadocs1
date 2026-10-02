@@ -555,7 +555,7 @@ if ($complianceRate === null) {
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label" for="reportScope">Report for</label>
-          <select id="reportScope" class="form-select form-select-sm" required>
+          <select id="reportScope" class="form-select form-select-sm" required onchange="updateReportSections()">
             <?php if ($range !== null): ?>
             <option value="range:<?= $range['start'] ?>-<?= $range['end'] ?>" selected>SY <?= $range['start'] ?>–<?= $range['start'] + 1 ?> to SY <?= $range['end'] - 1 ?>–<?= $range['end'] ?> (current filter)</option>
             <?php endif; ?>
@@ -578,9 +578,11 @@ if ($complianceRate === null) {
           <label class="report-section-option">
             <input type="checkbox" class="form-check-input mt-0 report-section-cb" value="<?= e($key) ?>" checked>
             <span><?= e($label) ?></span>
+            <span class="report-section-nodata">No data</span>
           </label>
           <?php endforeach; ?>
         </div>
+        <div class="form-text d-none" id="reportNoDataNote">Sections marked <em>No data</em> have nothing recorded for the selected period.</div>
         <div class="text-danger small mt-2 d-none" id="reportError">Tick at least one section.</div>
       </div>
       <div class="modal-footer">
@@ -644,14 +646,32 @@ $extraScript = '<script>
 /* ── Generate Report: printable report of the ticked sections, same filters as the dashboard ── */
 const REPORT_URL   = ' . json_encode(base_url('dashboard/report')) . ';
 const REPORT_MONTH = ' . json_encode($enrollmentMonth ?? null) . ';
+// "Report for" option => sections that have data for it (Dashboard::reportAvailability()).
+const REPORT_AVAILABILITY = ' . json_encode($reportAvailability) . ';
 
 function openReportModal() {
   document.getElementById("reportError").classList.add("d-none");
+  updateReportSections();
   bootstrap.Modal.getOrCreateInstance(document.getElementById("reportModal")).show();
 }
 
+/* Sections with no data for the chosen period are unticked and disabled; the rest are ticked. */
+function updateReportSections() {
+  const available = REPORT_AVAILABILITY[document.getElementById("reportScope").value] || [];
+  let missing = 0;
+  document.querySelectorAll(".report-section-cb").forEach(cb => {
+    const ok = available.includes(cb.value);
+    cb.disabled = !ok;
+    cb.checked  = ok;
+    cb.closest(".report-section-option").classList.toggle("is-disabled", !ok);
+    if (!ok) missing++;
+  });
+  document.getElementById("reportNoDataNote").classList.toggle("d-none", missing === 0);
+  document.getElementById("reportError").classList.add("d-none");
+}
+
 function setReportSections(checked) {
-  document.querySelectorAll(".report-section-cb").forEach(cb => { cb.checked = checked; });
+  document.querySelectorAll(".report-section-cb:not(:disabled)").forEach(cb => { cb.checked = checked; });
 }
 
 function generateReport() {

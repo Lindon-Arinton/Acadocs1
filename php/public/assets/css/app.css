@@ -1629,6 +1629,10 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
 }
 .report-section-option:hover { border-color: var(--primary); }
 .report-section-option:has(input:checked) { border-color: var(--primary); background: var(--highlight-bg); }
+.report-section-option .report-section-nodata { display: none; margin-left: auto; font-size: .72rem; color: var(--muted); font-style: italic; white-space: nowrap; }
+.report-section-option.is-disabled { opacity: .55; cursor: not-allowed; }
+.report-section-option.is-disabled:hover { border-color: var(--border); }
+.report-section-option.is-disabled .report-section-nodata { display: inline; }
 
 /* ── Announcement photo: card thumbnail, upload preview ── */
 .announcement-card .ac-thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); }

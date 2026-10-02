@@ -64,9 +64,16 @@ class Dashboard extends BaseController
         }
 
         $requested = (array) ($this->request->getGet('sections') ?? []);
-        $sections  = array_values(array_intersect(array_keys(self::REPORT_SECTIONS), $requested)) ?: array_keys(self::REPORT_SECTIONS);
+        $data      = $this->dashboardData();
 
-        return view('pages/admin/report', $this->dashboardData() + [
+        // Only sections that have data for the chosen year / range.
+        $range     = $data['range'];
+        $scopeKey  = $range !== null ? 'range:' . $range['start'] . '-' . $range['end'] : 'year:' . $data['currentYear'];
+        $available = $data['reportAvailability'][$scopeKey] ?? [];
+        $sections  = array_values(array_intersect(array_keys(self::REPORT_SECTIONS), $requested, $available))
+            ?: array_values(array_intersect(array_keys(self::REPORT_SECTIONS), $available));
+
+        return view('pages/admin/report', $data + [
             'sections'       => $sections,
             'sectionLabels'  => self::REPORT_SECTIONS,
             'generatedBy'    => currentUser()['name'] ?? '',
@@ -149,10 +156,12 @@ class Dashboard extends BaseController
                 ->where('school_year <=', ($range['end'] - 1) . '-' . $range['end']);
         }
         $latestMpsYear = $latestMpsYear->first();
-        // In a range with no MPS at all, point at the range's newest year (no rows -> empty chart)
-        // rather than falling back to a year outside the range.
-        $mpsSourceYear = $latestMpsYear['school_year']
-            ?? ($range !== null ? ($range['end'] - 1) . '-' . $range['end'] : self::MPS_SOURCE_YEAR);
+        // A single selected year shows that year's terms only (no rows -> empty chart). In a
+        // range, its newest year with MPS — or the range's newest year when it has none, rather
+        // than falling back to a year outside the range.
+        $mpsSourceYear = $range === null
+            ? $currentYear
+            : ($latestMpsYear['school_year'] ?? ($range['end'] - 1) . '-' . $range['end']);
 
         $mpsByTerm = (new PerformanceByLevelModel())
             ->where('school_year', $mpsSourceYear)
@@ -190,6 +199,13 @@ class Dashboard extends BaseController
 
         if ($range !== null) {
             $keep             = fn (array $r) => $this->yearInRange($r['school_year'], $range);
+            $depedKpis        = array_values(array_filter($depedKpis, $keep));
+            $enrollmentTotals = array_values(array_filter($enrollmentTotals, $keep));
+            $avgMpsByYear     = array_values(array_filter($avgMpsByYear, $keep));
+        } else {
+            // A single selected year: history up to and including it — never later years —
+            // so its trends, deltas, and insights compare it with the years before it.
+            $keep             = static fn (array $r) => $r['school_year'] <= $currentYear;
             $depedKpis        = array_values(array_filter($depedKpis, $keep));
             $enrollmentTotals = array_values(array_filter($enrollmentTotals, $keep));
             $avgMpsByYear     = array_values(array_filter($avgMpsByYear, $keep));
@@ -250,7 +266,68 @@ class Dashboard extends BaseController
             'range'              => $range,
             'currentSchoolYearStart' => self::currentSchoolYearStart(),
             'reportSections'     => self::REPORT_SECTIONS,
+            'reportAvailability' => $this->reportAvailability($years, $range),
         ];
+    }
+
+    /**
+     * Which report sections have data, per option of the Generate Report
+     * modal's "Report for" select ("year:2015-2016", "range:2014-2022"), so
+     * sections with nothing to show for that period can't be ticked.
+     * Document status isn't tied to a school year, so it's available
+     * whenever any document exists.
+     *
+     * @param string[]                         $years
+     * @param array{start:int,end:int}|null    $range
+     * @return array<string,string[]> option value => available section keys
+     */
+    private function reportAvailability(array $years, ?array $range): array
+    {
+        $distinct = static fn ($model, ?string $notNull = null): array => array_column(
+            ($notNull ? $model->where($notNull . ' IS NOT NULL') : $model)->select('school_year')->distinct()->findAll(),
+            'school_year'
+        );
+
+        $byYear = [
+            'enrollment' => $distinct(new EnrollmentByLevelModel()),
+            'enrollees'  => array_column($this->enrollmentTotalsByYear(), 'school_year'),
+            'dropout'    => $distinct(new DepedKpiReportModel(), 'dropout_rate'),
+            'mps'        => $distinct(new PerformanceByLevelModel()),
+            'subjects'   => $distinct(new PerformanceBySubjectModel()),
+            'deped'      => $distinct(new DepedKpiReportModel()),
+        ];
+        $hasDocuments = array_sum((new DocumentModel())->statusCounts()) > 0;
+
+        $sectionsFor = function (callable $inPeriod) use ($byYear, $hasDocuments): array {
+            $available = [];
+            foreach ($byYear as $key => $schoolYears) {
+                foreach ($schoolYears as $sy) {
+                    if ($inPeriod((string) $sy)) {
+                        $available[] = $key;
+                        break;
+                    }
+                }
+            }
+            // Key figures and insights are drawn from the sections above.
+            if ($available !== []) {
+                array_unshift($available, 'summary', 'insights');
+            }
+            if ($hasDocuments) {
+                $available[] = 'documents';
+            }
+
+            return $available;
+        };
+
+        $map = [];
+        foreach ($years as $y) {
+            $map['year:' . $y] = $sectionsFor(static fn (string $sy) => $sy === $y);
+        }
+        if ($range !== null) {
+            $map['range:' . $range['start'] . '-' . $range['end']] = $sectionsFor(fn (string $sy) => $this->yearInRange($sy, $range));
+        }
+
+        return $map;
     }
 
     /**
