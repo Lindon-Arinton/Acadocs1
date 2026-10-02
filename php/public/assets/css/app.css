@@ -934,7 +934,15 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
 .alert-success { background: #f0fdf4; color: #166534; border-left: 4px solid #22c55e; }
 .alert-danger  { background: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444; }
 .alert-warning { background: #fffbeb; color: #92400e; border-left: 4px solid #f59e0b; }
-.alert-info    { background: #eff6ff; color: #1e40af; border-left: 4px solid #3b82f6; }
+.alert-info    { background: var(--highlight-bg); color: var(--primary); border-left: 4px solid var(--primary); }
+.alert-info a  { color: inherit; }
+.alert-info a:hover { color: var(--primary-light); }
+
+/* ── Maroon checkboxes / radios / links (instead of Bootstrap blue) ── */
+.form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
+.form-check-input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 .2rem rgba(128, 0, 0, .2); }
+.link-maroon { color: var(--primary); text-decoration: none; font-weight: 600; }
+.link-maroon:hover { color: var(--primary-light); text-decoration: underline; }
 
 /* ── Specific component styles ────────────────────────────── */
 
@@ -1596,6 +1604,9 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
 [data-bs-theme="dark"] .alert-success { background: rgba(16,185,129,.12); color: #6ee7b7; }
 [data-bs-theme="dark"] .alert-danger  { background: rgba(239,68,68,.12);  color: #fca5a5; }
 [data-bs-theme="dark"] .alert-warning { background: rgba(245,158,11,.12); color: #fcd34d; }
+[data-bs-theme="dark"] .alert-info    { background: var(--highlight-bg); color: var(--highlight-tx); border-left-color: var(--primary-light); }
+[data-bs-theme="dark"] .form-check-input:checked { background-color: var(--primary-light); border-color: var(--primary-light); }
+[data-bs-theme="dark"] .link-maroon { color: var(--highlight-tx); }
 [data-bs-theme="dark"] .badge-pending,
 [data-bs-theme="dark"] .badge-in-progress,
 [data-bs-theme="dark"] .cond-fair     { background: rgba(245,158,11,.16); color: #fcd34d; border-color: rgba(245,158,11,.3); }
@@ -1611,6 +1622,13 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
 [data-bs-theme="dark"] .timing-late   { background: rgba(239,68,68,.16);  color: #fca5a5; }
 .annot-badge { background: var(--highlight-bg); color: var(--highlight-tx); }
 .annot-badge:hover { text-decoration: underline !important; color: var(--highlight-tx); }
+
+/* ── Dashboard banner actions: 2×2 grid (enrollment / KPI, report / year) ── */
+.dash-header-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; position: relative; z-index: 1; }
+.dash-header-actions > .btn { width: 100%; white-space: nowrap; }
+.dash-header-year { display: flex; align-items: center; gap: .5rem; }
+.dash-header-year .maroon-select { flex: 1; min-width: 0; }
+@media (max-width: 400px) { .dash-header-actions { grid-template-columns: 1fr; } }
 
 /* ── Dashboard year-range modal options ── */
 .year-range-option {

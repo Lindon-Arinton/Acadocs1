@@ -8,7 +8,7 @@
       <h4 class="mb-1"><?= e($user['name'] ?? '') ?></h4>
       <p class="mb-0">Here's an overview of your school's performance.</p>
     </div>
-    <div class="d-flex align-items-center gap-2 flex-wrap" style="position:relative;z-index:1;">
+    <div class="dash-header-actions">
       <?php if (hasRole('admin', 'adas')): ?>
       <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
         <i class="bi bi-people me-1"></i>Add Enrollment
@@ -20,8 +20,9 @@
       <button type="button" class="btn btn-sm btn-light fw-semibold" style="color:var(--primary);" onclick="openReportModal()">
         <i class="bi bi-file-earmark-bar-graph me-1"></i>Generate Report
       </button>
-      <label class="text-white small fw-semibold mb-0" for="dashboard-year-filter">School Year:</label>
-      <div class="maroon-select maroon-select-sm" style="width:auto;">
+      <div class="dash-header-year">
+      <label class="text-white small fw-semibold mb-0 text-nowrap" for="dashboard-year-filter">School Year:</label>
+      <div class="maroon-select maroon-select-sm">
         <select id="dashboard-year-filter" class="maroon-select-native" onchange="onDashboardYearChange(this)">
           <option value="__other">Custom…</option>
           <?php if ($range !== null): ?>
@@ -34,15 +35,13 @@
         <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
         <div class="maroon-select-panel"></div>
       </div>
-      <span class="badge rounded-pill px-3 py-2" style="background:rgba(255,255,255,.2);font-size:.8rem;">
-        <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;vertical-align:middle;"></i>Live Data
-      </span>
+      </div>
     </div>
   </div>
 </div>
 
 <?php if ($range !== null): ?>
-<div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2 mb-3 small" style="border-left:4px solid var(--primary);">
+<div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2 mb-3 small">
   <i class="bi bi-calendar-range"></i>
   <span>
     Showing trends for <strong>SY <?= $range['start'] ?>–<?= $range['start'] + 1 ?></strong> to
@@ -569,8 +568,8 @@ if ($complianceRate === null) {
         <div class="d-flex justify-content-between align-items-center mb-2">
           <span class="small fw-semibold">Include in the report</span>
           <span class="small">
-            <a href="#" onclick="setReportSections(true); return false;">Select all</a> ·
-            <a href="#" onclick="setReportSections(false); return false;">Clear</a>
+            <a href="#" class="link-maroon" onclick="setReportSections(true); return false;">Select all</a> ·
+            <a href="#" class="link-maroon" onclick="setReportSections(false); return false;">Clear</a>
           </span>
         </div>
         <div class="report-section-list">
