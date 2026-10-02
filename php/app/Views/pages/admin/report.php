@@ -401,7 +401,7 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
     <?php if ($generatedRole !== 'admin'): ?>
     <div class="sig">
       <div class="lbl">Noted by:</div>
-      <div class="name">&nbsp;</div>
+      <div class="name"><?= ($principalName ?? '') !== '' ? e($principalName) : '&nbsp;' ?></div>
       <div class="role">School Principal</div>
     </div>
     <?php endif; ?>

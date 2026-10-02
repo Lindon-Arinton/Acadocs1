@@ -77,6 +77,8 @@ class Dashboard extends BaseController
             'sectionLabels'  => self::REPORT_SECTIONS,
             'generatedBy'    => currentUser()['name'] ?? '',
             'generatedRole'  => currentUser()['role'] ?? '',
+            // "Noted by" line on an ADAS-prepared report: the principal's account.
+            'principalName'  => (new UserModel())->select('name')->where('role', 'admin')->orderBy('id', 'ASC')->first()['name'] ?? '',
         ]);
     }
 
