@@ -306,37 +306,6 @@ if ($complianceRate === null) {
         </div>
       </div>
     </div>
-
-    <div class="card">
-      <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold small"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Submissions</span>
-        <a href="<?= base_url('documents') ?>" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-3" style="font-size:.7rem;">View All</a>
-      </div>
-      <div class="card-body p-0">
-        <?php
-        // Plain colored text for status (no pill) per the reference look —
-        // same hues the rest of the app's status badges already use, so
-        // "Submitted" still reads blue everywhere, just without the chip here.
-        $statusTextColor = ['Submitted' => '#1e40af', 'Reviewed' => '#065f46', 'Pending' => '#713f12', 'Returned' => '#991b1b'];
-        ?>
-        <ul class="list-group list-group-flush">
-          <?php foreach ($recentDocs as $doc): ?>
-          <li class="list-group-item border-0 py-2 px-3">
-            <div class="d-flex justify-content-between align-items-center gap-2">
-              <div class="d-flex align-items-center gap-2">
-                <div class="stat-tile-icon" style="width:28px;height:28px;font-size:.8rem;background:#fff0f0;color:#800000;flex-shrink:0;"><i class="bi bi-file-earmark-text-fill"></i></div>
-                <div>
-                  <div class="fw-semibold small"><?= e($doc['type']) ?></div>
-                  <div class="text-muted" style="font-size:.7rem;"><?= e($doc['teacher_name']) ?> · <?= e($doc['subject']) ?></div>
-                </div>
-              </div>
-              <span class="small fw-semibold" style="color:<?= $statusTextColor[$doc['status']] ?? '#6b7280' ?>;"><?= e($doc['status']) ?></span>
-            </div>
-          </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    </div>
   </div>
 </div>
 

@@ -140,7 +140,6 @@ class Dashboard extends BaseController
         usort($avgPerf, static fn ($a, $b) => $b['mps'] <=> $a['mps']);
 
         $docSummary     = $documentModel->statusCounts();
-        $recentDocs     = $documentModel->allWithTeacher(null, 5);
         $complianceRate = $documentModel->submissionComplianceRate();
 
         // Enrollment KPIs section (merged from the old Admin\EnrollmentKpis::index()).
@@ -234,7 +233,6 @@ class Dashboard extends BaseController
             'allPerf'            => $allPerf,
             'avgPerf'            => $avgPerf,
             'docSummary'         => $docSummary,
-            'recentDocs'         => $recentDocs,
             'complianceRate'     => $complianceRate,
             'depedKpis'          => $depedKpis,
             'enrollmentTotals'   => $enrollmentTotals,
