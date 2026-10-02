@@ -153,7 +153,8 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
 <body>
 
 <div class="toolbar">
-  <button type="button" class="primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print / Save as PDF</button>
+  <button type="button" class="primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print</button>
+  <button type="button" class="primary" onclick="saveReportPdf()"><i class="bi bi-file-earmark-pdf me-1"></i> Save as PDF</button>
   <button type="button" class="ghost" onclick="window.close()"><i class="bi bi-x-lg"></i> Close</button>
 </div>
 
@@ -480,6 +481,39 @@ chart('chartSubjects', {
   },
   options: { indexAxis: 'y', plugins: { legend: { display: false }, title: { display: true, text: 'Average MPS by learning area' } }, scales: { x: Object.assign({ suggestedMin: 0, suggestedMax: 100 }, pctAxis) } },
 });
+
+/* Save as PDF: downloads the report straight to a file, no print dialog. */
+function saveReportPdf() {
+  Swal.fire({
+    title: 'Saving as PDF...',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  // The on-screen sheet is already A4 wide (210mm, with 15mm side padding), so
+  // it's captured as-is; only the hidden copy loses its shadow and top/bottom
+  // padding — the PDF's own 12mm top/bottom margins replace those.
+  html2pdf().set({
+    margin: [12, 0, 12, 0],
+    filename: <?= json_encode('School Report - ' . str_replace('–', '-', $scope) . '.pdf') ?>,
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff',
+      onclone: doc => {
+        const page = doc.querySelector('.page');
+        Object.assign(page.style, { margin: '0', minHeight: '0', paddingTop: '0', paddingBottom: '0', boxShadow: 'none' });
+      },
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'], avoid: ['.sec', '.signatures', 'tr', '.tile', '.insight'] },
+  }).from(document.querySelector('.page')).save()
+    .then(() => Swal.fire({ icon: 'success', title: 'PDF saved', timer: 1500, showConfirmButton: false }))
+    .catch(() => Swal.fire({ icon: 'error', title: 'Could not create the PDF', text: 'Try Print and choose "Save as PDF" instead.' }));
+}
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>
