@@ -391,31 +391,6 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
   </section>
   <?php endif; ?>
 
-  <?php if ($has('documents')): ?>
-  <section class="sec">
-    <?= $heading('Document Submission Status', 'bi-folder2-open') ?>
-    <?php $docTotal = array_sum($docSummary); ?>
-    <div class="two-col">
-      <table>
-        <thead><tr><th>Status</th><th class="num">Documents</th><th class="num">Share</th></tr></thead>
-        <tbody>
-          <?php foreach (['Submitted', 'Reviewed', 'Pending', 'Returned'] as $st): $n = (int) ($docSummary[$st] ?? 0); ?>
-          <tr><td><?= $st ?></td><td class="num"><?= $n ?></td><td class="num"><?= $docTotal ? number_format($n / $docTotal * 100, 1) . '%' : '—' ?></td></tr>
-          <?php endforeach; ?>
-        </tbody>
-        <tfoot><tr><td>Total</td><td class="num"><?= $docTotal ?></td><td class="num"><?= $docTotal ? '100%' : '—' ?></td></tr></tfoot>
-      </table>
-      <div>
-        <div class="tile">
-          <div class="label">Submission Compliance</div>
-          <div class="value"><?= $pct($complianceRate) ?></div>
-          <div class="delta"><?php if ($complianceRate === null): ?><span class="muted">No data</span><?php elseif ($complianceRate >= 85): ?><span class="good">On track (target 85%)</span><?php else: ?><span class="bad">Below the 85% target</span><?php endif; ?></div>
-        </div>
-      </div>
-    </div>
-  </section>
-  <?php endif; ?>
-
   <?php // The principal noting their own report is redundant — only ask for it when ADAS prepared it. ?>
   <div class="signatures">
     <div class="sig">

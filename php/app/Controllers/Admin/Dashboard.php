@@ -38,7 +38,6 @@ class Dashboard extends BaseController
         'mps'        => 'Average MPS by term and grade level',
         'subjects'   => 'Performance by learning area',
         'deped'      => 'DepEd historical KPIs',
-        'documents'  => 'Document submission status',
     ];
 
     public function index()
@@ -274,8 +273,6 @@ class Dashboard extends BaseController
      * Which report sections have data, per option of the Generate Report
      * modal's "Report for" select ("year:2015-2016", "range:2014-2022"), so
      * sections with nothing to show for that period can't be ticked.
-     * Document status isn't tied to a school year, so it's available
-     * whenever any document exists.
      *
      * @param string[]                         $years
      * @param array{start:int,end:int}|null    $range
@@ -296,9 +293,7 @@ class Dashboard extends BaseController
             'subjects'   => $distinct(new PerformanceBySubjectModel()),
             'deped'      => $distinct(new DepedKpiReportModel()),
         ];
-        $hasDocuments = array_sum((new DocumentModel())->statusCounts()) > 0;
-
-        $sectionsFor = function (callable $inPeriod) use ($byYear, $hasDocuments): array {
+        $sectionsFor = function (callable $inPeriod) use ($byYear): array {
             $available = [];
             foreach ($byYear as $key => $schoolYears) {
                 foreach ($schoolYears as $sy) {
@@ -311,9 +306,6 @@ class Dashboard extends BaseController
             // Key figures and insights are drawn from the sections above.
             if ($available !== []) {
                 array_unshift($available, 'summary', 'insights');
-            }
-            if ($hasDocuments) {
-                $available[] = 'documents';
             }
 
             return $available;
