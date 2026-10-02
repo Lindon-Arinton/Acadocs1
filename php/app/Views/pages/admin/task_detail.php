@@ -14,6 +14,11 @@
         · <span class="text-capitalize"><?= e($task['status']) ?></span>
       </p>
     </div>
+    <?php if (! empty($folderId)): ?>
+    <a href="<?= base_url('documents?folder=' . (int) $folderId) ?>" class="btn btn-sm btn-light fw-semibold" style="color:var(--primary);position:relative;z-index:1;">
+      <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
+    </a>
+    <?php endif; ?>
   </div>
 </div>
 

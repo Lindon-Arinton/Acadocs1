@@ -246,7 +246,12 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted small mb-3" id="taskDetailMeta"></p>
+        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-3">
+          <p class="text-muted small mb-0" id="taskDetailMeta"></p>
+          <a href="#" id="taskDetailDocsLink" class="btn btn-sm btn-outline-maroon d-none">
+            <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
+          </a>
+        </div>
         <div id="taskDetailDescriptionWrap" class="mb-4" style="display:none;">
           <p class="text-muted small mb-1 fw-semibold">Instructions</p>
           <p class="mb-0" id="taskDetailDescription"></p>
@@ -455,6 +460,7 @@ function openTaskDetailModal(taskId) {
     document.getElementById('taskDetailTitle').innerHTML = '<i class=\"bi bi-list-task me-2\"></i>Task';
     document.getElementById('taskDetailMeta').innerHTML = '';
     document.getElementById('taskDetailDescriptionWrap').style.display = 'none';
+    document.getElementById('taskDetailDocsLink').classList.add('d-none');
     document.getElementById('taskDetailContent').style.display = 'none';
     document.getElementById('taskDetailLoading').style.display = 'block';
     document.getElementById('taskDetailLoading').innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>Loading task details\\u2026';
@@ -474,6 +480,12 @@ function openTaskDetailModal(taskId) {
 
             document.getElementById('taskDetailTitle').innerHTML = '<i class=\"bi bi-list-task me-2\"></i>' + taskEscapeHtml(data.task.title);
             renderTaskDetailMeta(data.task);
+            // Shortcut to this task's folder in Manage Documents (exists once someone has uploaded).
+            const docsLink = document.getElementById('taskDetailDocsLink');
+            if (data.task.folderUrl) {
+                docsLink.href = data.task.folderUrl;
+                docsLink.classList.remove('d-none');
+            }
 
             if (data.task.description) {
                 document.getElementById('taskDetailDescription').innerHTML = taskEscapeHtml(data.task.description).replace(/\\n/g, '<br>');

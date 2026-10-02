@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\DocumentFolderModel;
 use App\Models\NotificationModel;
 use App\Models\TaskAssigneeModel;
 use App\Models\TaskFeedbackModel;
@@ -244,6 +245,8 @@ class Tasks extends BaseController
             'task'         => $task,
             'submissions'  => $submissions,
             'pendingUsers' => $pendingUsers,
+            // The task's Manage Documents folder (created on its first upload), for the shortcut.
+            'folderId'     => (int) ((new DocumentFolderModel())->where('task_id', $id)->first()['id'] ?? 0) ?: null,
             'flash'        => session()->getFlashdata('flash'),
         ]);
     }
@@ -297,6 +300,8 @@ class Tasks extends BaseController
                 'createdAt'     => date('M d, Y', strtotime($task['created_at'])),
                 'deadline'      => date('M d, Y h:i A', strtotime($task['deadline'])),
                 'assigneeCount' => count($pendingUsers) + count($submissions),
+                'folderUrl'     => ($folder = (new DocumentFolderModel())->where('task_id', $id)->first())
+                    ? base_url('documents?folder=' . (int) $folder['id']) : null,
             ],
             'submissions' => array_map(static fn (array $s) => submissionTiming($s['submitted_at'], $task['deadline']) + [
                 'id'            => (int) $s['id'],

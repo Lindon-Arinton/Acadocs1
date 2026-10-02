@@ -38,7 +38,8 @@ $canReview = hasRole('admin');
               <?php foreach ($submission['files'] as $file): ?>
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="small text-truncate" style="max-width:260px;"><i class="bi bi-paperclip me-1 text-muted"></i><?= e($file['file_name']) ?></span>
-                <a href="<?= base_url('task-submissions/' . $file['id'] . '/preview') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Preview"><i class="bi bi-eye"></i></a>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Preview"
+                        onclick="previewFolderFile(<?= (int) $file['id'] ?>, <?= e(json_encode($file['file_name'])) ?>)"><i class="bi bi-eye"></i></button>
                 <a href="<?= base_url('task-submissions/' . $file['id'] . '/download') ?>" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Download"><i class="bi bi-download"></i></a>
                 <?php if ($canReview): ?>
                 <a href="<?= base_url('task-submissions/' . $file['id'] . '/annotate') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-maroon py-0 px-2" title="Annotate (draw / write notes)"><i class="bi bi-pencil-square"></i></a>
@@ -70,14 +71,27 @@ $canReview = hasRole('admin');
             </td>
             <?php if ($canReview): ?>
             <td class="text-nowrap">
-              <button type="button" class="btn btn-sm btn-outline-success" title="Mark as Reviewed"
-                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Reviewed', '<?= e(addslashes($submission['submitter_name'])) ?>')">
-                <i class="bi bi-check-circle"></i>
+              <?php
+              // Only the decisions that would change something: a Pending upload can be
+              // approved or returned; a decided one can only be switched to the other.
+              $status    = $submission['status'];
+              $submitter = e(addslashes($submission['submitter_name']));
+              ?>
+              <?php if ($status !== 'Reviewed'): ?>
+              <button type="button" class="btn btn-sm btn-outline-success" title="Approve this upload"
+                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Reviewed', '<?= $submitter ?>')">
+                <i class="bi bi-check-circle me-1"></i><?= $status === 'Returned' ? 'Mark Reviewed instead' : 'Mark Reviewed' ?>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" title="Return for revision"
-                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Returned', '<?= e(addslashes($submission['submitter_name'])) ?>')">
-                <i class="bi bi-arrow-return-left"></i>
+              <?php endif; ?>
+              <?php if ($status !== 'Returned'): ?>
+              <button type="button" class="btn btn-sm btn-outline-danger" title="Send back to the uploader for revision"
+                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Returned', '<?= $submitter ?>')">
+                <i class="bi bi-arrow-return-left me-1"></i><?= $status === 'Reviewed' ? 'Return instead' : 'Return' ?>
               </button>
+              <?php endif; ?>
+              <?php if ($status === 'Returned'): ?>
+              <div class="small text-muted mt-1">Waiting for the uploader to resubmit</div>
+              <?php endif; ?>
             </td>
             <?php endif; ?>
           </tr>
@@ -87,6 +101,28 @@ $canReview = hasRole('admin');
           <?php endif; ?>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- File preview (eye button) — same in-page preview as the task pages -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--maroon);color:#fff;">
+        <h6 class="modal-title fw-bold text-truncate"><i class="bi bi-eye me-2"></i><span id="filePreviewName"></span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" style="height:75vh;">
+        <iframe id="filePreviewFrame" title="File preview" style="width:100%;height:100%;border:0;"></iframe>
+      </div>
+      <div class="modal-footer">
+        <a id="filePreviewDownload" href="#" class="btn btn-outline-secondary"><i class="bi bi-download me-1"></i>Download</a>
+        <?php if ($canReview): ?>
+        <a id="filePreviewAnnotate" href="#" target="_blank" rel="noopener" class="btn btn-outline-maroon"><i class="bi bi-pencil-square me-1"></i>Annotate</a>
+        <?php endif; ?>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -120,6 +156,22 @@ $canReview = hasRole('admin');
 
 <?php
 $extraScript = "<script>
+const FOLDER_FILE_BASE = " . json_encode(base_url('task-submissions/')) . ";
+
+function previewFolderFile(fileId, name) {
+    document.getElementById('filePreviewName').textContent = name;
+    document.getElementById('filePreviewFrame').src = FOLDER_FILE_BASE + fileId + '/preview';
+    document.getElementById('filePreviewDownload').href = FOLDER_FILE_BASE + fileId + '/download';
+    const annotate = document.getElementById('filePreviewAnnotate');
+    if (annotate) annotate.href = FOLDER_FILE_BASE + fileId + '/annotate';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('filePreviewModal')).show();
+}
+
+// Stop loading / free the preview when the modal closes.
+document.getElementById('filePreviewModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('filePreviewFrame').src = 'about:blank';
+});
+
 function reviewUpload(id, status, submitter) {
     const copy = {
         Reviewed: { title: 'Mark as Reviewed', label: 'Comment (optional)', placeholder: 'Any notes for the uploader...', btn: 'Mark Reviewed', confirm: 'The uploader will be told their upload was reviewed.' },

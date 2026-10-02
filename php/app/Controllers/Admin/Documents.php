@@ -103,6 +103,13 @@ class Documents extends BaseController
             return $isAjax ? $this->ajaxError('Invalid review request.') : redirect()->to($backUrl);
         }
 
+        // Re-saving the same decision would change nothing (and look like a no-op).
+        if ($submission['status'] === $status) {
+            $error = 'This upload is already marked ' . $status . '.';
+
+            return $isAjax ? $this->ajaxError($error) : redirect()->to($backUrl)->with('flash', ['type' => 'warning', 'msg' => $error]);
+        }
+
         if ($status === 'Returned' && $comment === '') {
             $error = 'Please say what needs to be fixed before returning it.';
 
