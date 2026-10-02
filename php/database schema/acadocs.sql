@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS `announcements` (
   `type` enum('Announcement','Questionnaires','Forms') NOT NULL,
   `title` varchar(255) NOT NULL,
   `content` text NOT NULL,
+  `image` varchar(255) DEFAULT NULL,
   `date` date NOT NULL,
   `status` enum('active','inactive') DEFAULT 'active',
   `created_by` int(10) UNSIGNED DEFAULT NULL,

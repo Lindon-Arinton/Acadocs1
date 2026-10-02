@@ -9,6 +9,15 @@ use App\Models\UserModel;
 
 class Announcements extends BaseController
 {
+    private const IMAGE_EXT       = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    private const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+    /** Announcement photos are public assets (like avatars), served straight from public/. */
+    public static function imageDir(): string
+    {
+        return FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'announcements' . DIRECTORY_SEPARATOR;
+    }
+
     public function index()
     {
         $model = new AnnouncementModel();
@@ -42,12 +51,35 @@ class Announcements extends BaseController
                         return $isAjax ? $this->ajaxError($error) : redirect()->to('/announcements')->with('flash', ['type' => 'danger', 'msg' => $error]);
                     }
 
+                    // Optional photo: validated before anything is saved.
+                    $image = null;
+                    $photo = $this->request->getFile('image');
+                    if ($photo && $photo->getError() !== UPLOAD_ERR_NO_FILE) {
+                        if (! $photo->isValid()) {
+                            return $isAjax ? $this->ajaxError('The photo could not be uploaded.') : redirect()->to('/announcements');
+                        }
+                        if ($photo->getSize() > self::MAX_IMAGE_BYTES) {
+                            return $isAjax ? $this->ajaxError('The photo must be 5 MB or smaller.') : redirect()->to('/announcements');
+                        }
+                        if (! in_array(strtolower($photo->getClientExtension()), self::IMAGE_EXT, true) || ! str_starts_with((string) $photo->getMimeType(), 'image/')) {
+                            return $isAjax ? $this->ajaxError('The photo must be a JPG, PNG, GIF or WEBP image.') : redirect()->to('/announcements');
+                        }
+
+                        if (! is_dir(self::imageDir())) {
+                            mkdir(self::imageDir(), 0755, true);
+                        }
+                        $image = $photo->getRandomName();
+                        $photo->move(self::imageDir(), $image);
+                    }
+
                     $announcementId = $model->insert([
-                        'type'    => $type,
-                        'title'   => $title,
-                        'content' => trim((string) $this->request->getPost('content')),
-                        'date'    => $date,
-                        'status'  => 'active',
+                        'type'       => $type,
+                        'title'      => $title,
+                        'content'    => trim((string) $this->request->getPost('content')),
+                        'image'      => $image,
+                        'date'       => $date,
+                        'status'     => 'active',
+                        'created_by' => currentUser()['id'], // shown as "Posted by"
                     ]);
 
                     $poster     = currentUser();
@@ -68,7 +100,11 @@ class Announcements extends BaseController
                     $message = 'Announcement posted successfully.';
                 } elseif ($action === 'delete') {
                     $announcementId = (int) $this->request->getPost('id');
+                    $existing       = $model->find($announcementId);
                     $model->delete($announcementId);
+                    if (! empty($existing['image']) && is_file(self::imageDir() . $existing['image'])) {
+                        unlink(self::imageDir() . $existing['image']);
+                    }
                     (new NotificationModel())->deleteForRef('announcement', $announcementId);
                     $message = 'Announcement deleted.';
                 }
@@ -99,21 +135,22 @@ class Announcements extends BaseController
         $search = trim($this->request->getGet('q') ?? '');
         $sort   = $this->request->getGet('sort') ?? 'newest';
 
-        $builder = $model;
+        $builder = $model->select('announcements.*, users.name AS poster_name, users.role AS poster_role')
+            ->join('users', 'users.id = announcements.created_by', 'left');
         if ($filter !== 'all') {
-            $builder->where('type', $filter);
+            $builder->where('announcements.type', $filter);
         }
         if ($search !== '') {
             $builder->groupStart()
-                ->like('title', $search)
-                ->orLike('content', $search)
+                ->like('announcements.title', $search)
+                ->orLike('announcements.content', $search)
                 ->groupEnd();
         }
 
         match ($sort) {
-            'oldest'   => $builder->orderBy('date', 'ASC'),
-            'title_az' => $builder->orderBy('title', 'ASC'),
-            default    => $builder->orderBy('date', 'DESC'),
+            'oldest'   => $builder->orderBy('announcements.date', 'ASC'),
+            'title_az' => $builder->orderBy('announcements.title', 'ASC'),
+            default    => $builder->orderBy('announcements.date', 'DESC')->orderBy('announcements.id', 'DESC'),
         };
 
         return view('pages/shared/announcements', [

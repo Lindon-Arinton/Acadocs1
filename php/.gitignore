@@ -65,6 +65,8 @@ Vagrantfile
 
 /public/uploads/avatars/*
 !/public/uploads/avatars/index.html
+/public/uploads/announcements/*
+!/public/uploads/announcements/index.html
 
 php_errors.log
 

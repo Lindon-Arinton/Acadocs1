@@ -1629,3 +1629,36 @@ a.stat-tile.dashboard-card-link .stat-tile-name { color: var(--text-secondary); 
 }
 .report-section-option:hover { border-color: var(--primary); }
 .report-section-option:has(input:checked) { border-color: var(--primary); background: var(--highlight-bg); }
+
+/* ── Announcement photo: card thumbnail, upload preview ── */
+.announcement-card .ac-thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); }
+.ann-photo-preview { position: relative; margin-top: .5rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.ann-photo-preview img { display: block; width: 100%; max-height: 180px; object-fit: cover; }
+.ann-photo-preview .btn { position: absolute; top: .4rem; right: .4rem; border-radius: 50%; width: 30px; height: 30px; padding: 0; }
+
+/* ── Announcement view modal (banner + body + "I Understand") ── */
+.ann-view { border: 0; border-radius: 14px; overflow: hidden; }
+.ann-view-banner { position: relative; height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.ann-view-banner img { width: 100%; height: 100%; object-fit: cover; }
+.ann-view-icon { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.ann-view-icon-circle {
+  width: 104px; height: 104px; border-radius: 50%; background: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 2.8rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+}
+.ann-dot { position: absolute; border-radius: 50%; background: rgba(255,255,255,.85); }
+.ann-dot-1 { width: 16px; height: 16px; left: 14%; top: 66%; }
+.ann-dot-2 { width: 10px; height: 10px; left: 27%; top: 30%; background: rgba(255,255,255,.6); }
+.ann-dot-3 { width: 20px; height: 20px; right: 15%; top: 24%; }
+.ann-view-body { padding: 1.5rem 1.75rem .5rem; }
+.ann-view-title { font-weight: 700; font-size: 1.35rem; margin: 0 0 .5rem; color: var(--text); }
+.ann-view-meta { display: flex; flex-wrap: wrap; gap: .35rem 1rem; font-size: .8rem; color: var(--muted); margin-bottom: 1rem; }
+.ann-view-content { font-size: .92rem; line-height: 1.65; color: var(--text-secondary); white-space: normal; max-height: 45vh; overflow-y: auto; }
+.ann-view-footer { display: flex; justify-content: flex-end; padding: 1rem 1.75rem 1.5rem; }
+.ann-view-ok { min-width: 160px; padding: .6rem 1.4rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; border-radius: 6px; box-shadow: 0 2px 6px rgba(128,0,0,.25); }
+@media (max-width: 575px) {
+  .ann-view-banner { height: 170px; }
+  .ann-view-body { padding: 1.25rem 1.25rem .5rem; }
+  .ann-view-footer { padding: 1rem 1.25rem 1.25rem; }
+  .ann-view-ok { width: 100%; }
+}

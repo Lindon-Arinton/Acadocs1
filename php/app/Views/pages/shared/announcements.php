@@ -72,7 +72,13 @@
       [$bg,$tc,$icon] = $cfg;
       $content = (string) $a['content'];
       $preview = mb_strlen($content) > 140 ? mb_substr($content, 0, 140) . '…' : $content;
+      $imageUrl  = ! empty($a['image']) && is_file(\App\Controllers\Shared\Announcements::imageDir() . $a['image'])
+          ? base_url('uploads/announcements/' . $a['image']) : null;
       $modalData = $a + [
+          'image_url'      => $imageUrl,
+          'poster'         => $a['poster_name'] ?? null,
+          'poster_label'   => ['admin' => 'Principal', 'adas' => 'ADAS', 'teacher' => 'Teacher'][$a['poster_role'] ?? ''] ?? null,
+          'posted_on'      => ! empty($a['created_at']) ? date('F d, Y · h:i A', strtotime($a['created_at'])) : null,
           'date_formatted' => date('F d, Y', strtotime($a['date'])),
           'content_html'   => $content !== '' ? richText($content) : '<span class="text-muted">No additional details.</span>',
       ];
@@ -80,9 +86,13 @@
     <div class="announcement-card" id="announcement-<?= $a['id'] ?>" style="border-left:4px solid <?= $tc ?>;cursor:pointer;"
          onclick="viewAnnouncement(<?= htmlspecialchars(json_encode($modalData), ENT_QUOTES) ?>, '<?= $bg ?>', '<?= $tc ?>', '<?= $icon ?>')">
       <div class="d-flex gap-3 align-items-start">
+        <?php if ($imageUrl): ?>
+        <img src="<?= e($imageUrl) ?>" alt="" class="ac-thumb flex-shrink-0" loading="lazy">
+        <?php else: ?>
         <div class="ac-icon flex-shrink-0" style="background:<?= $bg ?>;">
           <i class="bi <?= $icon ?>" style="color:<?= $tc ?>;font-size:1rem;"></i>
         </div>
+        <?php endif; ?>
         <div class="flex-grow-1">
           <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-1">
             <div>
@@ -124,7 +134,7 @@
         <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Post Announcement</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('announcements') ?>" class="ajax-form"
+      <form method="POST" action="<?= base_url('announcements') ?>" class="ajax-form" enctype="multipart/form-data"
             data-confirm-title="Post this announcement?" data-confirm-text="It will be visible to everyone right away.">
         <input type="hidden" name="action" value="add">
         <div class="modal-body">
@@ -158,6 +168,16 @@
                       placeholder="Select text and click Bold/Italic, or type **bold** / *italic* directly"></textarea>
           </div>
           <div class="mb-3">
+            <label class="form-label" for="announcementImage">Photo</label>
+            <input type="file" name="image" id="announcementImage" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp"
+                   onchange="previewAnnouncementImage(this)">
+            <div class="form-text">JPG, PNG, GIF or WEBP, up to 5 MB. Shown as the banner of the announcement.</div>
+            <div id="announcementImagePreview" class="ann-photo-preview d-none">
+              <img alt="">
+              <button type="button" class="btn btn-sm btn-light" onclick="clearAnnouncementImage()" title="Remove photo"><i class="bi bi-x-lg"></i></button>
+            </div>
+          </div>
+          <div class="mb-3">
             <label class="form-label">Date</label>
             <div class="maroon-dp" data-min="<?= date('Y-m-d') ?>">
               <input type="text" class="form-control maroon-dp-display" placeholder="Select date" readonly required>
@@ -184,20 +204,29 @@
 </div>
 <?php endif; ?>
 
-<!-- View Announcement Modal -->
+<!-- View Announcement Modal: banner (photo, or the type's color + icon) over title, meta and content -->
 <div class="modal fade" id="viewAnnouncementModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header" id="viewAnnouncementHeader" style="color:#fff;">
-        <h6 class="modal-title fw-bold"><i class="bi bi-megaphone-fill me-2" id="viewAnnouncementIcon"></i><span id="viewAnnouncementTitle"></span></h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <span class="badge" id="viewAnnouncementType"></span>
-          <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i><span id="viewAnnouncementDate"></span></span>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content ann-view">
+      <div class="ann-view-banner" id="viewAnnouncementBanner">
+        <img id="viewAnnouncementImage" alt="" class="d-none">
+        <div class="ann-view-icon" id="viewAnnouncementIconWrap">
+          <span class="ann-dot ann-dot-1"></span><span class="ann-dot ann-dot-2"></span><span class="ann-dot ann-dot-3"></span>
+          <div class="ann-view-icon-circle"><i class="bi bi-megaphone-fill" id="viewAnnouncementIcon"></i></div>
         </div>
-        <p class="mb-0" id="viewAnnouncementContent"></p>
+      </div>
+      <div class="ann-view-body">
+        <span class="badge mb-2" id="viewAnnouncementType"></span>
+        <h4 class="ann-view-title" id="viewAnnouncementTitle"></h4>
+        <div class="ann-view-meta">
+          <span><i class="bi bi-calendar3 me-1"></i><span id="viewAnnouncementDate"></span></span>
+          <span id="viewAnnouncementPostedWrap"><i class="bi bi-clock me-1"></i>Posted <span id="viewAnnouncementPosted"></span></span>
+          <span id="viewAnnouncementPosterWrap"><i class="bi bi-person me-1"></i>by <strong id="viewAnnouncementPoster"></strong></span>
+        </div>
+        <div class="ann-view-content" id="viewAnnouncementContent"></div>
+      </div>
+      <div class="ann-view-footer">
+        <button type="button" class="btn btn-primary ann-view-ok" data-bs-dismiss="modal">I Understand</button>
       </div>
     </div>
   </div>
@@ -206,8 +235,22 @@
 <?php
 $extraScript = "<script>
 function viewAnnouncement(a, bg, tc, icon) {
-    document.getElementById('viewAnnouncementHeader').style.background = tc;
-    document.getElementById('viewAnnouncementIcon').className = 'bi ' + icon + ' me-2';
+    // Banner: the photo if there is one, otherwise the type's color with its icon.
+    const banner = document.getElementById('viewAnnouncementBanner');
+    const img    = document.getElementById('viewAnnouncementImage');
+    const hasImg = !!a.image_url;
+    banner.style.background = hasImg ? '#000' : 'linear-gradient(135deg, ' + tc + ' 0%, ' + tc + 'cc 100%)';
+    img.classList.toggle('d-none', !hasImg);
+    if (hasImg) { img.src = a.image_url; } else { img.removeAttribute('src'); }
+    document.getElementById('viewAnnouncementIconWrap').classList.toggle('d-none', hasImg);
+    document.getElementById('viewAnnouncementIcon').className = 'bi ' + icon;
+    document.getElementById('viewAnnouncementIcon').style.color = tc;
+
+    document.getElementById('viewAnnouncementPosted').textContent = a.posted_on || '';
+    document.getElementById('viewAnnouncementPostedWrap').classList.toggle('d-none', !a.posted_on);
+    document.getElementById('viewAnnouncementPoster').textContent = a.poster ? a.poster + (a.poster_label ? ' (' + a.poster_label + ')' : '') : '';
+    document.getElementById('viewAnnouncementPosterWrap').classList.toggle('d-none', !a.poster);
+
     document.getElementById('viewAnnouncementTitle').textContent = a.title;
     document.getElementById('viewAnnouncementType').textContent = a.type;
     document.getElementById('viewAnnouncementType').style.background = bg;
@@ -216,6 +259,24 @@ function viewAnnouncement(a, bg, tc, icon) {
     document.getElementById('viewAnnouncementDate').textContent = a.date_formatted;
     document.getElementById('viewAnnouncementContent').innerHTML = a.content_html;
     new bootstrap.Modal(document.getElementById('viewAnnouncementModal')).show();
+}
+
+function previewAnnouncementImage(input) {
+    const wrap = document.getElementById('announcementImagePreview');
+    const file = input.files && input.files[0];
+    if (!file) { wrap.classList.add('d-none'); return; }
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('The photo must be 5 MB or smaller.', 'danger');
+        clearAnnouncementImage();
+        return;
+    }
+    wrap.querySelector('img').src = URL.createObjectURL(file);
+    wrap.classList.remove('d-none');
+}
+
+function clearAnnouncementImage() {
+    document.getElementById('announcementImage').value = '';
+    document.getElementById('announcementImagePreview').classList.add('d-none');
 }
 
 function openPostAnnouncementModal() {
