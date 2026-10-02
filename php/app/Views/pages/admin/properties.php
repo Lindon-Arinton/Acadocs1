@@ -61,10 +61,25 @@ include APPPATH . 'Views/layout/header.php';
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-mortarboard text-muted"></i>
           <div class="maroon-select maroon-select-sm" style="width:auto;">
-            <select name="grade" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <select name="grade" class="maroon-select-native" onchange="this.form.section.value = 'all'; this.form.requestSubmit()">
               <option value="all" <?= $grade==='all'?'selected':'' ?>>All Grades</option>
               <?php foreach ($grades as $g): ?>
               <option value="<?= e($g) ?>" <?= $grade===$g?'selected':'' ?>><?= e($g) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+            <div class="maroon-select-panel"></div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-door-open text-muted"></i>
+          <div class="maroon-select maroon-select-sm" style="width:auto;">
+            <select name="section" class="maroon-select-native" onchange="this.form.requestSubmit()">
+              <option value="all" <?= $section === 'all' ? 'selected' : '' ?>>All Sections</option>
+              <?php foreach ($sectionOptions as $o): ?>
+              <option value="<?= e($o['section']) ?>" <?= $section === $o['section'] ? 'selected' : '' ?>>
+                <?= e($o['section']) ?><?= $grade === 'all' ? ' (' . e($o['grade']) . ')' : '' ?>
+              </option>
               <?php endforeach; ?>
             </select>
             <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>

@@ -815,8 +815,7 @@ if (perfChartEl) {
     data: {
       labels: ' . json_encode(array_column($perfLevel, 'grade_level')) . ',
       datasets: [
-        { label:"MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:4, maxBarThickness:22 },
-        { label:"NDS", data:' . json_encode(array_column($perfLevel, 'nds')) . ', backgroundColor:maroonLight, borderRadius:4, maxBarThickness:22 }
+        { label:"MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:4, maxBarThickness:28 }
       ]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:60,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }

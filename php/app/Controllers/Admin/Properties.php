@@ -58,13 +58,29 @@ class Properties extends BaseController
         }
 
         $grade     = $this->request->getGet('grade') ?? 'all';
+        $section   = $this->request->getGet('section') ?? 'all';
         $condition = $this->request->getGet('condition') ?? 'all';
+
+        // Section choices follow the grade filter: that grade's sections, or every
+        // grade+section when "All Grades" is picked. A section that doesn't belong
+        // to the chosen grade (e.g. left over after switching grade) is ignored.
+        $sectionOptions = (new RoomPropertyModel())->distinct()->select('grade, section')
+            ->orderBy('grade')->orderBy('section')->findAll();
+        if ($grade !== 'all') {
+            $sectionOptions = array_values(array_filter($sectionOptions, static fn ($o) => $o['grade'] === $grade));
+        }
+        if ($section !== 'all' && ! in_array($section, array_column($sectionOptions, 'section'), true)) {
+            $section = 'all';
+        }
         $search    = trim($this->request->getGet('q') ?? '');
         $sort      = $this->request->getGet('sort') ?? 'grade_az';
 
         $builder = $model;
         if ($grade !== 'all') {
             $builder->where('grade', $grade);
+        }
+        if ($section !== 'all') {
+            $builder->where('section', $section);
         }
         if ($condition !== 'all') {
             $builder->where('condition_status', $condition);
@@ -94,6 +110,8 @@ class Properties extends BaseController
             'pageTitle'  => 'Property Management',
             'items'      => $items,
             'grade'      => $grade,
+            'section'    => $section,
+            'sectionOptions' => $sectionOptions,
             'condition'  => $condition,
             'search'     => $search,
             'sort'       => $sort,

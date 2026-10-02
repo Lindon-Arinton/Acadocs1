@@ -5,7 +5,7 @@
 Batangas Province, DepEd Region IV-A CALABARZON). It brings the school's
 day-to-day administrative work — document submission and review, tasks,
 announcements, staff attendance, enrollment, KPI and MPS reporting,
-templates and certificates, property inventory, and internal communication —
+templates, property inventory, and internal communication —
 into one system behind a single role-based login.
 
 The system has three user roles:
@@ -54,9 +54,8 @@ decision-making.
    etc.) per school year, and show their trends over time.
 7. **Automate staff attendance records** — convert biometric-scanner exports
    into daily Present / Late / Absent records automatically.
-8. **Speed up document and certificate preparation** — keep a shared
-   template library and generate certificates in bulk from a Word template
-   and an Excel list of recipients.
+8. **Speed up document preparation** — keep a shared, searchable template
+   library of the school's forms and documents with in-browser preview.
 9. **Improve school communication** — provide announcements, in-app
    notifications and a built-in chat (direct and group messages).
 10. **Keep an inventory of school property** — record room and section
@@ -81,7 +80,7 @@ in one database:
 | **Enrollment** | Monthly enrollment per grade level (male / female / total / sections) |
 | **DepEd KPIs** | Gross/Net Enrolment, Cohort Survival, Repetition, Promotion, Retention, Graduation, Completion, Transition and Drop-Out rates per school year |
 | **Staff attendance** | Daily time-in / time-out and status for every employee, plus the school's holiday list |
-| **Templates** | The school's document and certificate templates, grouped by category |
+| **Templates** | The school's document and form templates, grouped by category |
 | **Resource links** | External links to DepEd forms, guidelines, and questionnaires |
 | **Property inventory** | Items per grade and section with their condition |
 | **Communication** | Chat conversations, attachments, and notifications |
@@ -128,7 +127,6 @@ has a **downloadable blank template** in the expected format.
 | **Import KPI Report** | Admin, ADAS | Word (.docx) — DepEd "Key Performance Indicator" report | Finds the Indicator table and reads each rate; asks which school year the data is for (YYYY – YYYY prompt) | **Drop-Out Rate** tile, **KPI trend chart**, historical KPI table |
 | **Enter / Import MPS Scores** | Teacher | Excel (.xlsx / .xls) — the school's MPS workbook, or typed in on the form | Reads Summative Test 1, Summative Test 2 and Term Examination grids, accepts only the teacher's own subjects/grades, then **computes MPS per subject and per grade level** | **Average MPS** tile, **Performance chart** per grade level, subject ranking, lowest-subject alert |
 | **Import Time Records** | Admin, ADAS | Excel — biometric scanner export (punch log or daily record) | Groups punches per employee per day, takes earliest time-in and latest time-out, marks **Late** after 7:30 AM, marks **Absent** when there's no punch, skips weekends and holidays, matches employees by AC-No and ties each record to the person's account (so history stays with them even if their number changes) | Daily attendance table, **personal Present/Absent counts** on the Teacher dashboard |
-| **Generate Certificates** | ADAS | Word template + Excel recipient list | Fills the template's `${Field}` placeholders once per Excel row | One certificate per recipient, bundled into a single ZIP |
 
 ### Automatic Insights (decision support)
 
@@ -200,7 +198,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Announcements** | Posts and deletes announcements, forms, and questionnaires. |
 | **Document Links** | Adds and deletes resource links. |
 | **Time Records** | Imports biometric exports (data feed), edits records, and manages holidays — the main role responsible for attendance encoding. |
-| **Templates (manager)** | The **only role that manages the template library**: creates and deletes categories, uploads and deletes templates. Also **generates certificates in bulk** from a Word template and an Excel recipient list. |
+| **Templates (manager)** | The **only role that manages the template library**: creates and deletes categories, uploads and deletes templates. |
 | **Property Management** | Views the inventory (view-only). |
 | **User Management** | Adds, edits, deletes, and resets passwords of **teacher and ADAS** accounts, including their **Biometric No. (AC-No)**; cannot create or modify admin accounts. |
 | **Chat** | Direct messages; can take part in groups but cannot create them. |
@@ -233,7 +231,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | Post announcements / add document links | ✓ | | ✓ |
 | Read announcements / document links | ✓ | ✓ | ✓ |
 | View / download templates | ✓ | ✓ | ✓ |
-| Manage templates, generate certificates | | | ✓ |
+| Manage templates | | | ✓ |
 | Add / delete property items | | ✓ | |
 | View property inventory | ✓ | ✓ | ✓ |
 | Manage user accounts | ✓ (all roles) | | ✓ (teacher & ADAS only) |
@@ -275,7 +273,7 @@ reviews, and decides**.
 
 1. Logs in to the school **Dashboard** (same view as the principal) and feeds **enrollment sheets** and **DepEd KPI reports** into it.
 2. **Imports the biometric export** into Time Records; the system marks Present / Late / Absent automatically. Corrects records and keeps the **holiday list** current.
-3. Maintains the **template library** and **generates certificates in bulk** for events (e.g. recognition, seminars) from an Excel list.
+3. Maintains the **template library** — categories, uploads, and removals — so everyone works from the current forms.
 4. Helps the principal by **posting announcements and links**, **creating tasks**, and **tracking who hasn't submitted**. Approving the work itself is left to the principal.
 5. Creates and maintains **teacher and ADAS accounts**.
 6. Submits their own assigned work under **My Tasks**.
@@ -288,7 +286,7 @@ reviews, and decides**.
 |---|---|---|---|
 | **Main purpose** | Monitor and decide | Submit and report | Process and support |
 | **Starts the day with** | School KPIs and insights | Own tasks and feedback | School KPIs and insights |
-| **Data they feed** | Enrollment, DepEd KPI report | MPS scores | Enrollment, DepEd KPI report, biometric attendance, certificate lists |
+| **Data they feed** | Enrollment, DepEd KPI report | MPS scores | Enrollment, DepEd KPI report, biometric attendance |
 | **Tasks** | Creates, reviews, and approves | Receives and submits | Creates, tracks, and also submits |
 | **Documents** | Reviews all task folders | Uploads own files | Reviews submissions; manages templates |
 | **Scope of data seen** | Whole school | Only their own | Whole school, plus operational records (attendance, users, templates) |
@@ -303,7 +301,6 @@ reviews, and decides**.
 | Encoding DepEd KPI figures into separate reports and making trend charts manually | Upload the KPI Word report; rates are stored per school year and trend charts update automatically |
 | Collecting MPS sheets from every teacher and averaging them per subject and grade | Teachers enter or upload their own MPS; subject and grade-level MPS are computed and shown on the dashboard instantly |
 | Checking biometric logs row by row to mark who was late or absent | Import the scanner export; Present / Late / Absent is decided automatically, skipping weekends and holidays |
-| Typing each certificate one by one | Generate all certificates at once from one template and one Excel list |
 | Collecting printed or USB documents and tracking who hasn't submitted | Teachers upload online; files are filed into task folders automatically with live submitted/expected counts |
 | Giving feedback face to face or on paper | Review status and written feedback stay attached to each submission, and the teacher is notified |
 | Posting notices on boards or group chats | Announcements reach every user with an in-app notification |

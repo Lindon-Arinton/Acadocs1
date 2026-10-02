@@ -24,7 +24,7 @@
 --    - migrations rows, so `php spark migrate` sees the schema as up to date
 --
 --  Files: templates and submitted files point at sample files that ship with
---  the project (app/Templates, trainee-data/, public/assets/img), so preview
+--  the project (app/Templates, trainee-data/, public/assets/img) — Word, Excel and images only, no PowerPoint — so preview
 --  and download work out of the box.
 --  Generated: 2026-10-02
 -- ============================================================================
@@ -271,21 +271,16 @@ INSERT INTO `task_submissions` (`id`, `task_id`, `user_id`, `file_path`, `file_n
 (61, 10, 9, NULL, NULL, '', 'Reviewed', 1, '2026-10-01 13:51:00', '2026-10-01 17:51:00', '2026-10-01 17:51:00'),
 (62, 10, 2, NULL, NULL, 'Submitted for review.', 'Pending', NULL, NULL, '2026-10-01 07:18:00', '2026-10-01 07:18:00');
 
--- task_submission_files (98 rows)
+-- task_submission_files (75 rows)
 INSERT INTO `task_submission_files` (`id`, `task_submission_id`, `file_path`, `file_name`, `created_at`) VALUES
 (1, 1, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Santos.docx', '2026-07-05 08:13:00'),
 (2, 2, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Reyes.docx', '2026-07-04 08:25:00'),
-(3, 2, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Submit_Q1_DLL_Reyes_annex.pptx', '2026-07-04 08:25:00'),
 (4, 3, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Cruz.docx', '2026-07-11 09:01:00'),
-(5, 3, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Submit_Q1_DLL_Cruz_annex.pptx', '2026-07-11 09:01:00'),
 (6, 4, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Cruz.docx', '2026-07-06 18:08:00'),
 (7, 5, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Ramos.docx', '2026-07-04 18:34:00'),
-(8, 5, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Submit_Q1_DLL_Ramos_annex.pptx', '2026-07-04 18:34:00'),
 (9, 6, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Aquino.docx', '2026-07-12 12:59:00'),
-(10, 6, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Submit_Q1_DLL_Aquino_annex.pptx', '2026-07-12 12:59:00'),
 (11, 7, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Castillo.docx', '2026-07-10 18:49:00'),
 (12, 8, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Navarro.docx', '2026-07-07 20:04:00'),
-(13, 8, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Submit_Q1_DLL_Navarro_annex.pptx', '2026-07-07 20:04:00'),
 (14, 9, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Submit_Q1_DLL_Flores.docx', '2026-07-06 11:08:00'),
 (15, 9, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Submit_Q1_DLL_Flores_annex.xlsx', '2026-07-06 11:08:00'),
 (16, 10, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Class_Program_and_Advisory_List_Santos.docx', '2026-06-24 16:20:00'),
@@ -294,42 +289,30 @@ INSERT INTO `task_submission_files` (`id`, `task_submission_id`, `file_path`, `f
 (19, 11, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Class_Program_and_Advisory_List_Cruz_annex.xlsx', '2026-06-26 10:07:00'),
 (20, 12, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Class_Program_and_Advisory_List_Ramos.docx', '2026-06-22 12:13:00'),
 (21, 13, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Class_Program_and_Advisory_List_Garcia.docx', '2026-06-25 07:09:00'),
-(22, 13, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Class_Program_and_Advisory_List_Garcia_annex.pptx', '2026-06-25 07:09:00'),
 (23, 14, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Class_Program_and_Advisory_List_Aquino.docx', '2026-06-22 13:00:00'),
-(24, 14, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Class_Program_and_Advisory_List_Aquino_annex.pptx', '2026-06-22 13:00:00'),
 (25, 15, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Class_Program_and_Advisory_List_Castillo.docx', '2026-06-27 10:03:00'),
 (26, 16, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Class_Program_and_Advisory_List_Navarro.docx', '2026-06-21 12:53:00'),
-(27, 16, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Class_Program_and_Advisory_List_Navarro_annex.pptx', '2026-06-21 12:53:00'),
 (28, 17, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Class_Program_and_Advisory_List_Flores.docx', '2026-06-28 18:24:00'),
 (29, 17, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Class_Program_and_Advisory_List_Flores_annex.xlsx', '2026-06-28 18:24:00'),
 (30, 18, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Santos.docx', '2026-08-04 16:47:00'),
-(31, 18, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'School_Form_2_Santos_annex.pptx', '2026-08-04 16:47:00'),
 (32, 19, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Reyes.docx', '2026-08-05 13:46:00'),
-(33, 19, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'School_Form_2_Reyes_annex.pptx', '2026-08-05 13:46:00'),
 (34, 20, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Cruz.docx', '2026-07-30 10:51:00'),
 (35, 21, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Cruz.docx', '2026-08-07 11:48:00'),
 (36, 21, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'School_Form_2_Cruz_annex.xlsx', '2026-08-07 11:48:00'),
 (37, 22, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Ramos.docx', '2026-08-04 20:01:00'),
 (38, 22, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'School_Form_2_Ramos_annex.xlsx', '2026-08-04 20:01:00'),
 (39, 23, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Garcia.docx', '2026-08-03 18:28:00'),
-(40, 23, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'School_Form_2_Garcia_annex.pptx', '2026-08-03 18:28:00'),
 (41, 24, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Aquino.docx', '2026-08-05 10:36:00'),
-(42, 24, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'School_Form_2_Aquino_annex.pptx', '2026-08-05 10:36:00'),
 (43, 25, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Castillo.docx', '2026-08-01 09:24:00'),
 (44, 26, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Navarro.docx', '2026-08-01 14:51:00'),
-(45, 26, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'School_Form_2_Navarro_annex.pptx', '2026-08-01 14:51:00'),
 (46, 27, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Flores.docx', '2026-08-01 07:50:00'),
 (47, 28, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Santos.docx', '2026-09-07 07:50:00'),
-(48, 28, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Q1_Summative_Test_Results_Santos_annex.pptx', '2026-09-07 07:50:00'),
 (49, 29, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Reyes.docx', '2026-09-07 17:13:00'),
-(50, 29, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Q1_Summative_Test_Results_Reyes_annex.pptx', '2026-09-07 17:13:00'),
 (51, 30, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Cruz.docx', '2026-09-05 21:58:00'),
-(52, 30, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Q1_Summative_Test_Results_Cruz_annex.pptx', '2026-09-05 21:58:00'),
 (53, 31, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Cruz.docx', '2026-09-12 11:24:00'),
 (54, 32, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Ramos.docx', '2026-09-09 21:46:00'),
 (55, 33, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Garcia.docx', '2026-09-08 12:48:00'),
 (56, 34, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Aquino.docx', '2026-09-10 08:11:00'),
-(57, 34, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Q1_Summative_Test_Results_Aquino_annex.pptx', '2026-09-10 08:11:00'),
 (58, 35, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Castillo.docx', '2026-09-11 17:29:00'),
 (59, 35, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Q1_Summative_Test_Results_Castillo_annex.xlsx', '2026-09-11 17:29:00'),
 (60, 36, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q1_Summative_Test_Results_Navarro.docx', '2026-09-05 09:19:00'),
@@ -340,33 +323,27 @@ INSERT INTO `task_submission_files` (`id`, `task_submission_id`, `file_path`, `f
 (65, 40, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Garcia.docx', '2026-10-01 19:17:00'),
 (66, 41, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'School_Form_2_Aquino.docx', '2026-10-02 10:01:00'),
 (67, 42, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q2_DLL_Santos.docx', '2026-10-01 17:48:00'),
-(68, 42, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Q2_DLL_Santos_annex.pptx', '2026-10-01 17:48:00'),
 (69, 43, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q2_DLL_Cruz.docx', '2026-10-01 20:45:00'),
 (70, 43, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Q2_DLL_Cruz_annex.xlsx', '2026-10-01 20:45:00'),
 (71, 44, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q2_DLL_Ramos.docx', '2026-10-01 09:23:00'),
 (72, 44, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Q2_DLL_Ramos_annex.xlsx', '2026-10-01 09:23:00'),
 (73, 45, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q2_DLL_Garcia.docx', '2026-10-01 10:47:00'),
-(74, 45, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Q2_DLL_Garcia_annex.pptx', '2026-10-01 10:47:00'),
 (75, 46, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q2_DLL_Aquino.docx', '2026-10-01 11:49:00'),
 (76, 47, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Q2_DLL_Navarro.docx', '2026-10-01 21:07:00'),
-(77, 47, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Q2_DLL_Navarro_annex.pptx', '2026-10-01 21:07:00'),
 (78, 48, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Property_Inventory_Report_Mendoza.docx', '2026-08-19 16:53:00'),
 (79, 49, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Monthly_Attendance_Summary_Mendoza.docx', '2026-10-01 16:45:00'),
 (80, 50, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Santos.docx', '2026-06-19 18:41:00'),
-(81, 50, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Brigada_Eskwela_Accomplishment_Report_Santos_annex.pptx', '2026-06-19 18:41:00'),
 (82, 51, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Reyes.docx', '2026-06-17 19:47:00'),
 (83, 51, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Brigada_Eskwela_Accomplishment_Report_Reyes_annex.xlsx', '2026-06-17 19:47:00'),
 (84, 52, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Cruz.docx', '2026-06-16 11:09:00'),
 (85, 52, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Brigada_Eskwela_Accomplishment_Report_Cruz_annex.xlsx', '2026-06-16 11:09:00'),
 (86, 53, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Cruz.docx', '2026-06-13 13:53:00'),
-(87, 53, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Brigada_Eskwela_Accomplishment_Report_Cruz_annex.pptx', '2026-06-13 13:53:00'),
 (88, 54, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Ramos.docx', '2026-06-14 09:30:00'),
 (89, 55, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Garcia.docx', '2026-06-17 09:03:00'),
 (90, 56, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Aquino.docx', '2026-06-19 08:31:00'),
 (91, 57, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Castillo.docx', '2026-06-19 15:30:00'),
 (92, 58, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Navarro.docx', '2026-06-15 17:30:00'),
 (93, 59, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Brigada_Eskwela_Accomplishment_Report_Flores.docx', '2026-06-18 16:25:00'),
-(94, 59, '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Brigada_Eskwela_Accomplishment_Report_Flores_annex.pptx', '2026-06-18 16:25:00'),
 (95, 60, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Science_Fair_Coordinators_Plan_Cruz.docx', '2026-10-01 14:11:00'),
 (96, 60, '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Science_Fair_Coordinators_Plan_Cruz_annex.xlsx', '2026-10-01 14:11:00'),
 (97, 61, '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'Science_Fair_Coordinators_Plan_Aquino.docx', '2026-10-01 17:51:00'),
@@ -479,20 +456,18 @@ INSERT INTO `document_links` (`category`, `title`, `description`, `url`, `added_
 ('Templates', 'Item Analysis Template', 'Spreadsheet for item analysis and MPS computation.', 'https://www.deped.gov.ph/', 'Liza C. Mendoza', '2026-08-16', 'Teachers', '2026-08-16 11:00:00'),
 ('Forms', 'Property Acknowledgment Receipt (PAR)', 'Form for issuing school property to personnel.', 'https://www.deped.gov.ph/', 'Ricardo M. Villanueva', '2026-08-25', 'Admin', '2026-08-25 11:00:00');
 
--- template_categories (4 rows)
+-- template_categories (3 rows)
 INSERT INTO `template_categories` (`id`, `name`, `created_by`, `created_at`) VALUES
 (1, 'Certificates', 'Liza C. Mendoza', '2026-06-02 10:00:00'),
 (2, 'School Forms', 'Liza C. Mendoza', '2026-06-02 10:05:00'),
-(3, 'Reports', 'Liza C. Mendoza', '2026-06-02 10:10:00'),
-(4, 'Presentations', 'Liza C. Mendoza', '2026-06-02 10:15:00');
+(3, 'Reports', 'Liza C. Mendoza', '2026-06-02 10:10:00');
 
--- templates (6 rows)
+-- templates (5 rows)
 INSERT INTO `templates` (`category_id`, `title`, `description`, `file_path`, `file_name`, `file_ext`, `file_size`, `uploaded_by`, `date_added`, `created_at`) VALUES
 (1, 'Certificate of Recognition', 'Word template with ${Name} / ${Award} placeholders for bulk certificates.', '../trainee-data/Templates/Certificate/CERTIFICATE.docx', 'CERTIFICATE.docx', 'docx', 1114356, 'Liza C. Mendoza', '2026-06-03', '2026-06-03 13:00:00'),
 (1, 'Certificate Recipients (sample list)', 'Sample Excel recipient list for certificate generation.', '../trainee-data/Templates/Certificate/Certificate-sample.xlsx', 'Certificate-sample.xlsx', 'xlsx', 8873, 'Liza C. Mendoza', '2026-06-07', '2026-06-07 13:00:00'),
 (3, 'Key Performance Indicator Report', 'Blank DepEd KPI report form.', '../app/Templates/KEY-PERFORMANCE-INDICATOR.docx', 'KEY-PERFORMANCE-INDICATOR.docx', 'docx', 43093, 'Liza C. Mendoza', '2026-06-11', '2026-06-11 13:00:00'),
 (3, 'KPI Report SY 2023-2024 (sample)', 'Filled KPI report for reference.', '../trainee-data/KPIs/KEY-PERFORMANCE-INDICATOR-2023-2024.docx', 'KEY-PERFORMANCE-INDICATOR-2023-2024.docx', 'docx', 44468, 'Liza C. Mendoza', '2026-06-15', '2026-06-15 13:00:00'),
-(4, 'School Enrollment & Performance Brief', 'Slide deck used for the SMEPA presentation.', '../trainee-data/Enrollment list/Matabungkay-NHS-SMEPA-2025.pptx', 'Matabungkay-NHS-SMEPA-2025.pptx', 'pptx', 1493926, 'Liza C. Mendoza', '2026-06-19', '2026-06-19 13:00:00'),
 (2, 'DepEd Seal (letterhead)', 'Official seal for letterheads and reports.', 'assets/img/deped-seal.png', 'deped-seal.png', 'png', 28993, 'Liza C. Mendoza', '2026-06-23', '2026-06-23 13:00:00');
 
 -- room_properties (114 rows)
