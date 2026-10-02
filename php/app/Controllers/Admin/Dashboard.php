@@ -28,6 +28,19 @@ class Dashboard extends BaseController
     // never goes stale the way a hardcoded year would.
     private const MPS_SOURCE_YEAR = '2024-2025';
 
+    /** Report sections (key => label), in report order — ticked in the dashboard's Generate Report modal. */
+    public const REPORT_SECTIONS = [
+        'summary'    => 'Key figures (enrollees, drop-out, average MPS, compliance)',
+        'insights'   => 'Insights',
+        'enrollment' => 'Enrollment by grade level',
+        'enrollees'  => 'Total enrollees by school year',
+        'dropout'    => 'Drop-out rate by school year',
+        'mps'        => 'Average MPS by term and grade level',
+        'subjects'   => 'Performance by learning area',
+        'deped'      => 'DepEd historical KPIs',
+        'documents'  => 'Document submission status',
+    ];
+
     public function index()
     {
         // School-wide dashboard: the principal and ADAS (who also feed it
@@ -36,6 +49,37 @@ class Dashboard extends BaseController
             return redirect()->to('/teacher-dashboard');
         }
 
+        return view('pages/admin/dashboard', $this->dashboardData());
+    }
+
+    /**
+     * Printable report built from the same figures as the dashboard (same
+     * year / range / month filters), limited to the sections ticked in the
+     * dashboard's "Generate Report" modal.
+     */
+    public function report()
+    {
+        if (! hasRole('admin', 'adas')) {
+            return redirect()->to('/teacher-dashboard');
+        }
+
+        $requested = (array) ($this->request->getGet('sections') ?? []);
+        $sections  = array_values(array_intersect(array_keys(self::REPORT_SECTIONS), $requested)) ?: array_keys(self::REPORT_SECTIONS);
+
+        return view('pages/admin/report', $this->dashboardData() + [
+            'sections'       => $sections,
+            'sectionLabels'  => self::REPORT_SECTIONS,
+            'generatedBy'    => currentUser()['name'] ?? '',
+            'generatedRole'  => currentUser()['role'] ?? '',
+        ]);
+    }
+
+    /**
+     * Everything the dashboard (and its report) shows, for the requested
+     * school year / year range / enrollment month.
+     */
+    private function dashboardData(): array
+    {
         $documentModel = new DocumentModel();
 
         $years = $this->availableYears();
@@ -175,7 +219,7 @@ class Dashboard extends BaseController
         $insightTeachers = $this->teacherIdsByName((string) ($lowest['instructor'] ?? ''));
         $insights        = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary, $insightTeachers);
 
-        return view('pages/admin/dashboard', [
+        return [
             'pageTitle'          => 'Admin Dashboard',
             'avgMps'             => $avgMps,
             'years'              => $years,
@@ -207,7 +251,8 @@ class Dashboard extends BaseController
             'insights'           => $insights,
             'range'              => $range,
             'currentSchoolYearStart' => self::currentSchoolYearStart(),
-        ]);
+            'reportSections'     => self::REPORT_SECTIONS,
+        ];
     }
 
     /**

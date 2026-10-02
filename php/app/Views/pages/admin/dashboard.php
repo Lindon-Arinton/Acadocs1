@@ -17,6 +17,9 @@
         <i class="bi bi-upload me-1"></i>Import KPI Report
       </button>
       <?php endif; ?>
+      <button type="button" class="btn btn-sm btn-light fw-semibold" style="color:var(--primary);" onclick="openReportModal()">
+        <i class="bi bi-file-earmark-bar-graph me-1"></i>Generate Report
+      </button>
       <label class="text-white small fw-semibold mb-0" for="dashboard-year-filter">School Year:</label>
       <div class="maroon-select maroon-select-sm" style="width:auto;">
         <select id="dashboard-year-filter" class="maroon-select-native" onchange="onDashboardYearChange(this)">
@@ -572,6 +575,52 @@ if ($complianceRate === null) {
 </div>
 <?php endif; ?>
 
+<!-- Generate Report -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-file-earmark-bar-graph me-2"></i>Generate Report</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="reportScope">Report for</label>
+          <select id="reportScope" class="form-select form-select-sm" required>
+            <?php if ($range !== null): ?>
+            <option value="range:<?= $range['start'] ?>-<?= $range['end'] ?>" selected>SY <?= $range['start'] ?>–<?= $range['start'] + 1 ?> to SY <?= $range['end'] - 1 ?>–<?= $range['end'] ?> (current filter)</option>
+            <?php endif; ?>
+            <?php foreach ($years as $y): ?>
+            <option value="year:<?= e($y) ?>" <?= $range === null && $y === $currentYear ? 'selected' : '' ?>>SY <?= e(str_replace('-', '–', $y)) ?><?= $range === null && $y === $currentYear ? ' (current filter)' : '' ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="form-text">Defaults to the year the dashboard is showing. For a multi-year range, use <strong>Custom…</strong> in the School Year filter first.</div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small fw-semibold">Include in the report</span>
+          <span class="small">
+            <a href="#" onclick="setReportSections(true); return false;">Select all</a> ·
+            <a href="#" onclick="setReportSections(false); return false;">Clear</a>
+          </span>
+        </div>
+        <div class="report-section-list">
+          <?php foreach ($reportSections as $key => $label): ?>
+          <label class="report-section-option">
+            <input type="checkbox" class="form-check-input mt-0 report-section-cb" value="<?= e($key) ?>" checked>
+            <span><?= e($label) ?></span>
+          </label>
+          <?php endforeach; ?>
+        </div>
+        <div class="text-danger small mt-2 d-none" id="reportError">Tick at least one section.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="generateReport()"><i class="bi bi-file-earmark-arrow-down me-1"></i>Generate</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Year range ("Custom…" in the School Year filter) -->
 <div class="modal fade" id="yearRangeModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -623,6 +672,39 @@ if ($complianceRate === null) {
 
 <?php
 $extraScript = '<script>
+/* ── Generate Report: printable report of the ticked sections, same filters as the dashboard ── */
+const REPORT_URL   = ' . json_encode(base_url('dashboard/report')) . ';
+const REPORT_MONTH = ' . json_encode($enrollmentMonth ?? null) . ';
+
+function openReportModal() {
+  document.getElementById("reportError").classList.add("d-none");
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("reportModal")).show();
+}
+
+function setReportSections(checked) {
+  document.querySelectorAll(".report-section-cb").forEach(cb => { cb.checked = checked; });
+}
+
+function generateReport() {
+  const sections = [...document.querySelectorAll(".report-section-cb:checked")].map(cb => cb.value);
+  if (!sections.length) {
+    document.getElementById("reportError").classList.remove("d-none");
+    return;
+  }
+
+  const [kind, value] = document.getElementById("reportScope").value.split(":");
+  const params = new URLSearchParams();
+  params.set(kind === "range" ? "range" : "year", value);
+  // Keep the enrollment month the dashboard is showing, but only for that same year/range.
+  if (REPORT_MONTH && document.getElementById("reportScope").selectedOptions[0].text.includes("(current filter)")) {
+    params.set("month", REPORT_MONTH);
+  }
+  sections.forEach(s => params.append("sections[]", s));
+
+  window.open(REPORT_URL + "?" + params.toString(), "_blank");
+  bootstrap.Modal.getInstance(document.getElementById("reportModal"))?.hide();
+}
+
 /* ── School Year filter: a single year, or "Custom…" for a year range ── */
 const DASHBOARD_URL = ' . json_encode(base_url('dashboard')) . ';
 const yearFilterEl = document.getElementById("dashboard-year-filter");
