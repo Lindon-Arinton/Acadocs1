@@ -197,7 +197,7 @@ $extraScript = "<script>
 function openSubmitModal(taskId, title) {
     document.getElementById('submitTaskId').value = taskId;
     document.getElementById('submitTaskTitle').textContent = title;
-    new bootstrap.Modal(document.getElementById('submitTaskModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('submitTaskModal')).show();
 }
 
 const taskSearchInput = document.getElementById('taskSearchInput');

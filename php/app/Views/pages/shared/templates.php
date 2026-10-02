@@ -556,7 +556,7 @@ function previewTemplate(t) {
     });
     caret.classList.toggle('d-none', conversions.length === 0);
 
-    new bootstrap.Modal(document.getElementById('previewModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).show();
 
     loadTemplatePreview(t, previewUrl, downloadBase);
 }
@@ -622,7 +622,7 @@ function openUploadModal(categoryId) {
         select.value = categoryId;
         select.dispatchEvent(new Event('change'));
     }
-    new bootstrap.Modal(document.getElementById('uploadModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('uploadModal')).show();
 }
 
 function handleTemplateFilesChange(fileInput) {
@@ -700,7 +700,7 @@ function openCertificateModal(t) {
     document.getElementById('certificateNoFieldsAlert').classList.toggle('d-none', fields.length > 0);
     document.getElementById('certificateSubmitBtn').disabled = fields.length === 0;
 
-    new bootstrap.Modal(document.getElementById('certificateModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('certificateModal')).show();
 }
 
 function certificateFileNameFrom(disposition) {

@@ -379,7 +379,7 @@ let subjectRowSeq = 0;
 function resetPw(id, name) {
     document.getElementById('resetUserId').value = id;
     document.getElementById('resetUserName').textContent = name;
-    new bootstrap.Modal(document.getElementById('resetPwModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('resetPwModal')).show();
 }
 
 // Shows/hides the Teacher Details block on role change (both Add and Edit
@@ -458,7 +458,7 @@ function editUser(data) {
         addSubjectRow('edit', s.subject, s.grade, s.section);
     });
 
-    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editUserModal')).show();
 }
 
 document.getElementById('addUserModal').addEventListener('show.bs.modal', function () {

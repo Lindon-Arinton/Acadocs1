@@ -381,7 +381,7 @@ function maybeShowHolidayAlert() {
         denyButtonColor: '#6b7280',
     }).then(function (result) {
         if (canManageHolidays && result.isConfirmed) {
-            new bootstrap.Modal(document.getElementById('holidaysModal')).show();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('holidaysModal')).show();
         }
     });
 }
@@ -403,7 +403,7 @@ function editRecord(r) {
     editStatus.value = r.status;
     editStatus.dispatchEvent(new Event('change'));
     document.getElementById('editRemarks').value = r.remarks  || '';
-    new bootstrap.Modal(document.getElementById('editModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
 }
 function exportTable(tableId, filename) {
     const rows = [...document.getElementById(tableId).querySelectorAll('tr')].map(r =>

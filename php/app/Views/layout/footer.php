@@ -492,6 +492,26 @@ function applyRequiredMarkers(scope) {
 document.addEventListener('DOMContentLoaded', () => applyRequiredMarkers());
 document.addEventListener('show.bs.modal', e => applyRequiredMarkers(e.target));
 
+/* ── Safety net for stuck modal backdrops ────────────────────
+   If a modal ever ends up shown twice (a double click, a page script
+   re-running after AJAX navigation…), closing it can leave an orphan
+   .modal-backdrop behind that greys out and blocks the whole page. Once
+   the last open modal is gone, clear any leftover backdrop and body lock. */
+// A modal mid-opening (e.g. Tasks swaps one modal for another on close) has
+// no .show class yet — mark it so its fresh backdrop isn't swept away.
+document.addEventListener('show.bs.modal', e => { e.target.dataset.opening = '1'; });
+document.addEventListener('shown.bs.modal', e => { delete e.target.dataset.opening; });
+document.addEventListener('hidden.bs.modal', function (e) {
+    delete e.target.dataset.opening;
+    setTimeout(() => {
+        if (document.querySelector('.modal.show, .modal[data-opening]')) return;
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }, 50);
+});
+
 /* ── Person card (names rendered through personLink()) ──────
    Delegated on document so names on AJAX-loaded pages and in JS-built
    lists (e.g. the task detail modal) work too. Details are fetched on

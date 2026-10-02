@@ -327,7 +327,7 @@ function viewAnnouncement(a, bg, tc, icon) {
     document.getElementById('viewAnnouncementType').style.border = '1px solid ' + tc + '33';
     document.getElementById('viewAnnouncementDate').textContent = a.date_formatted;
     document.getElementById('viewAnnouncementContent').innerHTML = a.content_html;
-    new bootstrap.Modal(document.getElementById('viewAnnouncementModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('viewAnnouncementModal')).show();
 }
 
 let currentAnnouncement = null;

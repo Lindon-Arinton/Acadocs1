@@ -138,7 +138,7 @@ function reviewUpload(id, status, submitter) {
     comment.value = '';
     form.dataset.confirmTitle = copy.title + '?';
     form.dataset.confirmText = copy.confirm;
-    new bootstrap.Modal(document.getElementById('reviewModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('reviewModal')).show();
 }
 </script>";
 include APPPATH . 'Views/layout/footer.php';

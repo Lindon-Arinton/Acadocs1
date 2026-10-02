@@ -342,7 +342,7 @@ function openNewTaskModal() {
     const todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     document.getElementById('taskDeadlineDp')?.maroonDpSetValue(todayIso);
     document.querySelector('#addTaskModal input[name=deadline_time]').value = '23:59';
-    new bootstrap.Modal(document.getElementById('addTaskModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addTaskModal')).show();
 }
 
 function onAssignedRoleChange() {
@@ -356,7 +356,7 @@ function switchTaskModal(fromId, toId) {
     const fromModal = bootstrap.Modal.getInstance(fromEl);
     fromEl.addEventListener('hidden.bs.modal', function handler() {
         fromEl.removeEventListener('hidden.bs.modal', handler);
-        new bootstrap.Modal(toEl).show();
+        bootstrap.Modal.getOrCreateInstance(toEl).show();
     });
     fromModal?.hide();
 }
@@ -461,7 +461,7 @@ function openTaskDetailModal(taskId) {
     const feedbackForm = document.getElementById('taskFeedbackForm'); // principal only
     if (feedbackForm) feedbackForm.action = TASKS_BASE + taskId;
 
-    new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('taskDetailModal')).show();
 
     fetch(TASKS_BASE + taskId + '/data', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => res.json())
@@ -608,7 +608,7 @@ function closeSubmissionPreview() {
 // event) always means \"go back to the task\", since it's only ever reached
 // from within the task detail modal's own View Files button.
 document.getElementById('viewSubmissionModal').addEventListener('hidden.bs.modal', function () {
-    new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('taskDetailModal')).show();
 });
 </script>";
 include APPPATH . 'Views/layout/footer.php';

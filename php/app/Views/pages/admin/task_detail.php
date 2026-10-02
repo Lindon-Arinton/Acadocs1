@@ -205,7 +205,7 @@ function viewSubmission(data) {
         : "";
 
     closeSubmissionPreview();
-    new bootstrap.Modal(document.getElementById("viewSubmissionModal")).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("viewSubmissionModal")).show();
 }
 
 function previewSubmissionFile(fileId, name) {
