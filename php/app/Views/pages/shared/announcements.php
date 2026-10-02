@@ -209,7 +209,10 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content ann-view">
       <div class="ann-view-banner" id="viewAnnouncementBanner">
-        <img id="viewAnnouncementImage" alt="" class="d-none">
+        <img id="viewAnnouncementImage" alt="" class="d-none" title="Click to view the full photo" onclick="openAnnouncementPhoto()">
+        <button type="button" class="ann-view-expand d-none" id="viewAnnouncementExpand" onclick="openAnnouncementPhoto()">
+          <i class="bi bi-arrows-fullscreen me-1"></i>View full photo
+        </button>
         <div class="ann-view-icon" id="viewAnnouncementIconWrap">
           <span class="ann-dot ann-dot-1"></span><span class="ann-dot ann-dot-2"></span><span class="ann-dot ann-dot-3"></span>
           <div class="ann-view-icon-circle"><i class="bi bi-megaphone-fill" id="viewAnnouncementIcon"></i></div>
@@ -226,9 +229,73 @@
         <div class="ann-view-content" id="viewAnnouncementContent"></div>
       </div>
       <div class="ann-view-footer">
+        <button type="button" class="btn btn-outline-maroon ann-view-share" onclick="openShareAnnouncement()">
+          <i class="bi bi-send me-1"></i>Share to Chat
+        </button>
         <button type="button" class="btn btn-primary ann-view-ok" data-bs-dismiss="modal">I Understand</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Share an announcement to chat: people (direct chats) and my group chats -->
+<div class="modal fade" id="shareAnnouncementModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-send me-2"></i>Share to Chat</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="share-ann-preview mb-3">
+          <i class="bi bi-megaphone-fill"></i>
+          <span id="shareAnnouncementTitle" class="fw-semibold"></span>
+        </div>
+        <div class="input-group input-group-sm mb-2">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="shareSearch" class="form-control border-start-0 ps-0" placeholder="Search people or groups..." autocomplete="off" oninput="filterShareTargets(this.value)">
+        </div>
+        <div class="share-target-list">
+          <?php if (! empty($shareGroups)): ?>
+          <div class="share-section-label">Group chats</div>
+          <?php foreach ($shareGroups as $g): ?>
+          <label class="share-target" data-search="<?= e(mb_strtolower((string) $g['name'])) ?>">
+            <input type="checkbox" class="form-check-input mt-0 share-cb" name="conversation_ids[]" value="<?= (int) $g['id'] ?>">
+            <span class="share-avatar share-avatar-group"><i class="bi bi-people-fill"></i></span>
+            <span class="flex-grow-1"><?= e($g['name'] ?: 'Group chat') ?></span>
+          </label>
+          <?php endforeach; ?>
+          <?php endif; ?>
+          <div class="share-section-label">People</div>
+          <?php foreach ($sharePeople as $p): ?>
+          <label class="share-target" data-search="<?= e(mb_strtolower($p['name'])) ?>">
+            <input type="checkbox" class="form-check-input mt-0 share-cb" name="user_ids[]" value="<?= (int) $p['id'] ?>">
+            <span class="share-avatar"><?= e(strtoupper(mb_substr($p['name'], 0, 1))) ?></span>
+            <span class="flex-grow-1"><?= e($p['name']) ?></span>
+            <span class="small text-muted"><?= e(['admin' => 'Principal', 'adas' => 'ADAS', 'teacher' => 'Teacher'][$p['role']] ?? ucfirst($p['role'])) ?></span>
+          </label>
+          <?php endforeach; ?>
+          <div class="text-center text-muted small py-3 d-none" id="shareNoMatch">No matches.</div>
+        </div>
+        <label class="small fw-semibold mt-3 mb-1 d-block" for="shareNote">Add a message <span class="text-muted fw-normal">(optional)</span></label>
+        <textarea id="shareNote" class="form-control form-control-sm" rows="2" maxlength="500" placeholder="e.g. Please read before Monday."></textarea>
+        <div class="text-danger small mt-2 d-none" id="shareError"></div>
+      </div>
+      <div class="modal-footer">
+        <span class="small text-muted me-auto" id="shareCount">0 selected</span>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="shareSendBtn" onclick="sendShareAnnouncement()"><i class="bi bi-send me-1"></i>Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Full-size photo viewer (opened from the announcement banner) -->
+<div class="ann-lightbox d-none" id="announcementLightbox" onclick="closeAnnouncementPhoto(event)">
+  <img id="announcementLightboxImg" alt="">
+  <div class="ann-lightbox-bar">
+    <a id="announcementLightboxOpen" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Open original</a>
+    <button type="button" onclick="closeAnnouncementPhoto()"><i class="bi bi-x-lg me-1"></i>Close</button>
   </div>
 </div>
 
@@ -241,6 +308,8 @@ function viewAnnouncement(a, bg, tc, icon) {
     const hasImg = !!a.image_url;
     banner.style.background = hasImg ? '#000' : 'linear-gradient(135deg, ' + tc + ' 0%, ' + tc + 'cc 100%)';
     img.classList.toggle('d-none', !hasImg);
+    document.getElementById('viewAnnouncementExpand').classList.toggle('d-none', !hasImg);
+    currentAnnouncement = a;
     if (hasImg) { img.src = a.image_url; } else { img.removeAttribute('src'); }
     document.getElementById('viewAnnouncementIconWrap').classList.toggle('d-none', hasImg);
     document.getElementById('viewAnnouncementIcon').className = 'bi ' + icon;
@@ -260,6 +329,97 @@ function viewAnnouncement(a, bg, tc, icon) {
     document.getElementById('viewAnnouncementContent').innerHTML = a.content_html;
     new bootstrap.Modal(document.getElementById('viewAnnouncementModal')).show();
 }
+
+let currentAnnouncement = null;
+
+/* Full-size photo: shown at its real size, or scaled down to fit the screen. */
+function openAnnouncementPhoto() {
+    if (!currentAnnouncement || !currentAnnouncement.image_url) return;
+    document.getElementById('announcementLightboxImg').src = currentAnnouncement.image_url;
+    document.getElementById('announcementLightboxOpen').href = currentAnnouncement.image_url;
+    document.getElementById('announcementLightbox').classList.remove('d-none');
+}
+
+function closeAnnouncementPhoto(e) {
+    // Clicking the photo itself or the bar's link shouldn't close it.
+    if (e && (e.target.id === 'announcementLightboxImg' || e.target.closest('a'))) return;
+    document.getElementById('announcementLightbox').classList.add('d-none');
+}
+
+document.addEventListener('keydown', function (e) {
+    const box = document.getElementById('announcementLightbox');
+    if (e.key === 'Escape' && box && !box.classList.contains('d-none')) {
+        e.stopPropagation(); // close only the photo, not the announcement behind it
+        box.classList.add('d-none');
+    }
+}, true);
+
+/* Share to chat */
+function openShareAnnouncement() {
+    if (!currentAnnouncement) return;
+    document.getElementById('shareAnnouncementTitle').textContent = currentAnnouncement.title;
+    document.querySelectorAll('.share-cb').forEach(cb => { cb.checked = false; });
+    document.getElementById('shareNote').value = '';
+    document.getElementById('shareSearch').value = '';
+    filterShareTargets('');
+    updateShareCount();
+    document.getElementById('shareError').classList.add('d-none');
+    bootstrap.Modal.getInstance(document.getElementById('viewAnnouncementModal'))?.hide();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('shareAnnouncementModal')).show();
+}
+
+function filterShareTargets(q) {
+    q = q.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll('.share-target').forEach(el => {
+        const match = !q || el.dataset.search.includes(q);
+        el.classList.toggle('d-none', !match);
+        if (match) shown++;
+    });
+    document.querySelectorAll('.share-section-label').forEach(el => el.classList.toggle('d-none', !!q));
+    document.getElementById('shareNoMatch').classList.toggle('d-none', shown > 0);
+}
+
+function updateShareCount() {
+    const n = document.querySelectorAll('.share-cb:checked').length;
+    document.getElementById('shareCount').textContent = n + ' selected';
+}
+document.addEventListener('change', e => { if (e.target.classList && e.target.classList.contains('share-cb')) updateShareCount(); });
+
+function sendShareAnnouncement() {
+    const err = document.getElementById('shareError');
+    const checked = [...document.querySelectorAll('.share-cb:checked')];
+    if (!checked.length) {
+        err.textContent = 'Choose at least one person or group.';
+        err.classList.remove('d-none');
+        return;
+    }
+
+    const form = new FormData();
+    checked.forEach(cb => form.append(cb.name, cb.value));
+    form.append('note', document.getElementById('shareNote').value);
+
+    const btn = document.getElementById('shareSendBtn');
+    btn.disabled = true;
+    fetch(" . json_encode(base_url('announcements')) . " + '/' + currentAnnouncement.id + '/share', {
+        method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') throw new Error(data.message || 'Could not share.');
+            bootstrap.Modal.getInstance(document.getElementById('shareAnnouncementModal'))?.hide();
+            showToast(data.message, 'success');
+        })
+        .catch(e => { err.textContent = e.message; err.classList.remove('d-none'); })
+        .finally(() => { btn.disabled = false; });
+}
+
+// Opened from a shared card in chat (?id=…): show that announcement right away.
+(function () {
+    const openId = " . json_encode((int) ($openId ?? 0)) . ";
+    const card = openId ? document.getElementById('announcement-' + openId) : null;
+    if (card) setTimeout(() => card.click(), 150);
+})();
 
 function previewAnnouncementImage(input) {
     const wrap = document.getElementById('announcementImagePreview');

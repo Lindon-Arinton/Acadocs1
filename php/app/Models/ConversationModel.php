@@ -32,4 +32,23 @@ class ConversationModel extends Model
             ->orderBy('conversations.id', 'DESC')
             ->findAll();
     }
+    /** The direct conversation between two users, created if they've never chatted. */
+    public function findOrCreateDirect(int $userId, int $otherId): int
+    {
+        $existing = $this->findDirectBetween($userId, $otherId);
+        if ($existing) {
+            return (int) $existing['id'];
+        }
+
+        $convoId = (int) $this->insert([
+            'type'       => 'direct',
+            'name'       => null,
+            'created_by' => $userId,
+        ]);
+        $participants = new ConversationParticipantModel();
+        $participants->insert(['conversation_id' => $convoId, 'user_id' => $userId]);
+        $participants->insert(['conversation_id' => $convoId, 'user_id' => $otherId]);
+
+        return $convoId;
+    }
 }

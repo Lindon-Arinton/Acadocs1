@@ -110,25 +110,9 @@ class Chat extends BaseController
         ]);
     }
 
-    /** The direct conversation between two users, created if they've never chatted. */
     private function findOrCreateDirect(int $userId, int $otherId): int
     {
-        $conversationModel = new ConversationModel();
-        $existing          = $conversationModel->findDirectBetween($userId, $otherId);
-        if ($existing) {
-            return (int) $existing['id'];
-        }
-
-        $convoId = (int) $conversationModel->insert([
-            'type'       => 'direct',
-            'name'       => null,
-            'created_by' => $userId,
-        ]);
-        $participantModel = new ConversationParticipantModel();
-        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $userId]);
-        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $otherId]);
-
-        return $convoId;
+        return (new ConversationModel())->findOrCreateDirect($userId, $otherId);
     }
 
     private function create()
@@ -227,7 +211,11 @@ class Chat extends BaseController
         )));
         $replyPreviews = $messageModel->previewsFor($replyToIds);
 
-        $data = array_map(function (array $m) use ($user, $reactions, $replyPreviews): array {
+        // Shared announcements (rendered as cards), looked up in one query.
+        $sharedIds     = array_values(array_unique(array_filter(array_map(static fn (array $m) => (int) ($m['announcement_id'] ?? 0), $messages))));
+        $announcements = $sharedIds ? array_column((new \App\Models\AnnouncementModel())->whereIn('id', $sharedIds)->findAll(), null, 'id') : [];
+
+        $data = array_map(function (array $m) use ($user, $reactions, $replyPreviews, $announcements): array {
             $photo    = $this->existingPhoto($m['sender_photo'] ?? null);
             $mid      = (int) $m['id'];
             $isMe     = (int) $m['sender_id'] === (int) $user['id'];
@@ -259,6 +247,7 @@ class Chat extends BaseController
                 'deleted'             => $deleted,
                 'reactions'           => $deleted ? [] : ($reactions[$mid] ?? []),
                 'reply_to'            => (! $deleted && $m['reply_to_id'] !== null) ? ($replyPreviews[(int) $m['reply_to_id']] ?? null) : null,
+                'announcement'        => $deleted ? null : $this->sharedAnnouncementCard($m, $announcements),
             ];
         }, $messages);
 
@@ -613,6 +602,33 @@ class Chat extends BaseController
      * so a stale/orphaned DB reference (e.g. the upload was lost between
      * environments) degrades to the initials avatar instead of a broken image.
      */
+    /**
+     * Card data for a message that shares an announcement, or null. The
+     * sender's own note is whatever follows the "📢 Title" fallback line.
+     */
+    private function sharedAnnouncementCard(array $m, array $announcements): ?array
+    {
+        $a = $announcements[(int) ($m['announcement_id'] ?? 0)] ?? null;
+        if (! $a) {
+            return null;
+        }
+
+        $image = ! empty($a['image']) && is_file(Announcements::imageDir() . $a['image'])
+            ? base_url('uploads/announcements/' . $a['image']) : null;
+        $parts = preg_split('/\R\R/', (string) $m['body'], 2); // "📢 Title", blank line, note
+
+        return [
+            'id'      => (int) $a['id'],
+            'title'   => $a['title'],
+            'type'    => $a['type'],
+            'date'    => date('M d, Y', strtotime($a['date'])),
+            'excerpt' => mb_strimwidth(trim(str_replace(['**', '*'], '', (string) $a['content'])), 0, 110, '…'),
+            'image'   => $image,
+            'url'     => base_url('announcements?id=' . (int) $a['id']),
+            'note'    => trim($parts[1] ?? ''),
+        ];
+    }
+
     private function existingPhoto(?string $photo): ?string
     {
         if (! $photo) {

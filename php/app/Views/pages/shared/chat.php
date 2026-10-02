@@ -362,6 +362,48 @@ function formatLastActive(timestamp) {
     return 'Active ' + diffDay + 'd ago';
 }
 
+/** Card for an announcement shared into the chat (see Chat::sharedAnnouncementCard()). */
+function buildAnnouncementCardEl(a) {
+    const card = document.createElement('a');
+    card.className = 'chat-ann-card';
+    card.href = a.url;
+
+    if (a.image) {
+        const img = document.createElement('img');
+        img.src = a.image;
+        img.alt = '';
+        card.appendChild(img);
+    } else {
+        const banner = document.createElement('div');
+        banner.className = 'chat-ann-banner';
+        banner.innerHTML = '<i class=\"bi bi-megaphone-fill\"></i>';
+        card.appendChild(banner);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'chat-ann-body';
+    const kicker = document.createElement('div');
+    kicker.className = 'chat-ann-kicker';
+    kicker.textContent = (a.type || 'Announcement') + ' · ' + a.date;
+    const title = document.createElement('div');
+    title.className = 'chat-ann-title';
+    title.textContent = a.title;
+    body.append(kicker, title);
+    if (a.excerpt) {
+        const ex = document.createElement('div');
+        ex.className = 'chat-ann-excerpt';
+        ex.textContent = a.excerpt;
+        body.appendChild(ex);
+    }
+    const cta = document.createElement('div');
+    cta.className = 'chat-ann-cta';
+    cta.textContent = 'View announcement →';
+    body.appendChild(cta);
+    card.appendChild(body);
+
+    return card;
+}
+
 function buildAttachmentEl(m) {
     if (m.attachment_is_image) {
         const link = document.createElement('a');
@@ -573,7 +615,18 @@ function renderMessages(messages, participants) {
         bubbleInner.style.cssText = m.is_me
             ? 'background:var(--primary);color:#fff;border-radius:14px 14px 2px 14px;padding:.55rem .85rem;font-size:.85rem;'
             : 'background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:14px 14px 14px 2px;padding:.55rem .85rem;font-size:.85rem;';
-        if (m.body) bubbleInner.textContent = m.body;
+        if (m.announcement) {
+            // Shared announcement: a card, plus the sender's own note (if any) under it.
+            bubbleInner.appendChild(buildAnnouncementCardEl(m.announcement));
+            if (m.announcement.note) {
+                const note = document.createElement('div');
+                note.style.cssText = 'margin-top:.45rem;white-space:pre-wrap;';
+                note.textContent = m.announcement.note;
+                bubbleInner.appendChild(note);
+            }
+        } else if (m.body) {
+            bubbleInner.textContent = m.body;
+        }
         if (m.attachment_url) bubbleInner.appendChild(buildAttachmentEl(m));
         bubble.appendChild(bubbleInner);
 

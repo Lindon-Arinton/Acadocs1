@@ -42,6 +42,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->post('enrollment/import', 'Admin\Enrollment::import');
     $routes->get('enrollment/template', 'Admin\Enrollment::template');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
+    $routes->post('announcements/(:num)/share', 'Shared\Announcements::share/$1');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');

@@ -12,7 +12,7 @@ class MessageModel extends Model
     protected $returnType = 'array';
     protected $useTimestamps = false;
     protected $allowedFields = [
-        'conversation_id', 'sender_id', 'reply_to_id', 'body', 'attachment_path', 'attachment_name', 'attachment_ext',
+        'conversation_id', 'sender_id', 'reply_to_id', 'body', 'attachment_path', 'attachment_name', 'attachment_ext', 'announcement_id',
         'edited_at', 'deleted_at',
     ];
 

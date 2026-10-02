@@ -4,6 +4,9 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Models\AnnouncementModel;
+use App\Models\ConversationModel;
+use App\Models\ConversationParticipantModel;
+use App\Models\MessageModel;
 use App\Models\NotificationModel;
 use App\Models\UserModel;
 
@@ -16,6 +19,66 @@ class Announcements extends BaseController
     public static function imageDir(): string
     {
         return FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'announcements' . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Shares an announcement into chats: to people (their direct chat with
+     * the sharer, started if needed) and/or group chats the sharer is in.
+     * Each message carries the announcement (shown as a card in the chat)
+     * plus a plain-text fallback and the sharer's optional note.
+     */
+    public function share(int $id)
+    {
+        $announcement = (new AnnouncementModel())->find($id);
+        if (! $announcement) {
+            return $this->ajaxError('This announcement no longer exists.', 404);
+        }
+
+        $me       = (int) currentUser()['id'];
+        $note     = trim((string) $this->request->getPost('note'));
+        $userIds  = array_values(array_unique(array_filter(array_map('intval', (array) ($this->request->getPost('user_ids') ?? [])), static fn (int $u) => $u !== $me)));
+        $groupIds = array_values(array_unique(array_filter(array_map('intval', (array) ($this->request->getPost('conversation_ids') ?? [])))));
+
+        if ($userIds === [] && $groupIds === []) {
+            return $this->ajaxError('Choose at least one person or group.');
+        }
+        if (mb_strlen($note) > 500) {
+            return $this->ajaxError('The message is too long (500 characters max).');
+        }
+
+        $conversationModel = new ConversationModel();
+        $participantModel  = new ConversationParticipantModel();
+        $targets           = [];
+
+        foreach ((new UserModel())->whereIn('id', $userIds ?: [0])->findAll() as $u) {
+            $targets[] = $conversationModel->findOrCreateDirect($me, (int) $u['id']);
+        }
+        foreach ($groupIds as $cid) {
+            if ($participantModel->isParticipant($cid, $me)) {
+                $targets[] = $cid;
+            }
+        }
+        $targets = array_values(array_unique($targets));
+
+        if ($targets === []) {
+            return $this->ajaxError('None of the selected chats are available.');
+        }
+
+        $body = '📢 ' . $announcement['title'] . ($note !== '' ? "\n\n" . $note : '');
+        $messageModel = new MessageModel();
+        foreach ($targets as $cid) {
+            $messageModel->insert([
+                'conversation_id' => $cid,
+                'sender_id'       => $me,
+                'body'            => $body,
+                'announcement_id' => (int) $announcement['id'],
+            ]);
+            $participantModel->markRead($cid, $me);
+        }
+
+        $count = count($targets);
+
+        return $this->ajaxSuccess('Shared to ' . $count . ' chat' . ($count === 1 ? '' : 's') . '.');
     }
 
     public function index()
@@ -153,8 +216,19 @@ class Announcements extends BaseController
             default    => $builder->orderBy('announcements.date', 'DESC')->orderBy('announcements.id', 'DESC'),
         };
 
+        // "Share to chat" picker: everyone else, plus the group chats I'm in.
+        $me          = (int) currentUser()['id'];
+        $sharePeople = (new UserModel())->select('id, name, role')->where('id !=', $me)->orderBy('name', 'ASC')->findAll();
+        $shareGroups = (new ConversationModel())->select('conversations.id, conversations.name')
+            ->join('conversation_participants cp', 'cp.conversation_id = conversations.id')
+            ->where('cp.user_id', $me)->where('conversations.type', 'group')
+            ->orderBy('conversations.name', 'ASC')->findAll();
+
         return view('pages/shared/announcements', [
             'pageTitle'      => 'Announcements',
+            'sharePeople'    => $sharePeople,
+            'shareGroups'    => $shareGroups,
+            'openId'         => (int) ($requestedId ?? 0),
             'announcements'  => $builder->findAll(),
             'filter'         => $filter,
             'search'         => $search,

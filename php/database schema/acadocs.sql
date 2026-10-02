@@ -418,6 +418,7 @@ CREATE TABLE IF NOT EXISTS `messages` (
   `attachment_path` varchar(500) DEFAULT NULL,
   `attachment_name` varchar(255) DEFAULT NULL,
   `attachment_ext` varchar(20) DEFAULT NULL,
+  `announcement_id` int(10) UNSIGNED DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `edited_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
@@ -425,9 +426,11 @@ CREATE TABLE IF NOT EXISTS `messages` (
   KEY `conversation_id` (`conversation_id`),
   KEY `sender_id` (`sender_id`),
   KEY `reply_to_id` (`reply_to_id`),
+  KEY `messages_announcement_fk` (`announcement_id`),
   CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE,
   CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `messages_reply_to_fk` FOREIGN KEY (`reply_to_id`) REFERENCES `messages` (`id`) ON DELETE SET NULL
+  CONSTRAINT `messages_reply_to_fk` FOREIGN KEY (`reply_to_id`) REFERENCES `messages` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `messages_announcement_fk` FOREIGN KEY (`announcement_id`) REFERENCES `announcements` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
