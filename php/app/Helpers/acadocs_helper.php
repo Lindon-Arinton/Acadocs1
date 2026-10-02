@@ -46,6 +46,7 @@ if (! function_exists('richText')) {
     function richText(string $value): string
     {
         $html = e($value);
+        $html = preg_replace('/\*\*\*(.+?)\*\*\*/s', '<strong><em>$1</em></strong>', $html); // bold + italic (Ctrl+B then Ctrl+I)
         $html = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $html);
         $html = preg_replace('/(?<!\*)\*([^*]+?)\*(?!\*)/s', '<em>$1</em>', $html);
 

@@ -142,18 +142,9 @@
             <input type="text" name="title" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Content</label>
-            <div class="btn-group btn-group-sm mb-1" role="group" aria-label="Text formatting">
-              <button type="button" class="btn btn-outline-secondary" title="Bold" onclick="wrapSelection('announcementContent','**')">
-                <i class="bi bi-type-bold"></i>
-              </button>
-              <button type="button" class="btn btn-outline-secondary" title="Italic" onclick="wrapSelection('announcementContent','*')">
-                <i class="bi bi-type-italic"></i>
-              </button>
-            </div>
+            <label class="form-label" for="announcementContent">Content</label>
             <textarea name="content" id="announcementContent" class="form-control" rows="4" required
-                      placeholder="Select text and click Bold/Italic, or type **bold** / *italic* directly"></textarea>
-          </div>
+                      placeholder="Write the announcement…"></textarea>          </div>
           <div class="mb-3">
             <label class="form-label">Date</label>
             <div class="maroon-dp" data-min="<?= date('Y-m-d') ?>">
@@ -225,14 +216,46 @@ if (" . json_encode(service('request')->getGet('compose') === '1') . ") {
     openPostAnnouncementModal();
 }
 
-function wrapSelection(id, marker) {
-    const el = document.getElementById(id);
+// Toggles **bold** / *italic* markers around the selection (or, with nothing
+// selected, inserts an empty pair with the cursor in between). Goes through
+// insertText where supported so Ctrl+Z still undoes it.
+function toggleMarker(el, marker) {
     const start = el.selectionStart, end = el.selectionEnd;
-    const selected = el.value.substring(start, end) || 'text';
-    el.value = el.value.substring(0, start) + marker + selected + marker + el.value.substring(end);
-    el.focus();
-    el.selectionStart = start + marker.length;
-    el.selectionEnd = start + marker.length + selected.length;
+    const value = el.value;
+    const before = value.substring(start - marker.length, start);
+    const after  = value.substring(end, end + marker.length);
+    // A single * next to another * is part of **bold**, not italic.
+    const isItalicInsideBold = marker === '*' && (value.charAt(start - 2) === '*' || value.charAt(end + 1) === '*');
+    const wrapped = start !== end && before === marker && after === marker && !isItalicInsideBold;
+
+    const replaceRange = (from, to, text) => {
+        el.setSelectionRange(from, to);
+        if (!document.execCommand || !document.execCommand('insertText', false, text)) {
+            el.setRangeText(text, from, to, 'end');
+        }
+    };
+
+    if (wrapped) {
+        const inner = value.substring(start, end);
+        replaceRange(start - marker.length, end + marker.length, inner);
+        el.setSelectionRange(start - marker.length, start - marker.length + inner.length);
+    } else {
+        const inner = value.substring(start, end);
+        replaceRange(start, end, marker + inner + marker);
+        el.setSelectionRange(start + marker.length, start + marker.length + inner.length);
+    }
+}
+
+const announcementContent = document.getElementById('announcementContent');
+if (announcementContent) {
+    announcementContent.addEventListener('keydown', function (e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+        const key = e.key.toLowerCase();
+        if (key === 'b' || key === 'i') {
+            e.preventDefault();
+            toggleMarker(this, key === 'b' ? '**' : '*');
+        }
+    });
 }
 initLiveSearch('announcementSearchInput', 'filterForm');
 
