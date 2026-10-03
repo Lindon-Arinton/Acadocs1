@@ -117,9 +117,18 @@ include APPPATH . 'Views/layout/header.php';
       </form>
       <div class="ms-auto d-flex gap-2 align-items-center">
         <span class="text-muted" style="font-size:.78rem;"><?= count($items) ?> items</span>
-        <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('prop-table','properties')">
-          <i class="bi bi-download me-1"></i>Export
-        </button>
+        <?php $exportQuery = ['grade' => $grade, 'section' => $section, 'condition' => $condition, 'q' => $search]; ?>
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-download me-1"></i>Export
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="<?= base_url('property-management/export') . '?' . http_build_query($exportQuery + ['format' => 'xlsx']) ?>">
+              <i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+            <li><a class="dropdown-item" href="<?= base_url('property-management/export') . '?' . http_build_query($exportQuery + ['format' => 'docx']) ?>">
+              <i class="bi bi-file-earmark-word me-2 text-primary"></i>Word (.docx)</a></li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -247,16 +256,6 @@ include APPPATH . 'Views/layout/header.php';
 <?php
 $extraScript = <<<'HTML'
 <script>
-function exportTable(tableId, filename) {
-    const rows = [...document.getElementById(tableId).querySelectorAll('tr')].map(r =>
-        [...r.querySelectorAll('th,td')].map(c => JSON.stringify(c.innerText.trim())).join(',')
-    );
-    const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(new Blob([rows.join('\\n')],{type:'text/csv'})),
-        download: filename+'.csv'
-    });
-    a.click();
-}
 initLiveSearch('propSearchInput', 'filterForm');
 
 // Add Item: the Section dropdown only lists the sections of the chosen grade.
