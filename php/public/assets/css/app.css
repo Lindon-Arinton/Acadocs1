@@ -1269,97 +1269,8 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
   background: #fff;
 }
 
-/* Light full-page background + a plain (non-tinted) shell for the split
-   form/illustration layout, as modifiers on the base .login-wrapper/.login-shell
-   so both stay reusable if a future page wants the original solid-maroon look. */
-/* Hardcoded (not var(--bg)) so the login page's look stays exactly as-is
-   even as the rest of the system's light-mode background changes. */
-.login-wrapper-light { background: #f4f6f9; }
-.login-shell-split { align-items: stretch; }
-.login-form-panel-left { flex: 0 0 46%; }
 /* Single-panel card for Forgot / Reset password. */
 .login-shell-compact { max-width: 460px; min-height: 0; }
-
-/* Illustration panel (right) — soft brand-tinted backdrop behind the
-   hand-built animated SVG scene. */
-.login-illustration-panel {
-  flex: 1;
-  background: radial-gradient(circle at 75% 20%, #fff0f0 0%, #ffe4e9 55%, #ffd9e0 100%);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 2.5rem 2rem;
-  position: relative;
-  overflow: hidden;
-}
-.login-illustration-svg {
-  width: 100%; max-width: 340px; height: auto;
-}
-
-/* The three depth layers (back blobs / mid scene / front floaters) are
-   moved independently by JS on mousemove — this is what makes it smooth. */
-#li-layer-back, #li-layer-mid, #li-layer-front {
-  transition: transform .35s cubic-bezier(.22,1,.36,1);
-}
-
-/* Ambient background blobs — slow, near-imperceptible drift so the scene
-   never looks static, without competing with the foreground objects. */
-@keyframes li-drift-anim {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(6px, -8px) scale(1.04); }
-}
-.li-drift { transform-box: fill-box; transform-origin: center; animation: li-drift-anim 9s ease-in-out infinite; }
-.li-drift-slow { animation-duration: 14s; }
-
-/* Entrance choreography: each element fades/scales/rises in on load, staggered
-   via its own inline animation-delay, before its idle loop (float/sway/twinkle,
-   on a separately-animated inner element) takes over. */
-@keyframes li-enter-anim {
-  from { opacity: 0; transform: translateY(22px) scale(.9); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-.li-enter {
-  transform-box: fill-box; transform-origin: center;
-  opacity: 0;
-  animation: li-enter-anim .6s cubic-bezier(.22,1,.36,1) both;
-}
-@keyframes li-enter-bounce-anim {
-  0%   { opacity: 0; transform: translateY(-30px) scale(.7); }
-  60%  { opacity: 1; transform: translateY(6px) scale(1.08); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.li-enter-bounce {
-  animation: li-enter-bounce-anim .8s cubic-bezier(.34,1.56,.64,1) both;
-}
-
-/* Foreground objects: a gentle vertical bob once their entrance has settled
-   (each has its own positive animation-delay set inline, timed to pick up
-   right after the matching .li-enter finishes). */
-@keyframes li-float-anim {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-8px); }
-}
-.li-float { transform-box: fill-box; transform-origin: center; animation: li-float-anim 3.6s cubic-bezier(.45,0,.55,1) infinite; animation-fill-mode: backwards; }
-
-/* Sparkles: a quick opacity/scale shimmer. */
-@keyframes li-twinkle-anim {
-  0%, 100% { opacity: .35; transform: scale(.8); }
-  50%      { opacity: 1;   transform: scale(1.15); }
-}
-.li-twinkle { transform-box: fill-box; transform-origin: center; animation: li-twinkle-anim 2.2s ease-in-out infinite; animation-fill-mode: backwards; }
-
-/* Plant: a slow pendulum sway. */
-@keyframes li-sway-anim {
-  0%, 100% { transform: rotate(-3deg); }
-  50%      { transform: rotate(3deg); }
-}
-.li-sway { animation: li-sway-anim 4.5s ease-in-out infinite; }
-
-/* Laptop's tiny "it's on" activity dot — a simple continuous pulse (this one
-   doesn't need entrance choreography, it's a 3px accent). */
-@keyframes li-blink-anim {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: .25; }
-}
-.li-blink { animation: li-blink-anim 1.6s ease-in-out infinite; }
 
 /* Form panel */
 .login-form-panel {
@@ -1398,10 +1309,362 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
 
 @media (max-width: 767.98px) {
   .login-shell { flex-direction: column; max-width: 420px; }
-  .login-form-panel-left { flex: none; }
   .login-form-panel { padding: 2.25rem 1.75rem; }
-  .login-illustration-panel { padding: 1.75rem; order: -1; }
-  .login-illustration-svg { max-width: 220px; }
+}
+
+/* ── Login / Forgot / Reset: school-photo backdrop ────────────
+   Full-page campus photo with a slow Ken Burns drift under a maroon
+   wash; the card then rises in and its contents stagger after it. */
+.login-wrapper-photo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #1a0505;
+}
+.login-wrapper-photo .login-shell { position: relative; z-index: 2; }
+
+.login-bg {
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden;
+  animation: login-bg-reveal 1.6s cubic-bezier(.22,1,.36,1) both;
+}
+.login-bg-photo {
+  position: absolute; inset: -4%;
+  background: url('../img/login-bg.jpg') center 40% / cover no-repeat;
+  animation: login-kenburns 32s ease-in-out 1.6s infinite alternate;
+}
+.login-bg-overlay {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(20,0,0,.55) 100%),
+    linear-gradient(120deg, rgba(61,5,5,.84) 0%, rgba(92,10,10,.6) 45%, rgba(20,0,0,.35) 100%);
+}
+@keyframes login-bg-reveal {
+  from { opacity: 0; transform: scale(1.12); filter: blur(10px); }
+  to   { opacity: 1; transform: scale(1);    filter: none; }
+}
+@keyframes login-kenburns {
+  from { transform: scale(1)    translate(0, 0); }
+  to   { transform: scale(1.12) translate(-2%, -1.5%); }
+}
+
+/* Card: transparent shell so the illustration side can be frosted glass
+   showing the photo through it; the form side stays solid for legibility. */
+.login-shell-glass {
+  background: transparent;
+  box-shadow: 0 40px 100px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12);
+  animation: login-card-in 1s cubic-bezier(.22,1,.36,1) .35s both;
+}
+.login-shell-glass .login-form-panel { background: rgba(255,255,255,.97); }
+@keyframes login-card-in {
+  from { opacity: 0; transform: translateY(48px) scale(.95); filter: blur(6px); }
+  to   { opacity: 1; transform: translateY(0) scale(1);       filter: none; }
+}
+
+/* Staggered form contents — each .ls-item sets its own --i. */
+.ls-item { animation: login-rise .6s cubic-bezier(.22,1,.36,1) calc(.75s + var(--i, 0) * .08s) both; }
+@keyframes login-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Error alert gives a short shake once it has appeared. */
+.login-shake { animation: login-rise .6s cubic-bezier(.22,1,.36,1) .9s both, login-shake .5s ease 1.5s; }
+@keyframes login-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+/* Inputs: icon picks up the brand color while the field has focus. */
+.login-input-group .login-input-icon { transition: color .2s; }
+.login-input-group:focus-within .login-input-icon { color: var(--primary); }
+
+/* Submit button: light sweep on hover + loading state on submit. */
+.login-submit-btn { position: relative; overflow: hidden; }
+.login-submit-btn::after {
+  content: ''; position: absolute; top: 0; left: -60%;
+  width: 45%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent);
+  transform: skewX(-20deg);
+  transition: left .6s ease;
+}
+.login-submit-btn:hover::after { left: 120%; }
+.login-submit-btn.is-loading { pointer-events: none; opacity: .85; }
+.login-submit-btn.is-loading .btn-label { visibility: hidden; }
+.login-submit-btn .btn-spinner {
+  display: none; position: absolute; top: 50%; left: 50%;
+  width: 20px; height: 20px; margin: -10px 0 0 -10px;
+  border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%;
+  animation: login-spin .7s linear infinite;
+}
+.login-submit-btn.is-loading .btn-spinner { display: block; }
+@keyframes login-spin { to { transform: rotate(360deg); } }
+
+/* ── Login: compact split card (form left / campus scene right) ──
+   Sits on the full-page campus photo backdrop (.login-wrapper-photo) at the
+   original login card size. Colors are hardcoded so the login keeps its
+   look regardless of the app's light/dark theme. */
+.auth-split {
+  --a-maroon: #7a1222;
+  --a-maroon-dark: #4f0812;
+  --a-ink: #1c1f2e;
+  --a-muted: #6b6f7b;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  position: relative; z-index: 2;
+  width: 100%; max-width: 920px; min-height: 560px;
+  display: flex;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #fbf7f4;
+  box-shadow: 0 40px 100px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12);
+  animation: login-card-in 1s cubic-bezier(.22,1,.36,1) .35s both;
+}
+
+/* Left: form */
+.auth-left {
+  position: relative;
+  flex: 0 0 46%;
+  display: flex; flex-direction: column;
+  padding: 1.75rem 2.25rem 1.5rem;
+  background: radial-gradient(circle at 20% 30%, #fffdfb 0%, #fbf5f1 60%, #f6ece7 100%);
+  overflow: hidden;
+}
+.auth-left > *:not(.auth-wave) { position: relative; z-index: 1; }
+
+.auth-topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.auth-brand { display: flex; align-items: center; gap: .6rem; }
+.auth-brand img { width: 40px; height: 40px; object-fit: contain; }
+.auth-brand-name {
+  font-size: 1.15rem; font-weight: 800; letter-spacing: .06em; line-height: 1;
+  color: var(--a-maroon);
+}
+.auth-brand-sub {
+  max-width: 9.5rem;
+  font-size: .5rem; font-weight: 600; letter-spacing: .1em; line-height: 1.35; text-transform: uppercase;
+  color: #8a5a60; margin-top: .25rem;
+}
+.auth-brand .btn-link { color: #b39a9d; }
+.auth-brand .btn-link:hover { color: var(--a-maroon); }
+
+.auth-date { display: flex; gap: .45rem; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.auth-date i { color: var(--a-maroon); font-size: .9rem; }
+.auth-date #liveDate { font-size: .7rem; font-weight: 600; color: var(--a-ink); white-space: nowrap; }
+.auth-date #liveClock { font-size: .7rem; color: var(--a-muted); }
+
+.auth-form-wrap {
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 1.25rem 0 .25rem;
+}
+.auth-accent { width: 32px; height: 3px; border-radius: 3px; background: #c0283c; margin-bottom: .8rem; }
+.auth-title {
+  font-size: 1.6rem; font-weight: 800; line-height: 1.15;
+  color: var(--a-ink); margin-bottom: .4rem; letter-spacing: -.01em;
+}
+.auth-title span { display: block; color: var(--a-maroon); }
+.auth-sub { font-size: .82rem; color: var(--a-muted); margin-bottom: 1.4rem; }
+
+.auth-field { position: relative; margin-bottom: .9rem; }
+.auth-field input {
+  width: 100%; height: 46px;
+  border: 1px solid #ebe1dd; border-radius: 12px; background: #fff;
+  padding: 0 2.75rem 0 2.8rem;
+  font-size: .86rem; color: var(--a-ink);
+  box-shadow: 0 2px 8px rgba(90,20,30,.04);
+  transition: border-color .2s, box-shadow .2s;
+}
+.auth-field input::placeholder { color: #a7a9b2; }
+.auth-field input:focus {
+  outline: none; border-color: var(--a-maroon);
+  box-shadow: 0 0 0 4px rgba(122,18,34,.1), 0 6px 18px rgba(90,20,30,.08);
+}
+.auth-field-icon {
+  position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--a-maroon); font-size: 1rem; pointer-events: none;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.auth-field:focus-within .auth-field-icon { transform: translateY(-50%) scale(1.15); }
+.auth-field-toggle {
+  position: absolute; right: .4rem; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent;
+  color: #8b8e98; display: flex; align-items: center; justify-content: center;
+}
+.auth-field-toggle:hover { color: var(--a-maroon); background: #f8eff0; }
+
+.auth-forgot { text-align: right; margin: -.3rem 0 1rem; }
+.auth-forgot a {
+  font-size: .78rem; font-weight: 600; color: var(--a-maroon);
+  text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px;
+}
+
+.auth-submit {
+  height: 48px; border-radius: 14px; font-size: .95rem;
+  background: linear-gradient(90deg, #560a17 0%, #8a1a2c 55%, #6a0f1e 100%);
+  box-shadow: 0 12px 24px rgba(110,15,30,.3);
+}
+.auth-submit:hover { box-shadow: 0 16px 30px rgba(110,15,30,.38); }
+
+.auth-features {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  margin-top: 1.5rem;
+}
+.auth-feature { display: flex; align-items: center; gap: .45rem; padding: 0 .55rem; }
+.auth-feature:first-child { padding-left: 0; }
+.auth-feature + .auth-feature { border-left: 1px solid #e7dbd8; }
+.auth-feature i { font-size: 1.2rem; color: var(--a-maroon); }
+.auth-feature strong { display: block; font-size: .66rem; color: var(--a-ink); line-height: 1.25; }
+.auth-feature small { display: block; font-size: .56rem; color: var(--a-muted); line-height: 1.3; }
+
+/* Decorative waves (SVG, stretched to their box) */
+.auth-wave { position: absolute; pointer-events: none; z-index: 0; }
+.auth-wave svg { width: 100%; height: 100%; display: block; }
+.auth-wave-tr { top: 0; right: 0; width: 55%; height: 22%; animation: auth-wave-drift 12s ease-in-out infinite alternate; }
+.auth-wave-bl { bottom: 0; left: 0; width: 80%; height: 16%; animation: auth-wave-drift 14s ease-in-out infinite alternate-reverse; }
+@keyframes auth-wave-drift {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-10px, 5px); }
+}
+
+/* Right: campus photo scene */
+.auth-right {
+  position: relative; flex: 1;
+  overflow: hidden;
+  background: #3a0710;
+  animation: auth-panel-in 1.1s cubic-bezier(.77,0,.18,1) .6s both;
+}
+@keyframes auth-panel-in {
+  from { clip-path: inset(0 0 0 100%); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.auth-par { position: absolute; inset: 0; pointer-events: none; transition: transform .5s cubic-bezier(.22,1,.36,1); }
+.auth-photo {
+  /* Photo fills the area above the desk so the building isn't hidden behind it. */
+  position: absolute; inset: -4% -6% 34% -6%;
+  background: url('../img/login-bg.jpg') 35% 60% / cover no-repeat;
+  animation: login-kenburns 30s ease-in-out infinite alternate;
+}
+.auth-photo-tint {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(122,18,34,.45) 0%, rgba(90,12,24,.35) 40%, rgba(30,4,10,.75) 100%),
+    linear-gradient(90deg, rgba(60,6,14,.35), transparent 60%);
+}
+
+.auth-wave-r-tl { top: 0; left: 0; width: 55%; height: 30%; z-index: 2; }
+.auth-wave-r-br { bottom: 0; right: 0; width: 45%; height: 28%; z-index: 2; }
+
+/* Desk surface the books sit on */
+.auth-desk {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 38%;
+  background:
+    radial-gradient(ellipse at 60% 0%, rgba(255,170,150,.18) 0%, transparent 55%),
+    linear-gradient(180deg, #6e2128 0%, #4a1117 22%, #2a080c 70%, #1a0407 100%);
+  box-shadow: 0 -1px 0 rgba(255,200,185,.28), 0 -30px 60px rgba(20,0,5,.35);
+}
+
+/* Script tagline, top-right */
+.auth-tagline {
+  position: absolute; top: 6%; right: 7%; z-index: 3;
+  font-family: 'Dancing Script', cursive; font-size: 1.35rem;
+  line-height: 1.15; color: #fff; text-align: right;
+  transform: rotate(-8deg);
+  text-shadow: 0 2px 12px rgba(0,0,0,.25);
+}
+.auth-tagline-text { display: block; animation: auth-write 1.6s cubic-bezier(.65,0,.35,1) 1.6s both; }
+.auth-tagline svg { display: block; width: 70%; margin-left: auto; height: 10px; overflow: visible; }
+.auth-tagline path {
+  stroke-dasharray: 160; stroke-dashoffset: 160;
+  animation: auth-draw .9s ease-out 3s forwards;
+}
+@keyframes auth-write {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+@keyframes auth-draw { to { stroke-dashoffset: 0; } }
+
+/* Floating glass icon cards + flowing connectors (drawn at 440×220, scaled down) */
+.auth-orbit {
+  position: absolute; top: 16%; left: 50%;
+  width: 440px; height: 220px; margin-left: -220px;
+  transform: scale(.72); transform-origin: center top;
+  z-index: 3;
+}
+.auth-orbit-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.auth-orbit-lines path {
+  fill: none; stroke: rgba(255,255,255,.55); stroke-width: 1.3;
+  stroke-dasharray: 3 7; stroke-linecap: round;
+  animation: auth-flow 3s linear infinite, login-rise .8s ease 1.8s both;
+}
+.auth-orbit-lines circle { fill: #fff; opacity: .85; animation: auth-pulse 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes auth-flow { to { stroke-dashoffset: -40; } }
+@keyframes auth-pulse {
+  0%, 100% { opacity: .5; transform: scale(.8); }
+  50%      { opacity: 1;  transform: scale(1.3); }
+}
+
+.auth-card {
+  position: absolute; width: 74px; height: 74px; margin: -37px 0 0 -37px;
+  animation: auth-pop .7s cubic-bezier(.34,1.56,.64,1) both;
+}
+.auth-card-inner {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255,255,255,.34), rgba(255,255,255,.12));
+  border: 1px solid rgba(255,255,255,.45);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 14px 30px rgba(30,0,8,.35), inset 0 1px 0 rgba(255,255,255,.5);
+  color: #fff; font-size: 1.9rem;
+  animation: auth-float 4.2s ease-in-out infinite;
+}
+@keyframes auth-pop {
+  from { opacity: 0; transform: scale(.4) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes auth-float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50%      { transform: translateY(-10px) rotate(calc(var(--r, 0deg) * -1)); }
+}
+
+/* Book stack + pen cup on the desk */
+.auth-books {
+  position: absolute; z-index: 3;
+  right: 7%; bottom: 31%;
+  width: 58%; height: auto;
+  overflow: visible;
+}
+.auth-book { animation: auth-book-in .8s cubic-bezier(.22,1,.36,1) both; }
+@keyframes auth-book-in {
+  from { opacity: 0; transform: translate(60px, -24px); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+
+/* Headline, bottom-left */
+.auth-headline {
+  position: absolute; left: 8%; bottom: 7%; z-index: 3;
+  max-width: 250px; padding-left: .8rem;
+  border-left: 3px solid #e2475a;
+  color: #fff;
+  animation: login-rise .8s cubic-bezier(.22,1,.36,1) 1.9s both;
+}
+.auth-headline h2 { font-size: 1.15rem; font-weight: 700; line-height: 1.2; margin-bottom: .4rem; }
+.auth-headline p { font-size: .72rem; color: rgba(255,255,255,.82); margin: 0; line-height: 1.5; }
+
+@media (max-width: 991.98px) {
+  .auth-split { max-width: 420px; min-height: 0; }
+  .auth-right { display: none; }
+  .auth-left { flex: 1; padding: 2rem 1.75rem; }
+}
+@media (max-width: 575.98px) {
+  .auth-feature { flex-direction: column; text-align: center; gap: .25rem; padding: 0 .4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-bg, .login-bg-photo, .login-shell-glass, .ls-item, .login-shake,
+  .auth-split, .auth-wave, .auth-right, .auth-photo, .auth-tagline-text, .auth-orbit-lines path,
+  .auth-orbit-lines circle, .auth-card, .auth-card-inner, .auth-book, .auth-headline { animation: none !important; }
+  .auth-tagline path { stroke-dashoffset: 0; animation: none; }
 }
 
 /* ── Sidebar overlay (mobile) ─────────────────────────────── */

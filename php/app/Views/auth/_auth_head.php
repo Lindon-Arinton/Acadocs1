@@ -12,8 +12,12 @@
 <link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
 </head>
 <body>
-<div class="login-wrapper login-wrapper-light">
-  <div class="login-shell login-shell-compact">
+<div class="login-wrapper login-wrapper-photo">
+  <div class="login-bg" aria-hidden="true">
+    <div class="login-bg-photo"></div>
+    <div class="login-bg-overlay"></div>
+  </div>
+  <div class="login-shell login-shell-compact login-shell-glass">
     <div class="login-form-panel">
       <div class="d-flex align-items-center gap-2 mb-4">
         <img src="<?= base_url('assets/img/logo-icon.png') ?>" alt="ACADOCS" style="width:34px;height:34px;object-fit:contain;">
