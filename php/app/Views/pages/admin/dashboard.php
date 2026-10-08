@@ -1,480 +1,368 @@
 <?php include APPPATH . 'Views/layout/header.php'; ?>
 
-<!-- Page Header: solid-maroon banner, same shared style as every other page. -->
-<div class="page-header">
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-    <div>
-      <div class="small mb-1" style="opacity:.8;">Welcome back,</div>
-      <h4 class="mb-1"><?= e($user['name'] ?? '') ?></h4>
-      <p class="mb-0">Here's an overview of your school's performance.</p>
-    </div>
-    <div class="d-flex align-items-center gap-2 flex-wrap" style="position:relative;z-index:1;">
-      <?php if (hasRole('admin')): ?>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
-        <i class="bi bi-people me-1"></i>Add Enrollment
-      </button>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importKpiModal">
-        <i class="bi bi-upload me-1"></i>Import KPI Report
-      </button>
-      <?php endif; ?>
-      <label class="text-white small fw-semibold mb-0" for="dashboard-year-filter">School Year:</label>
-      <div class="maroon-select maroon-select-sm" style="width:auto;">
-        <select id="dashboard-year-filter" class="maroon-select-native"
-                onchange="location.href='<?= base_url('dashboard') ?>?year=' + encodeURIComponent(this.value)">
-          <?php foreach ($years as $y): ?>
-          <option value="<?= e($y) ?>" <?= $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
-          <?php endforeach; ?>
-        </select>
-        <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
-        <div class="maroon-select-panel"></div>
-      </div>
-      <span class="badge rounded-pill px-3 py-2" style="background:rgba(255,255,255,.2);font-size:.8rem;">
-        <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;vertical-align:middle;"></i>Live Data
-      </span>
-    </div>
-  </div>
-</div>
-
 <?php
-// Sparkline SVG markup is identical for the three trend tiles — only the
-// accent color and computed points differ, so build it once here. Both the
-// line and its area wash carry the tile's own accent color (per-metric
-// color story), with the current point as a solid dot.
+// Sparkline SVG for the KPI cards: line + soft area wash in the accent
+// color, with the latest point as a solid dot.
 $sparklineSvg = static function (?array $spark, string $accentColor): string {
     if ($spark === null) {
         return '';
     }
 
-    return '<svg class="stat-sparkline" viewBox="0 0 64 22" width="64" height="22" preserveAspectRatio="none">'
+    return '<svg class="stat-sparkline dash-sparkline" viewBox="0 0 64 22" preserveAspectRatio="none">'
         . '<polygon points="' . e($spark['areaPoints']) . '" fill="' . $accentColor . '"></polygon>'
         . '<polyline points="' . e($spark['points']) . '" stroke="' . $accentColor . '"></polyline>'
         . '<circle cx="' . $spark['lastX'] . '" cy="' . $spark['lastY'] . '" r="2.25" fill="' . $accentColor . '"></circle>'
         . '</svg>';
 };
 
-// Delta row: arrow + magnitude pill, colored by whether the direction is
-// GOOD for that particular metric (down is good for drop-out, up is good for
-// enrollees/MPS) — not just by up/down — plus a "vs SY ..." caption naming
-// what it's compared against.
+// Delta: arrow + signed change, green when the direction is GOOD for that
+// metric (down is good for drop-out, up for enrollees / MPS), with a
+// "vs. SY …" caption naming what it's compared against.
 $deltaRow = static function (?array $delta, bool $upIsGood, string $suffix = '%'): string {
     if ($delta === null) {
         return '';
     }
-
     $isUp   = $delta['delta'] >= 0;
     $isGood = $isUp === $upIsGood;
-    $cls    = $isGood ? 'stat-delta-up' : 'stat-delta-down';
-    $icon   = $isUp ? 'bi-arrow-up-short' : 'bi-arrow-down-short';
 
-    return '<div class="stat-tile-delta-row">'
-        . '<span class="stat-delta ' . $cls . '"><i class="bi ' . $icon . '"></i>' . number_format(abs($delta['delta']), 2) . $suffix . '</span>'
-        . '<span class="text-muted">vs ' . e($delta['vsLabel']) . '</span>'
-        . '</div>';
+    return '<div class="dash-delta ' . ($isGood ? 'is-good' : 'is-bad') . '">'
+        . '<i class="bi ' . ($isUp ? 'bi-arrow-up' : 'bi-arrow-down') . '"></i>'
+        . ($isUp ? '+' : '−') . number_format(abs($delta['delta']), 2) . $suffix
+        . '</div><div class="dash-vs">vs. ' . e(str_replace('-', '–', $delta['vsLabel'])) . '</div>';
 };
 
-// Submission compliance is a meter against a target, not a plain magnitude —
-// its fill carries severity (good / needs attention / critical) the same way
-// the rest of the app's status badges do, rather than a fixed brand color.
-$complianceSeverity = 'danger';
-if ($complianceRate === null) {
-    $complianceSeverity = '';
-} elseif ($complianceRate >= 85) {
-    $complianceSeverity = 'success';
-} elseif ($complianceRate >= 60) {
-    $complianceSeverity = 'warning';
-}
+$docOnTrack = ($docSummary['Submitted'] ?? 0) + ($docSummary['Reviewed'] ?? 0);
+$docTotal   = array_sum($docSummary);
+$docPct     = static fn (string $s) => $docTotal > 0 ? round(($docSummary[$s] ?? 0) / $docTotal * 100) : 0;
+$enrollTotal = array_sum(array_column($enrollment, 'students'));
+$insightTone = [
+    'danger'  => ['#fee2e2', '#b91c1c'],
+    'warning' => ['#fef3c7', '#b45309'],
+    'success' => ['#d1fae5', '#059669'],
+    'info'    => ['#f3e8e8', '#800000'],
+];
 ?>
 
-<!-- Stat tile strip: 3 clickable (drive the chart below) + 1 static. All
-     four share the brand maroon accent for icon/sparkline/delta-arrow, with
-     the delta pill itself carrying the green/red good-or-bad read. -->
-<div class="stat-tile-row mb-3">
-  <div class="stat-tile stat-tile-clickable active" data-metric="enrollees" onclick="selectKpiMetric('enrollees')">
-    <div class="stat-tile-top">
-      <div class="stat-tile-icon" style="background:#fff0f0;color:#800000;"><i class="bi bi-people-fill"></i></div>
-      <span class="stat-tile-name">Total Enrollees</span>
-    </div>
-    <div class="stat-tile-body">
-      <div>
-        <div class="stat-tile-value" id="kpiCardValue-enrollees">—</div>
-        <div class="stat-tile-caption">SY <?= e($currentYear) ?></div>
-      </div>
-      <div class="stat-tile-visual">
-        <?php if ($enrolleesSparkline !== null): ?>
-          <?= $sparklineSvg($enrolleesSparkline, '#800000') ?>
-        <?php else: ?>
-          <i class="bi bi-people-fill stat-tile-empty-icon"></i>
-        <?php endif; ?>
-      </div>
-    </div>
-    <?= $deltaRow($enrolleesDelta, true) ?>
+<!-- Welcome header (no banner, per the redesign) -->
+<div class="dash-head">
+  <div>
+    <div class="dash-eyebrow">Welcome back,</div>
+    <h1 class="dash-name"><?= e($user['name'] ?? '') ?></h1>
+    <p class="dash-sub">Here's an overview of your school's performance.</p>
+    <div class="dash-rule"></div>
   </div>
-
-  <div class="stat-tile stat-tile-clickable" data-metric="dropout" onclick="selectKpiMetric('dropout')">
-    <div class="stat-tile-top">
-      <div class="stat-tile-icon" style="background:#fff0f0;color:#800000;"><i class="bi bi-exclamation-triangle-fill"></i></div>
-      <span class="stat-tile-name">Drop-Out Rate</span>
-    </div>
-    <div class="stat-tile-body">
-      <div>
-        <div class="stat-tile-value" id="kpiCardValue-dropout">—</div>
-        <div class="stat-tile-caption" id="kpiCardYearNote-dropout">SY <?= e($currentYear) ?></div>
-      </div>
-      <div class="stat-tile-visual">
-        <?php if ($dropoutSparkline !== null): ?>
-          <?= $sparklineSvg($dropoutSparkline, '#800000') ?>
-        <?php else: ?>
-          <i class="bi bi-exclamation-triangle-fill stat-tile-empty-icon"></i>
-        <?php endif; ?>
-      </div>
-    </div>
-    <?= $deltaRow($dropoutDelta, false) ?>
-  </div>
-
-  <div class="stat-tile stat-tile-clickable" data-metric="mps" onclick="selectKpiMetric('mps')">
-    <div class="stat-tile-top">
-      <div class="stat-tile-icon" style="background:#fff0f0;color:#800000;"><i class="bi bi-graph-up-arrow"></i></div>
-      <span class="stat-tile-name">Average MPS</span>
-    </div>
-    <div class="stat-tile-body">
-      <div>
-        <div class="stat-tile-value"><?= $mpsOverallAvg !== null ? number_format($mpsOverallAvg, 2) . '%' : 'No data' ?></div>
-        <div class="stat-tile-caption">SY <?= e($mpsSourceYear) ?></div>
-      </div>
-      <div class="stat-tile-visual">
-        <?php if ($mpsSparkline !== null): ?>
-          <?= $sparklineSvg($mpsSparkline, '#800000') ?>
-        <?php else: ?>
-          <i class="bi bi-graph-up-arrow stat-tile-empty-icon"></i>
-        <?php endif; ?>
-      </div>
-    </div>
-    <?= $deltaRow($mpsDelta, true) ?>
-  </div>
-
-  <div class="stat-tile">
-    <div class="stat-tile-top">
-      <div class="stat-tile-icon" style="background:#fff0f0;color:#800000;"><i class="bi bi-clipboard-check-fill"></i></div>
-      <span class="stat-tile-name">Submission Compliance</span>
-    </div>
-    <div class="stat-tile-body">
-      <div style="width:100%;">
-        <div class="stat-tile-value"><?= $complianceRate !== null ? number_format($complianceRate, 1) . '%' : 'No data' ?></div>
-        <div class="stat-tile-caption">Documents</div>
-        <div class="progress mt-2" style="height:5px;">
-          <div class="progress-bar <?= $complianceSeverity ?>" style="width:<?= $complianceRate !== null ? $complianceRate : 0 ?>%;"></div>
-        </div>
-      </div>
-    </div>
+  <div class="dash-actions">
+    <label class="dash-year" for="dashboard-year-filter">
+      <i class="bi bi-calendar3"></i>
+      <span>
+        <small>School Year</small>
+        <select id="dashboard-year-filter"
+                onchange="loadPage('<?= base_url('dashboard') ?>?year=' + encodeURIComponent(this.value))">
+          <?php foreach ($years as $y): ?>
+          <option value="<?= e($y) ?>" <?= $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </span>
+    </label>
+    <?php if (hasRole('admin')): ?>
+    <button type="button" class="btn dash-btn dash-btn-primary" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
+      <i class="bi bi-person-plus me-2"></i>Add Enrollment
+    </button>
+    <button type="button" class="btn dash-btn" data-bs-toggle="modal" data-bs-target="#importKpiModal">
+      <i class="bi bi-upload me-2"></i>Import KPI Report
+    </button>
+    <?php endif; ?>
+    <button type="button" class="btn dash-btn" onclick="document.getElementById('dash-breakdown').scrollIntoView({ behavior: 'smooth', block: 'start' })">
+      <i class="bi bi-bar-chart-line me-2"></i>View Data
+    </button>
   </div>
 </div>
 
-<!-- Bento row: primary interactive chart + compact charts (left) / side rail (right) -->
-<div class="dashboard-grid mb-3">
-  <div>
-    <!-- Interactive KPI chart: one canvas, switch chart type via tabs -->
-    <div class="card">
-      <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <span class="fw-semibold small"><i class="bi bi-graph-up me-2 text-muted"></i><span id="kpiChartTitle">Total Enrollees</span> Trend</span>
-        <div class="tab-pills" data-tab-group="charttype">
-          <button type="button" class="tab-pill active" data-tab-key="line" onclick="selectChartKind('line')">Line</button>
-          <button type="button" class="tab-pill" data-tab-key="bar" onclick="selectChartKind('bar')">Bar</button>
-        </div>
+<!-- KPI cards (the first three also switch the trend chart below) -->
+<div class="dash-kpis mb-3">
+  <div class="dash-kpi stat-tile-clickable active" data-metric="enrollees" onclick="selectKpiMetric('enrollees')">
+    <div class="dash-kpi-top"><span class="dash-kpi-icon"><i class="bi bi-people-fill"></i></span>Total Enrollees</div>
+    <div class="dash-kpi-body">
+      <div>
+        <div class="dash-kpi-value" id="kpiCardValue-enrollees">—</div>
+        <?= $deltaRow($enrolleesDelta, true) ?: '<div class="dash-vs">SY ' . e($currentYear) . '</div>' ?>
       </div>
-      <div class="card-body">
-        <canvas id="kpiChart" height="220"></canvas>
-        <p id="kpiChartEmpty" class="text-muted text-center py-4 mb-0 d-none small">
-          <i class="bi bi-bar-chart fs-4 d-block mb-2"></i><span id="kpiChartEmptyText">No data available.</span>
-        </p>
-      </div>
-    </div>
-
-    <div class="row g-3 mt-1">
-      <div class="col-md-6">
-        <div class="card h-100">
-          <div class="card-header bg-white py-2">
-            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-              <span class="fw-semibold small"><i class="bi bi-bar-chart-steps me-2 text-muted"></i>Enrolment by Grade Level</span>
-              <?php if (! empty($enrollmentMonths)): ?>
-              <div class="d-flex align-items-center gap-2">
-                <label class="small text-muted mb-0" for="enrollment-month-filter">Month:</label>
-                <div class="maroon-select maroon-select-sm" style="width:auto;">
-                  <select id="enrollment-month-filter" class="maroon-select-native"
-                          onchange="loadPage('<?= base_url('dashboard') ?>?year=<?= urlencode($currentYear) ?>&month=' + encodeURIComponent(this.value), { scroll: false })">
-                    <?php foreach (array_reverse($enrollmentMonths) as $m): ?>
-                    <option value="<?= e($m) ?>" <?= $m === $enrollmentMonth ? 'selected' : '' ?>><?= e(date('F Y', strtotime($m . '-01'))) ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                  <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
-                  <div class="maroon-select-panel"></div>
-                </div>
-              </div>
-              <?php endif; ?>
-            </div>
-          </div>
-          <div class="card-body card-body-tight">
-            <?php if (empty($enrollment)): ?>
-            <p class="text-muted text-center py-4 mb-0 small"><i class="bi bi-bar-chart fs-4 d-block mb-2"></i>No enrolment data for SY <?= e($currentYear) ?>.</p>
-            <?php else: ?>
-            <canvas id="enrollChart" height="160"></canvas>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card h-100">
-          <div class="card-header bg-white py-2">
-            <span class="fw-semibold small"><i class="bi bi-graph-up me-2 text-muted"></i>Performance by Level</span>
-          </div>
-          <div class="card-body card-body-tight">
-            <?php if (empty($perfLevel)): ?>
-            <p class="text-muted text-center py-4 mb-0 small"><i class="bi bi-graph-up fs-4 d-block mb-2"></i>No performance data for SY <?= e($currentYear) ?>.</p>
-            <?php else: ?>
-            <canvas id="perfChart" height="160"></canvas>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
+      <?= $sparklineSvg($enrolleesSparkline, '#800000') ?>
     </div>
   </div>
 
-  <div class="side-rail-stack">
-    <?php if (! empty($insights)):
-      $insightTone = [
-        'danger'  => ['bg' => '#fee2e2', 'fg' => '#ef4444', 'tint' => 'rgba(239,68,68,.08)'],
-        'warning' => ['bg' => '#fef9c3', 'fg' => '#b45309', 'tint' => 'rgba(180,83,9,.08)'],
-        'success' => ['bg' => '#d1fae5', 'fg' => '#059669', 'tint' => 'rgba(5,150,105,.08)'],
-        'info'    => ['bg' => '#fff0f0', 'fg' => '#800000', 'tint' => 'rgba(128,0,0,.06)'],
-      ];
-    ?>
-    <div class="card">
-      <div class="card-header bg-white py-2">
-        <span class="fw-semibold small"><i class="bi bi-lightbulb-fill me-2 text-muted"></i>Insights</span>
+  <div class="dash-kpi stat-tile-clickable" data-metric="dropout" onclick="selectKpiMetric('dropout')">
+    <div class="dash-kpi-top"><span class="dash-kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>Drop-out Rate</div>
+    <div class="dash-kpi-body">
+      <div>
+        <div class="dash-kpi-value" id="kpiCardValue-dropout">—</div>
+        <div class="dash-vs" id="kpiCardYearNote-dropout"></div>
+        <?= $deltaRow($dropoutDelta, false, ' pts') ?>
       </div>
-      <div class="card-body card-body-tight d-flex flex-column gap-2">
-        <?php foreach ($insights as $insight): $t = $insightTone[$insight['tone']]; ?>
-        <div class="d-flex align-items-start gap-2 p-2 rounded-3" style="background:<?= $t['tint'] ?>;">
-          <div class="stat-tile-icon" style="width:28px;height:28px;font-size:.8rem;background:<?= $t['bg'] ?>;color:<?= $t['fg'] ?>;flex-shrink:0;">
-            <i class="bi <?= $insight['icon'] ?>"></i>
-          </div>
-          <p class="small mb-0" style="padding-top:.15rem;"><?= $insight['text'] ?></p>
+      <?= $sparklineSvg($dropoutSparkline, '#800000') ?>
+    </div>
+  </div>
+
+  <div class="dash-kpi stat-tile-clickable" data-metric="mps" onclick="selectKpiMetric('mps')">
+    <div class="dash-kpi-top"><span class="dash-kpi-icon"><i class="bi bi-graph-up-arrow"></i></span>Average MPS</div>
+    <div class="dash-kpi-body">
+      <div>
+        <div class="dash-kpi-value"><?= $mpsOverallAvg !== null ? number_format($mpsOverallAvg, 2) . '%' : 'No data' ?></div>
+        <?= $deltaRow($mpsDelta, true, ' pts') ?: '<div class="dash-vs">SY ' . e($mpsSourceYear) . '</div>' ?>
+      </div>
+      <?= $sparklineSvg($mpsSparkline, '#800000') ?>
+    </div>
+  </div>
+
+  <a href="<?= base_url('documents') ?>" class="dash-kpi dash-kpi-link">
+    <div class="dash-kpi-top"><span class="dash-kpi-icon"><i class="bi bi-shield-fill-check"></i></span>Submission Compliance</div>
+    <div class="dash-kpi-body">
+      <div>
+        <?php if ($complianceRate !== null): ?>
+        <div class="dash-kpi-value"><?= $docOnTrack ?> <span class="dash-kpi-of">of <?= $docTotal ?></span></div>
+        <div class="dash-vs">Documents submitted or reviewed</div>
+        <?php else: ?>
+        <div class="dash-kpi-value">No data</div>
+        <div class="dash-vs">Documents</div>
+        <?php endif; ?>
+      </div>
+      <i class="bi bi-file-earmark-text dash-kpi-ghost"></i>
+    </div>
+  </a>
+</div>
+
+<!-- Charts + side rail -->
+<div class="dash-grid mb-3">
+  <!-- Trend (enrollees / drop-out / MPS) -->
+  <div class="card dash-card dash-area-trend">
+    <div class="dash-card-head">
+      <span><i class="bi bi-graph-up"></i><span id="kpiChartTitle">Total Enrollees</span> Trend</span>
+      <select class="dash-mini-select" id="kpiMetricSelect" onchange="selectKpiMetric(this.value)" aria-label="Trend metric">
+        <option value="enrollees">Total Enrollees</option>
+        <option value="dropout">Drop-out Rate</option>
+        <option value="mps">Average MPS</option>
+      </select>
+    </div>
+    <div class="dash-card-body">
+      <div class="dash-chart"><canvas id="kpiChart" data-source=""></canvas></div>
+      <p id="kpiChartEmpty" class="text-muted text-center py-4 mb-0 d-none small">
+        <i class="bi bi-bar-chart fs-4 d-block mb-2"></i><span id="kpiChartEmptyText">No data available.</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Gender & grade enrollment -->
+  <div class="card dash-card dash-area-gender">
+    <div class="dash-card-head">
+      <span><i class="bi bi-gender-ambiguous"></i>Gender &amp; Grade Enrollment</span>
+      <?php if (! empty($enrollmentMonths)): ?>
+      <select class="dash-mini-select" id="enrollment-month-filter" aria-label="Enrollment month"
+              onchange="loadPage('<?= base_url('dashboard') ?>?year=<?= urlencode($currentYear) ?>&month=' + encodeURIComponent(this.value), { scroll: false })">
+        <?php foreach (array_reverse($enrollmentMonths) as $m): ?>
+        <option value="<?= e($m) ?>" <?= $m === $enrollmentMonth ? 'selected' : '' ?>><?= e(date('M Y', strtotime($m . '-01'))) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php endif; ?>
+    </div>
+    <div class="dash-card-body">
+      <?php if (empty($enrollment)): ?>
+      <p class="text-muted text-center py-4 mb-0 small"><i class="bi bi-bar-chart fs-4 d-block mb-2"></i>No enrolment data for SY <?= e($currentYear) ?>.</p>
+      <?php else: ?>
+      <div class="dash-legend"><span><i style="background:#6e1020"></i>Male</span><span><i style="background:#e3b6bd"></i>Female</span></div>
+      <div class="dash-chart"><canvas id="enrollChart" data-label-header="Grade Level" data-table-total="1" data-source="<?= e('Enrollment sheet uploaded with Add Enrollment — the ' . ($enrollmentMonth ? date('F Y', strtotime($enrollmentMonth . '-01')) . ' ' : '') . 'count for SY ' . $currentYear . ', with each grade level’s sections added up.') ?>"></canvas></div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Document status -->
+  <div class="card dash-card dash-area-docs">
+    <div class="dash-card-head">
+      <span><i class="bi bi-file-earmark-text"></i>Document Status</span>
+    </div>
+    <div class="dash-card-body d-flex align-items-center gap-3 flex-wrap justify-content-center">
+      <div class="donut-wrap" style="width:130px;height:130px;">
+        <canvas id="docChart" width="130" height="130" data-label-header="Status"
+                data-source="Documents submitted through the ACADOCS mobile app. Task uploads reviewed in Manage Documents are not counted here."></canvas>
+        <div class="donut-center-label">
+          <div class="donut-center-value"><?= $docTotal ? $docPct('Submitted') . '%' : '0' ?></div>
+          <div class="donut-center-caption"><?= $docTotal ? 'Submitted' : 'Documents' ?></div>
+        </div>
+      </div>
+      <div class="flex-grow-1" style="min-width:120px;">
+        <?php foreach (['Submitted' => 1, 'Reviewed' => .7, 'Pending' => .45, 'Returned' => .25] as $status => $alpha): ?>
+        <div class="d-flex justify-content-between align-items-center small mb-2">
+          <span><span class="d-inline-block rounded-circle me-2" style="width:9px;height:9px;background:rgba(110,16,32,<?= $alpha ?>);"></span><?= $status ?></span>
+          <strong><?= $docPct($status) ?>%</strong>
         </div>
         <?php endforeach; ?>
       </div>
     </div>
-    <?php endif; ?>
+  </div>
 
-    <?php $docTotal = array_sum($docSummary); ?>
-    <div class="card">
-      <div class="card-header bg-white py-2">
-        <span class="fw-semibold small"><i class="bi bi-pie-chart me-2 text-muted"></i>Document Status</span>
+  <!-- Side rail: insights + today's time records -->
+  <div class="dash-area-side d-flex flex-column gap-3">
+    <div class="card dash-card">
+      <div class="dash-card-head">
+        <span><i class="bi bi-lightbulb"></i>Insights</span>
       </div>
-      <div class="card-body card-body-tight d-flex align-items-center gap-3">
-        <div class="donut-wrap" style="width:110px;height:110px;">
-          <canvas id="docChart" height="110" width="110"></canvas>
-          <div class="donut-center-label">
-            <div class="donut-center-value"><?= $docTotal ?></div>
-            <div class="donut-center-caption">Total</div>
+      <div class="dash-card-body pt-1">
+        <?php if (empty($insights)): ?>
+        <p class="text-muted small text-center py-3 mb-0">No insights yet — they appear as data comes in.</p>
+        <?php endif; ?>
+        <?php foreach ($insights as $insight): [$ibg, $ifg] = $insightTone[$insight['tone']]; ?>
+        <div class="dash-insight">
+          <span class="dash-insight-icon" style="background:<?= $ibg ?>;color:<?= $ifg ?>;"><i class="bi <?= $insight['icon'] ?>"></i></span>
+          <div class="min-w-0">
+            <div class="dash-insight-title"><?= $insight['title'] ?? '' ?></div>
+            <div class="dash-insight-text"><?= $insight['text'] ?></div>
           </div>
         </div>
-        <div class="w-100">
-          <?php foreach (['Submitted'=>'rgba(var(--chart-rgb),1)','Reviewed'=>'rgba(var(--chart-rgb),.75)','Pending'=>'rgba(var(--chart-rgb),.5)','Returned'=>'rgba(var(--chart-rgb),.3)'] as $status=>$dotColor): ?>
-          <div class="d-flex justify-content-between small mb-1">
-            <span><span class="d-inline-block rounded-circle me-1" style="width:9px;height:9px;background:<?= $dotColor ?>;"></span><?= $status ?></span>
-            <strong><?= $docSummary[$status] ?? 0 ?></strong>
-          </div>
-          <?php endforeach; ?>
-        </div>
+        <?php endforeach; ?>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold small"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Submissions</span>
-        <a href="<?= base_url('documents') ?>" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-3" style="font-size:.7rem;">View All</a>
+    <?php include APPPATH . 'Views/partials/dtr_today.php'; ?>
+  </div>
+
+  <!-- Performance by level -->
+  <div class="card dash-card dash-area-perf">
+    <div class="dash-card-head">
+      <span><i class="bi bi-graph-up"></i>Performance by Level</span>
+      <div class="dash-legend m-0"><span><i style="background:#6e1020"></i>Average MPS</span></div>
+    </div>
+    <div class="dash-card-body">
+      <?php if (empty($perfLevel)): ?>
+      <p class="text-muted text-center py-4 mb-0 small"><i class="bi bi-graph-up fs-4 d-block mb-2"></i>No performance data for SY <?= e($currentYear) ?>.</p>
+      <?php else: ?>
+      <div class="dash-chart"><canvas id="perfChart" data-label-header="Grade Level" data-unit="%" data-source="<?= e('Average of the MPS scores teachers entered on Enter MPS Scores (typed in or imported from Excel) for SY ' . $currentYear . ', Term ' . $currentTerm . ', per grade level.') ?>"></canvas></div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Enrollment breakdown / learning area / historical KPIs -->
+  <div class="card dash-card dash-area-breakdown" id="dash-breakdown">
+    <div class="dash-card-head flex-wrap gap-2">
+      <span><i class="bi bi-building"></i>Enrollment Breakdown<?php if (! empty($enrollmentMonth)): ?> <small class="text-muted fw-normal">(<?= e(date('F Y', strtotime($enrollmentMonth . '-01'))) ?>)</small><?php endif; ?></span>
+      <div class="dash-tabs" data-tab-group="data">
+        <button type="button" class="active" data-tab-key="breakdown" onclick="switchTab('data','breakdown')">By Grade &amp; Section</button>
+        <button type="button" data-tab-key="subject" onclick="switchTab('data','subject')">Learning Area</button>
+        <?php if (! empty($depedKpis)): ?>
+        <button type="button" data-tab-key="deped" onclick="switchTab('data','deped')">Historical KPIs</button>
+        <?php endif; ?>
       </div>
-      <div class="card-body p-0">
-        <?php
-        // Plain colored text for status (no pill) per the reference look —
-        // same hues the rest of the app's status badges already use, so
-        // "Submitted" still reads blue everywhere, just without the chip here.
-        $statusTextColor = ['Submitted' => '#1e40af', 'Reviewed' => '#065f46', 'Pending' => '#713f12', 'Returned' => '#991b1b'];
-        ?>
-        <ul class="list-group list-group-flush">
-          <?php foreach ($recentDocs as $doc): ?>
-          <li class="list-group-item border-0 py-2 px-3">
-            <div class="d-flex justify-content-between align-items-center gap-2">
-              <div class="d-flex align-items-center gap-2">
-                <div class="stat-tile-icon" style="width:28px;height:28px;font-size:.8rem;background:#fff0f0;color:#800000;flex-shrink:0;"><i class="bi bi-file-earmark-text-fill"></i></div>
-                <div>
-                  <div class="fw-semibold small"><?= e($doc['type']) ?></div>
-                  <div class="text-muted" style="font-size:.7rem;"><?= e($doc['teacher_name']) ?> · <?= e($doc['subject']) ?></div>
+    </div>
+
+    <div class="dash-card-body p-0" data-tab-panel="data:breakdown">
+      <div class="table-responsive">
+        <table class="table dash-table mb-0">
+          <thead><tr><th>Grade</th><th class="text-center">Sections</th><th class="text-end">Students</th><th>Share</th></tr></thead>
+          <tbody>
+            <?php if (empty($enrollment)): ?>
+            <tr><td colspan="4" class="text-center text-muted py-4">No enrolment data available for <?= e(str_replace('-', '–', $currentYear)) ?>.</td></tr>
+            <?php endif; ?>
+            <?php foreach ($enrollment as $row): $pct = $enrollTotal > 0 ? round($row['students'] / $enrollTotal * 100, 1) : 0; ?>
+            <tr>
+              <td><?= e($row['grade_level']) ?></td>
+              <td class="text-center"><?= (int) $row['sections'] ?></td>
+              <td class="text-end"><?= number_format($row['students']) ?></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="small text-muted" style="width:44px;"><?= $pct ?>%</span>
+                  <div class="dash-bar"><div style="width:<?= $pct ?>%"></div></div>
                 </div>
-              </div>
-              <span class="small fw-semibold" style="color:<?= $statusTextColor[$doc['status']] ?? '#6b7280' ?>;"><?= e($doc['status']) ?></span>
-            </div>
-          </li>
-          <?php endforeach; ?>
-        </ul>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+          <?php if (! empty($enrollment)): ?>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td class="text-center"><?= array_sum(array_column($enrollment, 'sections')) ?></td>
+              <td class="text-end"><?= number_format($enrollTotal) ?></td>
+              <td><div class="d-flex align-items-center gap-2"><span class="small" style="width:44px;">100%</span><div class="dash-bar"><div style="width:100%"></div></div></div></td>
+            </tr>
+          </tfoot>
+          <?php endif; ?>
+        </table>
       </div>
     </div>
+
+    <div class="dash-card-body p-0 d-none" data-tab-panel="data:subject">
+      <div class="d-flex justify-content-end px-3 pt-2">
+        <button type="button" id="perfViewAllBtn" class="btn btn-sm btn-outline-secondary" onclick="togglePerfBreakdown()">
+          <i class="bi bi-list-ul me-1"></i>View All
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table dash-table mb-0">
+          <thead><tr><th>Subject</th><th>Grade Level</th><th>Teacher</th><th class="text-end">MPS</th><th class="text-center">Status</th></tr></thead>
+          <tbody id="perfSummaryBody">
+            <?php foreach ($avgPerf as $p):
+              $badge = $p['mps'] >= 85 ? ['Excellent', 'badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory', 'badge-reviewed'] : ['Needs Improvement', 'badge-returned']);
+            ?>
+            <tr>
+              <td class="fw-semibold"><?= e($p['subject']) ?></td><td class="text-muted">All Grades</td><td class="text-muted">—</td>
+              <td class="text-end fw-bold"><?= $p['mps'] ?>%</td>
+              <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+          <tbody id="perfFullBody" class="d-none">
+            <?php foreach ($allPerf as $p):
+              $badge = $p['mps'] >= 85 ? ['Excellent', 'badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory', 'badge-reviewed'] : ['Needs Improvement', 'badge-returned']);
+            ?>
+            <tr>
+              <td class="fw-semibold"><?= e($p['subject']) ?></td><td class="text-muted"><?= e($p['grade_level']) ?></td><td class="text-muted"><?= e($p['instructor']) ?></td>
+              <td class="text-end fw-bold"><?= $p['mps'] ?>%</td>
+              <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <?php if (! empty($depedKpis)): ?>
+    <div class="dash-card-body p-0 d-none" data-tab-panel="data:deped">
+      <div class="table-responsive">
+        <table class="table dash-table mb-0">
+          <thead>
+            <tr>
+              <th>School Year</th><th class="text-end">Gross Enrol.</th><th class="text-end">Net Enrol.</th><th class="text-end">Cohort Surv.</th>
+              <th class="text-end">Repetition</th><th class="text-end">Promotion</th><th class="text-end">Retention</th><th class="text-end">Graduation</th>
+              <th class="text-end">Completion</th><th class="text-end">Transition</th><th class="text-end">Drop Out</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php $fmt = static fn ($v) => $v !== null ? number_format((float) $v, 2) . '%' : '—'; ?>
+            <?php foreach ($depedKpis as $k): ?>
+            <tr>
+              <td class="fw-semibold"><?= e(str_replace('-', '–', $k['school_year'])) ?></td>
+              <td class="text-end"><?= $fmt($k['gross_enrolment_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['net_enrolment_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['cohort_survival_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['repetition_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['promotion_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['retention_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['graduation_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['completion_rate']) ?></td>
+              <td class="text-end"><?= $fmt($k['transition_rate']) ?></td>
+              <td class="text-end <?= (float) $k['dropout_rate'] > 1.5 ? 'text-danger fw-semibold' : '' ?>"><?= $fmt($k['dropout_rate']) ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-muted small px-3 py-2">DepEd source: Guidance Office official reports</div>
+    </div>
+    <?php endif; ?>
   </div>
 </div>
 
-<!-- Tabbed data panel: Enrollment Breakdown / Performance by Learning Area / DepEd Historical -->
-<div class="card mb-4">
-  <div class="card-header bg-white py-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
-    <ul class="nav nav-tabs border-bottom-0" data-tab-group="data">
-      <li class="nav-item">
-        <button type="button" class="nav-link active" data-tab-key="breakdown" onclick="switchTab('data','breakdown')">
-          <i class="bi bi-table me-1"></i>Enrolment Breakdown<?php if (! empty($enrollmentMonth)): ?> <span class="text-muted fw-normal">(<?= e(date('F Y', strtotime($enrollmentMonth . '-01'))) ?>)</span><?php endif; ?>
-        </button>
-      </li>
-      <li class="nav-item">
-        <button type="button" class="nav-link" data-tab-key="subject" onclick="switchTab('data','subject')">
-          <i class="bi bi-mortarboard me-1"></i>Performance by Learning Area
-        </button>
-      </li>
-      <?php if (! empty($depedKpis)): ?>
-      <li class="nav-item">
-        <button type="button" class="nav-link" data-tab-key="deped" onclick="switchTab('data','deped')">
-          <i class="bi bi-clipboard-data me-1"></i>DepEd Historical KPIs
-        </button>
-      </li>
-      <?php endif; ?>
-    </ul>
-    <?php if (! empty($depedKpis)): ?>
-    <span class="text-muted small">DepEd source: Guidance Office official reports</span>
-    <?php endif; ?>
-  </div>
-
-  <!-- Enrollment Breakdown -->
-  <div class="card-body p-0" data-tab-panel="data:breakdown">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead><tr><th>Grade Level</th><th class="text-center">Sections</th>
-                    <th class="text-end">Students</th><th class="text-end">Share</th></tr></thead>
-        <tbody>
-          <?php if (empty($enrollment)): ?>
-          <tr>
-            <td colspan="4" class="text-center text-muted py-4">No enrolment data available for <?= e(str_replace('-', '–', $currentYear)) ?>.</td>
-          </tr>
-          <?php endif; ?>
-          <?php $enrollTotal = array_sum(array_column($enrollment, 'students')); ?>
-          <?php foreach ($enrollment as $e): $pct = $enrollTotal > 0 ? round($e['students']/$enrollTotal*100,1) : 0; ?>
-          <tr>
-            <td class="fw-semibold"><?= e($e['grade_level']) ?></td>
-            <td class="text-center"><?= $e['sections'] ?></td>
-            <td class="text-end fw-bold"><?= number_format($e['students']) ?></td>
-            <td class="text-end">
-              <div class="d-flex align-items-center gap-2 justify-content-end">
-                <div class="progress flex-grow-1" style="height:6px;min-width:60px;">
-                  <div class="progress-bar" style="width:<?= $pct ?>%"></div>
-                </div>
-                <span class="small text-muted"><?= $pct ?>%</span>
-              </div>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-        <tfoot class="table-light">
-          <tr>
-            <td class="fw-bold">Total</td>
-            <td class="text-center fw-bold"><?= array_sum(array_column($enrollment,'sections')) ?></td>
-            <td class="text-end fw-bold"><?= number_format($enrollTotal) ?></td>
-            <td></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  </div>
-
-  <!-- Performance by Learning Area -->
-  <div class="card-body p-0 d-none" data-tab-panel="data:subject">
-    <div class="d-flex justify-content-end p-2 border-bottom">
-      <button type="button" id="perfViewAllBtn" class="btn btn-sm btn-outline-secondary" onclick="togglePerfBreakdown()">
-        <i class="bi bi-list-ul me-1"></i>View All
-      </button>
-    </div>
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>Subject</th><th>Grade Level</th><th>Teacher</th>
-            <th class="text-end">MPS</th><th class="text-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="perfSummaryBody">
-          <?php foreach ($avgPerf as $p):
-            $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
-          ?>
-          <tr>
-            <td class="fw-semibold"><?= e($p['subject']) ?></td>
-            <td class="text-muted">All Grades</td>
-            <td class="text-muted">—</td>
-            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
-            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-        <tbody id="perfFullBody" class="d-none">
-          <?php foreach ($allPerf as $p):
-            $badge = $p['mps'] >= 85 ? ['Excellent','badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory','badge-reviewed'] : ['Needs Improvement','badge-returned']);
-          ?>
-          <tr>
-            <td class="fw-semibold"><?= e($p['subject']) ?></td>
-            <td class="text-muted"><?= e($p['grade_level']) ?></td>
-            <td class="text-muted"><?= e($p['instructor']) ?></td>
-            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
-            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <?php if (! empty($depedKpis)): ?>
-  <!-- DepEd Historical KPI Table -->
-  <div class="card-body p-0 d-none" data-tab-panel="data:deped">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>School Year</th>
-            <th class="text-end">Gross Enrolment</th>
-            <th class="text-end">Net Enrolment</th>
-            <th class="text-end">Cohort Survival</th>
-            <th class="text-end">Repetition</th>
-            <th class="text-end">Promotion</th>
-            <th class="text-end">Retention</th>
-            <th class="text-end">Graduation</th>
-            <th class="text-end">Completion</th>
-            <th class="text-end">Transition</th>
-            <th class="text-end">Drop Out</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($depedKpis as $k): ?>
-          <tr>
-            <td class="fw-semibold"><?= e(str_replace('-', '–', $k['school_year'])) ?></td>
-            <td class="text-end"><?= $k['gross_enrolment_rate'] !== null ? number_format((float) $k['gross_enrolment_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['net_enrolment_rate'] !== null ? number_format((float) $k['net_enrolment_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['cohort_survival_rate'] !== null ? number_format((float) $k['cohort_survival_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['repetition_rate'] !== null ? number_format((float) $k['repetition_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['promotion_rate'] !== null ? number_format((float) $k['promotion_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['retention_rate'] !== null ? number_format((float) $k['retention_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['graduation_rate'] !== null ? number_format((float) $k['graduation_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['completion_rate'] !== null ? number_format((float) $k['completion_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end"><?= $k['transition_rate'] !== null ? number_format((float) $k['transition_rate'], 2) . '%' : '—' ?></td>
-            <td class="text-end <?= (float) $k['dropout_rate'] > 1.5 ? 'text-danger fw-semibold' : '' ?>"><?= $k['dropout_rate'] !== null ? number_format((float) $k['dropout_rate'], 2) . '%' : '—' ?></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <?php endif; ?>
+<div class="dash-footer">
+  <span><span class="dash-footer-rule"></span><strong>ACADOCS</strong> · School Documents Management System</span>
+  <em>Better Records. Brighter Futures.</em>
 </div>
 
 <?php if (hasRole('admin')): ?>
@@ -615,8 +503,8 @@ if (enrollChartEl) {
     data: {
       labels: ' . json_encode(array_column($enrollment, 'grade_level')) . ',
       datasets: enrollHasSplit ? [
-        { label: "Male",   data: ' . json_encode(array_map(static fn ($r) => (int) $r['male'], $enrollment)) . ',   backgroundColor: maroon,      borderRadius: 4, maxBarThickness: 22 },
-        { label: "Female", data: ' . json_encode(array_map(static fn ($r) => (int) $r['female'], $enrollment)) . ', backgroundColor: chartColor(.3), borderColor: maroon, borderWidth: 1, borderRadius: 4, maxBarThickness: 22 }
+        { label: "Male",   data: ' . json_encode(array_map(static fn ($r) => (int) $r['male'], $enrollment)) . ',   backgroundColor: "#6e1020", borderRadius: 4, maxBarThickness: 22 },
+        { label: "Female", data: ' . json_encode(array_map(static fn ($r) => (int) $r['female'], $enrollment)) . ', backgroundColor: "#e3b6bd", borderRadius: 4, maxBarThickness: 22 }
       ] : [
         { label: "Students", data: enrollTotals, backgroundColor: chartColor(.25), borderColor: maroon, borderWidth: 1, borderRadius: 4, maxBarThickness: 28 }
       ]
@@ -624,7 +512,7 @@ if (enrollChartEl) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: enrollHasSplit, position: "bottom", labels: { boxWidth: 12, boxHeight: 12 } },
+        legend: { display: false },
         tooltip: { callbacks: { footer: (items) => enrollHasSplit ? "Total: " + enrollTotals[items[0].dataIndex] : "" } }
       },
       scales: { y: { beginAtZero: true, grid: { color: chartGridColor() } }, x: { grid: { display: false } } }
@@ -640,27 +528,37 @@ if (perfChartEl) {
     data: {
       labels: ' . json_encode(array_column($perfLevel, 'grade_level')) . ',
       datasets: [
-        { label:"MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:4, maxBarThickness:22 },
-        { label:"NDS", data:' . json_encode(array_column($perfLevel, 'nds')) . ', backgroundColor:maroonLight, borderRadius:4, maxBarThickness:22 }
+        { label:"Average MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:"#6e1020", borderRadius:4, maxBarThickness:26 }
       ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:60,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }
+    // Axis starts 10 points below the lowest grade level (rounded down to a
+    // multiple of 10), so no bar is ever cut off.
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:Math.max(0, Math.floor((Math.min(...' . json_encode(array_map('floatval', array_column($perfLevel, 'mps'))) . ') - 10) / 10) * 10),max:100,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }
   });
 }
 
-// Document Pie
-new Chart(document.getElementById("docChart"), {
-  type: "doughnut",
-  data: {
-    labels: ["Submitted","Reviewed","Pending","Returned"],
-    datasets: [{ data:[' . implode(',', [
+// Document Pie — with no documents yet, a plain grey ring stands in so the
+// card doesn\'t look broken.
+const docCounts = ' . json_encode([
       $docSummary['Submitted'] ?? 0,
       $docSummary['Reviewed']  ?? 0,
       $docSummary['Pending']   ?? 0,
       $docSummary['Returned']  ?? 0,
-    ]) . '], backgroundColor:[chartColor(1),chartColor(.75),chartColor(.5),chartColor(.3)], borderWidth:0 }]
+    ]) . ';
+const docHasAny = docCounts.some(n => n > 0);
+new Chart(document.getElementById("docChart"), {
+  type: "doughnut",
+  data: {
+    labels: docHasAny ? ["Submitted","Reviewed","Pending","Returned"] : ["No documents"],
+    datasets: [{
+      data: docHasAny ? docCounts : [1],
+      backgroundColor: docHasAny
+        ? ["rgba(110,16,32,1)","rgba(110,16,32,.7)","rgba(110,16,32,.45)","rgba(110,16,32,.25)"]
+        : [getComputedStyle(document.documentElement).getPropertyValue("--border").trim() || "#e5e7eb"],
+      borderWidth: 0,
+    }]
   },
-  options: { responsive:true, maintainAspectRatio:false, cutout:"64%", plugins:{legend:{display:false}} }
+  options: { responsive:true, maintainAspectRatio:false, cutout:"72%", plugins:{ legend:{display:false}, tooltip:{enabled:docHasAny} } }
 });
 
 // ── Interactive Enrollees / Drop-Out / MPS KPI chart (single canvas, tab-switched) ──
@@ -677,6 +575,12 @@ let currentChartKind = "line";
 // Grade Level table), not gross_enrolment_rate — that\'s a computed rate the KPI
 // report often leaves blank, while the headcount table is what schools reliably fill in.
 // All three share the brand maroon, matching the stat tiles\' unified accent.
+// Where each trend metric’s numbers come from — shown in the expanded chart.
+const KPI_METRIC_SOURCES = {
+  enrollees: "Enrollment sheets uploaded with Add Enrollment (each school year’s latest monthly count). Years without a sheet use the enrolment total from that year’s imported DepEd KPI report.",
+  dropout: "DepEd KPI reports uploaded with Import KPI Report — the Drop Out Rate indicator, one report per school year.",
+  mps: "MPS scores teachers entered on Enter MPS Scores (typed in or imported from Excel), averaged across grade levels for each term of SY " + ' . json_encode($mpsSourceYear) . ' + ".",
+};
 const KPI_METRIC_CONFIG = {
   enrollees: { name: "Enrollees",  label: "Total Enrollees",  field: "total",         unit: "",  color: "#800000", axisNoun: "school years" },
   dropout:   { name: "Drop-Out",   label: "Drop-Out Rate",    field: "dropout_rate",  unit: "%", color: "#800000", axisNoun: "school years" },
@@ -727,6 +631,10 @@ function buildKpiChart() {
   const cfg = Object.assign({}, KPI_METRIC_CONFIG[currentMetric]);
   cfg.color = chartColor();
   document.getElementById("kpiChartTitle").textContent = cfg.label;
+  const kpiCanvas = document.getElementById("kpiChart");
+  kpiCanvas.dataset.source      = KPI_METRIC_SOURCES[currentMetric] || "";
+  kpiCanvas.dataset.unit        = cfg.unit;
+  kpiCanvas.dataset.labelHeader = currentMetric === "mps" ? "Term" : "School Year";
 
   let labels, values;
   if (currentMetric === "mps") {
@@ -771,14 +679,22 @@ function buildKpiChart() {
         // Line: a ~10% wash under a 2px line, never a saturated block.
         // Bar: a solid fill, but thin and capped (maxBarThickness) so it
         // reads as a mark, not a wall of color.
-        backgroundColor: type === "line" ? chartColor(.1) : cfg.color,
+        backgroundColor: type === "line" ? (ctx) => {
+          const area = ctx.chart.chartArea;
+          if (!area) return chartColor(.1);
+          const g = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+          g.addColorStop(0, chartColor(.22));
+          g.addColorStop(1, chartColor(0));
+          return g;
+        } : cfg.color,
         borderColor: cfg.color,
         borderRadius: type === "bar" ? 6 : undefined,
         maxBarThickness: type === "bar" ? 40 : undefined,
         fill: type === "line",
         tension: .3,
+        cubicInterpolationMode: "monotone", // smooth, but never dips or peaks past a real data point
         borderWidth: type === "line" ? 2 : undefined,
-        pointRadius: type === "line" ? 3 : undefined,
+        pointRadius: type === "line" ? 4 : undefined,
         pointBackgroundColor: type === "line" ? cfg.color : undefined,
       }],
     },
@@ -795,6 +711,8 @@ function buildKpiChart() {
 function selectKpiMetric(metric) {
   currentMetric = metric;
   document.querySelectorAll(".stat-tile-clickable").forEach(el => el.classList.toggle("active", el.dataset.metric === metric));
+  const metricSelect = document.getElementById("kpiMetricSelect");
+  if (metricSelect) metricSelect.value = metric;
   buildKpiChart();
 }
 

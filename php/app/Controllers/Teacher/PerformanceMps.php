@@ -382,6 +382,55 @@ class PerformanceMps extends BaseController
      * The current session's teacher row, joined with their subject load for
      * the given school year + term (see TeacherModel::findWithSubjects()).
      */
+    /**
+     * The signed-in teacher's grade+subject+section cells for a school year
+     * and term — same set the MPS entry form shows. Used by the teacher
+     * dashboard's "My MPS Performance" panel.
+     *
+     * @return array<string,array{grade:string,subject:string,section:?string}>
+     */
+    public function handledCellsFor(?string $year = null, ?int $term = null): array
+    {
+        return $this->handledCells($this->currentTeacherRow($year, $term));
+    }
+
+    /**
+     * One row per handled cell with its Summative 1 / Summative 2 / Term Exam
+     * MPS and their average (of whichever are entered), sorted by grade,
+     * subject, section.
+     *
+     * @param array<string,array{grade:string,subject:string,section:?string}> $cells
+     * @param list<array<string,mixed>>                                       $scoreRows mps_test_scores rows for the year/term
+     * @return list<array{grade:string,subject:string,section:?string,s1:?float,s2:?float,exam:?float,avg:?float}>
+     */
+    public static function performanceRows(array $cells, array $scoreRows): array
+    {
+        $periodByLabel = array_flip(self::PERIOD_MAP);
+        $scores        = [];
+        foreach ($scoreRows as $row) {
+            $key = $periodByLabel[$row['test_period']] ?? null;
+            if ($key !== null) {
+                $scores[$row['grade_level'] . '|' . $row['subject'] . '|' . ($row['section'] ?? self::NO_SECTION)][$key] = (float) $row['mps'];
+            }
+        }
+
+        $rows = [];
+        foreach ($cells as $cellKey => $cell) {
+            $values = $scores[$cellKey] ?? [];
+            $rows[] = $cell + [
+                's1'   => $values['s1'] ?? null,
+                's2'   => $values['s2'] ?? null,
+                'exam' => $values['exam'] ?? null,
+                'avg'  => $values ? round(array_sum($values) / count($values), 2) : null,
+            ];
+        }
+
+        usort($rows, static fn ($a, $b) => [array_search($a['grade'], self::GRADE_LEVELS, true), $a['subject'], (string) $a['section']]
+            <=> [array_search($b['grade'], self::GRADE_LEVELS, true), $b['subject'], (string) $b['section']]);
+
+        return $rows;
+    }
+
     private function currentTeacherRow(?string $year = null, ?int $term = null): ?array
     {
         $teacherModel = new TeacherModel();

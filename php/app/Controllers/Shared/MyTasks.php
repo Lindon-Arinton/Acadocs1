@@ -126,7 +126,7 @@ class MyTasks extends BaseController
                     : '') . ' submitted';
 
                 $notifModel = new NotificationModel();
-                foreach ((new UserModel())->whereIn('role', ['admin', 'adas'])->where('id !=', $user['id'])->findAll() as $admin) {
+                foreach ((new UserModel())->active()->whereIn('role', ['admin', 'adas'])->where('id !=', $user['id'])->findAll() as $admin) {
                     $notifModel->upsertGrouped(
                         (int) $admin['id'],
                         'task_submission',

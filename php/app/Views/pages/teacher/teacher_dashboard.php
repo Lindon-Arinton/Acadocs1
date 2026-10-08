@@ -77,8 +77,8 @@ $insightTone = [
     <div class="card mb-3">
       <div class="card-body">
         <div class="d-flex justify-content-between mb-2">
-          <span class="fw-semibold">Task Completion Rate</span>
-          <strong style="color:var(--maroon)"><?= $completionRate ?>%</strong>
+          <span class="fw-semibold">Tasks Completed</span>
+          <strong style="color:var(--maroon)"><?= $taskStats['completed'] ?> of <?= $taskStats['total'] ?></strong>
         </div>
         <div class="progress" style="height:12px;">
           <div class="progress-bar" style="width:<?= $completionRate ?>%;background:var(--maroon)!important;border-radius:8px;"></div>
@@ -112,6 +112,82 @@ $insightTone = [
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- My MPS Performance: the teacher's own subjects & sections -->
+    <?php $mpsTone = static fn (?float $v) => $v === null ? '' : ($v >= 75 ? 'mps-good' : ($v >= 50 ? 'mps-mid' : 'mps-low')); ?>
+    <div class="card mt-3" id="my-mps">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span class="fw-semibold"><i class="bi bi-graph-up-arrow me-2 text-muted"></i>My MPS Performance</span>
+        <div class="d-flex align-items-center gap-2">
+          <?php if ($mps['periods']): ?>
+          <form method="GET" action="<?= base_url('teacher-dashboard') ?>">
+            <?php if ($attMonth !== 'all'): ?><input type="hidden" name="att_month" value="<?= e($attMonth) ?>"><?php endif; ?>
+            <div class="maroon-select maroon-select-sm" style="width:auto;">
+              <select name="mps" class="maroon-select-native" onchange="this.form.requestSubmit()">
+                <?php foreach ($mps['periods'] as $p): ?>
+                <option value="<?= e($p['key']) ?>" <?= $p['key'] === $mps['period'] ? 'selected' : '' ?>><?= e($p['label']) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+              <div class="maroon-select-panel"></div>
+            </div>
+          </form>
+          <?php endif; ?>
+          <a href="<?= base_url('performance/mps' . ($mps['year'] ? '?year=' . urlencode($mps['year']) . '&term=' . (int) $mps['term'] : '')) ?>" class="btn btn-maroon btn-sm">
+            <i class="bi bi-pencil-square me-1"></i>Enter Scores
+          </a>
+        </div>
+      </div>
+      <?php if ($mps['scored'] === 0): ?>
+      <div class="card-body text-center text-muted py-4 small">
+        <i class="bi bi-graph-up fs-3 d-block mb-2"></i>
+        No MPS scores yet for your subjects<?= $mps['period'] ? ' in this term' : '' ?>. Enter them to see how each of your sections is doing.
+      </div>
+      <?php else: ?>
+      <div class="card-body pb-2">
+        <div class="row g-2 text-center">
+          <div class="col-4">
+            <div class="text-muted" style="font-size:.7rem;">OVERALL AVERAGE</div>
+            <span class="mps-avg <?= $mpsTone($mps['overall']) ?>"><?= number_format($mps['overall'], 2) ?>%</span>
+          </div>
+          <div class="col-4">
+            <div class="text-muted" style="font-size:.7rem;">AT MASTERY (75%+)</div>
+            <div class="fw-bold" style="font-size:1.05rem;"><?= $mps['atMastery'] ?> <span class="text-muted fw-normal small">of <?= $mps['scored'] ?> classes</span></div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted" style="font-size:.7rem;">NEEDS MOST HELP</div>
+            <div class="small fw-semibold text-truncate" title="<?= e($mps['lowest']['subject'] . ' · ' . ($mps['lowest']['section'] ?? $mps['lowest']['grade'])) ?>">
+              <?= e($mps['lowest']['subject']) ?> · <?= e($mps['lowest']['section'] ?? $mps['lowest']['grade']) ?>
+            </div>
+            <span class="mps-pill <?= $mpsTone($mps['lowest']['avg']) ?>"><?= number_format($mps['lowest']['avg'], 2) ?>%</span>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead>
+            <tr><th class="ps-3">Subject</th><th>Grade · Section</th><th class="text-center">Sum. 1</th><th class="text-center">Sum. 2</th><th class="text-center">Exam</th><th class="text-center pe-3">Average</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($mps['rows'] as $r): ?>
+            <tr>
+              <td class="ps-3 fw-semibold small"><?= e($r['subject']) ?></td>
+              <td class="small text-muted"><?= e($r['grade']) ?><?= $r['section'] ? ' · ' . e($r['section']) : '' ?></td>
+              <?php foreach (['s1', 's2', 'exam'] as $k): ?>
+              <td class="text-center small"><?= $r[$k] !== null ? number_format($r[$k], 2) : '<span class="text-muted">—</span>' ?></td>
+              <?php endforeach; ?>
+              <td class="text-center pe-3">
+                <?php if ($r['avg'] !== null): ?>
+                <span class="mps-pill <?= $mpsTone($r['avg']) ?>"><?= number_format($r['avg'], 2) ?>%</span>
+                <?php else: ?><span class="text-muted small">—</span><?php endif; ?>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -186,7 +262,7 @@ $insightTone = [
       </div>
       <div class="card-body card-body-tight d-flex align-items-center gap-3">
         <div class="donut-wrap" style="width:90px;height:90px;">
-          <canvas id="taskStatusChart" height="90" width="90"></canvas>
+          <canvas id="taskStatusChart" data-label-header="Status" data-source="Tasks assigned to you in Tasks &amp; Assignments, matched against your own uploads on the To Do List." height="90" width="90"></canvas>
           <div class="donut-center-label">
             <div class="donut-center-value"><?= $taskStats['total'] ?></div>
             <div class="donut-center-caption">Total</div>

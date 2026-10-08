@@ -290,16 +290,20 @@ CREATE TABLE IF NOT EXISTS `document_files` (
 
 --
 -- Table structure for table `document_folders`
--- (one Document Management folder per task, auto-created on first upload)
+-- (Document Management folders: one per task, auto-created on first upload,
+--  plus plain folders with no task; folders nest via parent_id)
 --
 
 CREATE TABLE IF NOT EXISTS `document_folders` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `task_id` int(10) UNSIGNED NOT NULL,
+  `task_id` int(10) UNSIGNED DEFAULT NULL,
+  `parent_id` int(10) UNSIGNED DEFAULT NULL,
   `name` varchar(200) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `task_id` (`task_id`),
+  KEY `parent_id` (`parent_id`),
+  CONSTRAINT `document_folders_parent_fk` FOREIGN KEY (`parent_id`) REFERENCES `document_folders` (`id`) ON DELETE SET NULL,
   CONSTRAINT `document_folders_task_fk` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -787,19 +791,101 @@ INSERT IGNORE INTO `performance_by_subject` (`id`, `school_year`, `term`, `subje
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `property_acknowledgements`
+-- (Property Acknowledgment Receipts: ADAS issues, the teacher approves or returns)
+--
+
+CREATE TABLE IF NOT EXISTS `property_acknowledgements` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `par_no` varchar(30) NOT NULL,
+  `issued_to` int(10) UNSIGNED NOT NULL,
+  `issued_by` int(10) UNSIGNED DEFAULT NULL,
+  `status` enum('Pending','Approved','Returned') NOT NULL DEFAULT 'Pending',
+  `remarks` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `responded_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `par_no` (`par_no`),
+  KEY `issued_to` (`issued_to`),
+  KEY `issued_by` (`issued_by`),
+  CONSTRAINT `property_ack_issued_to_fk` FOREIGN KEY (`issued_to`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `property_ack_issued_by_fk` FOREIGN KEY (`issued_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `property_acknowledgement_items`
+-- (snapshot of each item at the time its PAR was issued)
+--
+
+CREATE TABLE IF NOT EXISTS `property_acknowledgement_items` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `par_id` int(10) UNSIGNED NOT NULL,
+  `property_id` int(10) UNSIGNED DEFAULT NULL,
+  `item_name` varchar(150) NOT NULL,
+  `grade` varchar(100) NOT NULL,
+  `section` varchar(50) NOT NULL,
+  `quantity` int(10) UNSIGNED NOT NULL DEFAULT 1,
+  `condition_status` varchar(30) NOT NULL,
+  `acquisition` varchar(170) NOT NULL,
+  `date_acquired` date DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `par_id` (`par_id`),
+  KEY `property_id` (`property_id`),
+  CONSTRAINT `property_ack_items_par_fk` FOREIGN KEY (`par_id`) REFERENCES `property_acknowledgements` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `property_ack_items_property_fk` FOREIGN KEY (`property_id`) REFERENCES `room_properties` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `property_condition_logs`
+-- (history of every Serviceable / Non-serviceable change)
+--
+
+CREATE TABLE IF NOT EXISTS `property_condition_logs` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `property_id` int(10) UNSIGNED NOT NULL,
+  `from_status` varchar(30) DEFAULT NULL,
+  `to_status` varchar(30) NOT NULL,
+  `remarks` varchar(255) DEFAULT NULL,
+  `updated_by` int(10) UNSIGNED DEFAULT NULL,
+  `updated_by_name` varchar(150) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `property_id` (`property_id`),
+  KEY `updated_by` (`updated_by`),
+  CONSTRAINT `property_condition_logs_property_fk` FOREIGN KEY (`property_id`) REFERENCES `room_properties` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `property_condition_logs_user_fk` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `room_properties`
 --
 
 CREATE TABLE IF NOT EXISTS `room_properties` (
-  `id` int(10) UNSIGNED NOT NULL,
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `section` varchar(50) NOT NULL,
   `grade` varchar(100) NOT NULL,
   `item_name` varchar(150) NOT NULL,
   `quantity` int(10) UNSIGNED NOT NULL DEFAULT 1,
-  `condition_status` enum('Excellent','Good','Fair','Poor') NOT NULL,
+  `condition_status` enum('Serviceable','Non-serviceable') NOT NULL DEFAULT 'Serviceable',
+  `acquisition_type` enum('New','Donated','Second-hand','Other') NOT NULL DEFAULT 'New',
+  `acquisition_other` varchar(150) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `issued_to` int(10) UNSIGNED DEFAULT NULL,
+  `par_id` int(10) UNSIGNED DEFAULT NULL,
   `uploaded_by` varchar(150) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `issued_to` (`issued_to`),
+  KEY `par_id` (`par_id`),
+  CONSTRAINT `room_properties_issued_to_fk` FOREIGN KEY (`issued_to`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `room_properties_par_fk` FOREIGN KEY (`par_id`) REFERENCES `property_acknowledgements` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1492,6 +1578,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `ac_no` varchar(20) DEFAULT NULL,
   `position` varchar(50) DEFAULT NULL,
   `photo` varchar(255) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `deactivated_at` timestamp NULL DEFAULT NULL,
   `last_active_at` timestamp NULL DEFAULT NULL,
   `last_viewed_announcements_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),

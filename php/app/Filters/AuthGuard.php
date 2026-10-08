@@ -19,10 +19,13 @@ class AuthGuard implements FilterInterface
     {
         $user = session()->get('user');
 
-        if ($user) {
-            $this->pingPresence((int) $user['id']);
-
+        if ($user && $this->pingPresence((int) $user['id'])) {
             return;
+        }
+
+        // Account was deactivated while signed in — end the session.
+        if ($user) {
+            session()->destroy();
         }
 
         if (str_starts_with($request->getPath(), 'api/')) {
@@ -31,19 +34,33 @@ class AuthGuard implements FilterInterface
                 ->setStatusCode(401);
         }
 
-        return redirect()->to('/login');
+        return redirect()->to($user ? '/login?deactivated=1' : '/login');
     }
 
-    private function pingPresence(int $userId): void
+    /**
+     * Throttled presence write, which also re-checks that the account is
+     * still active (so a deactivated user is signed out within ~20s).
+     *
+     * @return bool false if the account has been deactivated
+     */
+    private function pingPresence(int $userId): bool
     {
         $lastPing = session()->get('last_active_ping');
 
         if ($lastPing && (time() - $lastPing) < self::PRESENCE_PING_INTERVAL) {
-            return;
+            return true;
+        }
+
+        $users = new UserModel();
+        $row   = $users->select('is_active')->find($userId);
+        if (! $row || ! (int) $row['is_active']) {
+            return false;
         }
 
         session()->set('last_active_ping', time());
-        (new UserModel())->update($userId, ['last_active_at' => date('Y-m-d H:i:s')]);
+        $users->update($userId, ['last_active_at' => date('Y-m-d H:i:s')]);
+
+        return true;
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)

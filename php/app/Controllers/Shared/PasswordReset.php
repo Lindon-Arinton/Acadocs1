@@ -100,7 +100,7 @@ class PasswordReset extends BaseController
     private function issueCode(string $email): string
     {
         $user = (new UserModel())->findByEmail($email);
-        if (! $user) {
+        if (! $user || ! (int) $user['is_active']) {
             return '';
         }
 
@@ -143,7 +143,7 @@ class PasswordReset extends BaseController
 
         $users = new UserModel();
         $user  = $users->findByEmail($email);
-        if (! $user) {
+        if (! $user || ! (int) $user['is_active']) {
             return $invalid;
         }
 

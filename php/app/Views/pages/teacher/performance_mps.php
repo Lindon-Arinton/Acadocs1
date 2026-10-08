@@ -74,50 +74,53 @@
   <input type="hidden" name="school_year" value="<?= e($year) ?>" data-sy-hidden>
   <input type="hidden" name="term" value="<?= (int) $term ?>">
 
-  <?php foreach ($periods as $shortKey => $label): ?>
+  <!-- One row per grade · subject · section, one column per test period -->
   <div class="card mb-4">
-    <div class="card-header py-3 text-white fw-bold" style="background:#800000;">
-      <i class="bi bi-clipboard-data me-2"></i><?= e($label) ?>
+    <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <span class="fw-semibold"><i class="bi bi-clipboard-data me-2 text-muted"></i>MPS — Term <?= (int) $term ?>, SY <?= e($year) ?></span>
+      <span class="text-muted small"><span class="mps-legend mps-good"></span>75% and up (mastery) <span class="mps-legend mps-mid ms-2"></span>50–74% <span class="mps-legend mps-low ms-2"></span>below 50%</span>
     </div>
-    <div class="card-body">
-      <?php foreach ($gradeLevels as $grade): ?>
-      <?php if (empty($sectionTree[$grade])) continue; ?>
-      <h6 class="fw-bold text-muted mb-2 mt-2"><?= e($grade) ?></h6>
-      <div class="row g-3 mb-3">
-        <?php foreach ($subjects as $subject): ?>
-        <?php if (empty($sectionTree[$grade][$subject])) continue; ?>
-        <div class="col-sm-6 col-lg-4">
-          <div class="border rounded-3 p-2 h-100">
-            <div class="small fw-semibold text-muted mb-2"><?= e($subject) ?></div>
-            <table class="table table-sm mb-0">
-              <thead>
-                <tr>
-                  <th class="small text-muted fw-normal p-1">Section</th>
-                  <th class="small text-muted fw-normal p-1 text-end" style="width:96px;">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($sectionTree[$grade][$subject] as $cell): ?>
-                <tr>
-                  <td class="small p-1 align-middle text-truncate" style="max-width:0;" title="<?= e($cell['label']) ?>"><?= e($cell['label']) ?></td>
-                  <td class="p-1">
-                    <input type="number" step="0.01" min="0" max="100"
-                           name="scores[<?= e($shortKey) ?>][<?= e($grade) ?>][<?= e($subject) ?>][<?= e($cell['section']) ?>]"
-                           value="<?= e($existing[$shortKey][$grade][$subject][$cell['section']] ?? '') ?>"
-                           class="form-control form-control-sm text-center" placeholder="—">
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <?php endforeach; ?>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle mps-row-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Section</th>
+              <?php foreach ($periods as $label): ?>
+              <th class="text-center" style="width:140px;"><?= e($label) ?></th>
+              <?php endforeach; ?>
+              <th class="text-center" style="width:110px;">Average</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($gradeLevels as $grade): ?>
+            <?php if (empty($sectionTree[$grade])) continue; ?>
+            <tr class="mps-grade-row"><td colspan="<?= count($periods) + 3 ?>"><?= e($grade) ?></td></tr>
+            <?php foreach ($subjects as $subject): ?>
+            <?php foreach ($sectionTree[$grade][$subject] ?? [] as $cell): ?>
+            <tr class="mps-score-row">
+              <td class="fw-semibold"><?= e($subject) ?></td>
+              <td class="text-muted"><?= e($cell['label']) ?></td>
+              <?php foreach ($periods as $shortKey => $label): ?>
+              <td class="text-center">
+                <input type="number" step="0.01" min="0" max="100"
+                       name="scores[<?= e($shortKey) ?>][<?= e($grade) ?>][<?= e($subject) ?>][<?= e($cell['section']) ?>]"
+                       value="<?= e($existing[$shortKey][$grade][$subject][$cell['section']] ?? '') ?>"
+                       class="form-control form-control-sm text-center mps-input mx-auto" style="max-width:110px;"
+                       placeholder="—" aria-label="<?= e($label . ', ' . $grade . ' ' . $subject . ' ' . $cell['label']) ?>">
+              </td>
+              <?php endforeach; ?>
+              <td class="text-center"><span class="mps-avg">—</span></td>
+            </tr>
+            <?php endforeach; ?>
+            <?php endforeach; ?>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
       </div>
-      <?php endforeach; ?>
     </div>
   </div>
-  <?php endforeach; ?>
 
   <div class="d-flex justify-content-end mb-4">
     <button type="submit" class="btn btn-primary">
@@ -179,4 +182,32 @@
   </div>
 </div>
 
-<?php include APPPATH . 'Views/layout/footer.php'; ?>
+<?php
+$extraScript = <<<'HTML'
+<script>
+// Each row's Average = mean of the test periods entered so far, colored
+// against the 75% mastery level; recomputed as the teacher types.
+function mpsTone(v) { return v >= 75 ? 'mps-good' : (v >= 50 ? 'mps-mid' : 'mps-low'); }
+function updateMpsRow(row) {
+    const values = [...row.querySelectorAll('.mps-input')]
+        .map(i => i.value.trim() === '' ? null : Number(i.value))
+        .filter(v => v !== null && !Number.isNaN(v));
+    row.querySelectorAll('.mps-input').forEach(i => {
+        i.classList.remove('mps-good', 'mps-mid', 'mps-low');
+        if (i.value.trim() !== '' && !Number.isNaN(Number(i.value))) i.classList.add(mpsTone(Number(i.value)));
+    });
+    const avg = row.querySelector('.mps-avg');
+    avg.classList.remove('mps-good', 'mps-mid', 'mps-low');
+    if (!values.length) { avg.textContent = '—'; return; }
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    avg.textContent = mean.toFixed(2) + '%';
+    avg.classList.add(mpsTone(mean));
+}
+document.querySelectorAll('.mps-score-row').forEach(row => {
+    updateMpsRow(row);
+    row.addEventListener('input', () => updateMpsRow(row));
+});
+</script>
+HTML;
+include APPPATH . 'Views/layout/footer.php';
+?>

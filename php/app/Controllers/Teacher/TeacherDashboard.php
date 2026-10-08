@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\AnnouncementModel;
 use App\Models\DocumentLinkModel;
 use App\Models\DocumentModel;
+use App\Models\MpsTestScoreModel;
 use App\Models\TaskAssigneeModel;
 use App\Models\TaskFeedbackModel;
 use App\Models\TaskModel;
@@ -108,6 +109,7 @@ class TeacherDashboard extends BaseController
             'links'               => $links,
             'insights'            => $insights,
             'docFeedback'         => $docFeedback,
+            'mps'                 => $this->mpsPerformance(),
         ]);
     }
 
@@ -169,6 +171,70 @@ class TeacherDashboard extends BaseController
      *
      * @return array<int,array<string,mixed>>
      */
+    /**
+     * "My MPS Performance": the teacher's own subjects and sections with
+     * their Summative 1 / 2 / Term Exam MPS for one school year + term.
+     * Defaults to the most recent term that has any of their scores; the
+     * dropdown (?mps=2026-2027|1) lists every term with scores on record.
+     *
+     * @return array{period:?string,year:?string,term:?int,periods:list<array{key:string,label:string}>,rows:list<array>,overall:?float,atMastery:int,scored:int,lowest:?array}
+     */
+    private function mpsPerformance(): array
+    {
+        $scoreModel = new MpsTestScoreModel();
+        $periods    = $scoreModel->select('school_year, term')->distinct()
+            ->orderBy('school_year', 'DESC')->orderBy('term', 'DESC')->findAll();
+        $options = array_map(static fn ($p) => [
+            'key'   => $p['school_year'] . '|' . $p['term'],
+            'label' => 'SY ' . $p['school_year'] . ' · Term ' . $p['term'],
+        ], $periods);
+
+        $mpsPage = new PerformanceMps();
+        $rowsFor = static fn (string $year, int $term) => PerformanceMps::performanceRows(
+            $mpsPage->handledCellsFor($year, $term),
+            $scoreModel->forYearTerm($year, $term)
+        );
+
+        $requested = (string) $this->request->getGet('mps');
+        $chosen    = null;
+        $rows      = [];
+        if (in_array($requested, array_column($options, 'key'), true)) {
+            $chosen = $requested;
+            [$y, $t] = explode('|', $chosen);
+            $rows    = $rowsFor($y, (int) $t);
+        } else {
+            foreach ($periods as $p) {
+                $candidate = $rowsFor($p['school_year'], (int) $p['term']);
+                if (array_filter(array_column($candidate, 'avg'), static fn ($v) => $v !== null)) {
+                    $chosen = $p['school_year'] . '|' . $p['term'];
+                    $rows   = $candidate;
+                    break;
+                }
+            }
+        }
+
+        $scored  = array_values(array_filter($rows, static fn ($r) => $r['avg'] !== null));
+        $lowest  = null;
+        foreach ($scored as $r) {
+            if ($lowest === null || $r['avg'] < $lowest['avg']) {
+                $lowest = $r;
+            }
+        }
+        [$year, $term] = $chosen ? explode('|', $chosen) : [null, null];
+
+        return [
+            'period'    => $chosen,
+            'year'      => $year,
+            'term'      => $term !== null ? (int) $term : null,
+            'periods'   => $options,
+            'rows'      => $rows,
+            'overall'   => $scored ? round(array_sum(array_column($scored, 'avg')) / count($scored), 2) : null,
+            'atMastery' => count(array_filter($scored, static fn ($r) => $r['avg'] >= 75)),
+            'scored'    => count($scored),
+            'lowest'    => $lowest,
+        ];
+    }
+
     private function recentFeedback(array $user): array
     {
         return (new TaskFeedbackModel())
@@ -228,13 +294,17 @@ class TeacherDashboard extends BaseController
         }
 
         if ($taskStats['total'] > 0) {
-            $rate = round($taskStats['completed'] / $taskStats['total'] * 100, 1);
-            if ($rate >= 80) {
-                $insights[] = ['tone' => 'success', 'icon' => 'bi-check-circle-fill', 'text' => 'Task completion rate is <strong>' . $rate . '%</strong> — nice work staying on top of things.'];
-            } elseif ($rate >= 50) {
-                $insights[] = ['tone' => 'warning', 'icon' => 'bi-hourglass-split', 'text' => 'Task completion rate is <strong>' . $rate . '%</strong> — ' . $taskStats['pending'] . ' task' . ($taskStats['pending'] === 1 ? '' : 's') . ' still open.'];
+            // Counts, not a percentage — "3 of 5 tasks done" reads clearer.
+            $done     = $taskStats['completed'] . ' of ' . $taskStats['total'];
+            $open     = $taskStats['total'] - $taskStats['completed'];
+            $openText = $open . ' task' . ($open === 1 ? '' : 's') . ' still ' . ($open === 1 ? 'needs' : 'need') . ' submission.';
+            $rate     = $taskStats['completed'] / $taskStats['total'];
+            if ($rate >= .8) {
+                $insights[] = ['tone' => 'success', 'icon' => 'bi-check-circle-fill', 'text' => "You've completed <strong>" . $done . '</strong> tasks — nice work staying on top of things.'];
+            } elseif ($rate >= .5) {
+                $insights[] = ['tone' => 'warning', 'icon' => 'bi-hourglass-split', 'text' => "You've completed <strong>" . $done . '</strong> tasks — ' . $openText];
             } else {
-                $insights[] = ['tone' => 'danger', 'icon' => 'bi-hourglass-bottom', 'text' => 'Task completion rate is only <strong>' . $rate . '%</strong> — ' . $taskStats['pending'] . ' task' . ($taskStats['pending'] === 1 ? '' : 's') . ' still ' . ($taskStats['pending'] === 1 ? 'needs' : 'need') . ' submission.'];
+                $insights[] = ['tone' => 'danger', 'icon' => 'bi-hourglass-bottom', 'text' => 'Only <strong>' . $done . '</strong> tasks completed — ' . $openText];
             }
         }
 

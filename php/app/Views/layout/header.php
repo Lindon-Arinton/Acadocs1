@@ -15,6 +15,7 @@ $notifTypeIcons = [
     'task_feedback'     => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
     'document_feedback' => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
     'parent_meeting'    => ['bi-people-fill', '#fff7ed', '#9a3412'],
+    'property_par'      => ['bi-clipboard-check-fill', '#fff0f0', '#800000'],
 ];
 
 // Safety net for a notification stored (past bug, or old data) without a
@@ -26,6 +27,7 @@ $notifTypeFallbackUrl = static function (string $type) use ($role): string {
         'task_assigned', 'task_feedback'  => base_url($role === 'teacher' ? 'submit-documents' : 'my-tasks'),
         'task_submission'                 => base_url('tasks'),
         'document_feedback'               => base_url('teacher-dashboard') . '#document-feedback',
+        'property_par'                    => base_url('property-management?tab=par'),
         default                           => base_url('announcements'),
     };
 };
@@ -189,7 +191,7 @@ try {
     </div>
     <div class="sidebar-brand-text">
       <h6>ACADOCS</h6>
-      <small>School MIS</small>
+      <small>School Documents Management System</small>
     </div>
   </button>
 
@@ -363,6 +365,8 @@ try {
 
   </div><!-- /.sidebar-scroll -->
 
+  <div class="sidebar-tagline">Better Records.<br>Brighter Futures.</div>
+
   <!-- User strip -->
   <a href="<?= base_url('profile') ?>" class="sidebar-user text-decoration-none" title="My Profile">
     <?php if ($photoUrl): ?>
@@ -386,6 +390,17 @@ try {
   <button class="btn btn-ghost btn-sm d-lg-none me-1" onclick="openSidebar()">
     <i class="bi bi-list fs-5"></i>
   </button>
+
+  <!-- Quick search: jumps to any page in the sidebar, or searches
+       documents / templates (see initTopbarSearch() in footer.php) -->
+  <div class="topbar-search" id="topbarSearch">
+    <i class="bi bi-search"></i>
+    <input type="search" id="topbarSearchInput" placeholder="Search features, documents, or templates…"
+           autocomplete="off" aria-label="Search" aria-controls="topbarSearchResults"
+           data-docs-url="<?= in_array($role, ['admin', 'adas'], true) ? base_url('documents') : '' ?>"
+           data-templates-url="<?= base_url('templates') ?>">
+    <div class="topbar-search-results" id="topbarSearchResults" role="listbox"></div>
+  </div>
 
   <!-- Actions -->
   <div class="d-flex align-items-center gap-2 ms-auto">

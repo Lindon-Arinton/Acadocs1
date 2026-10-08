@@ -7,6 +7,30 @@
 </a>
 <?php endif; ?>
 
+<!-- Expanded chart: clicking any chart opens a large copy here (see openChartModal()) -->
+<div class="modal fade" id="chartExpandModal" tabindex="-1" aria-labelledby="chartExpandTitle">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title" id="chartExpandTitle"><i class="bi bi-bar-chart-line me-2"></i><span>Chart</span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="chart-expand-canvas-wrap"><canvas id="chartExpandCanvas"></canvas></div>
+        <div class="chart-expand-table table-responsive" id="chartExpandTable"></div>
+        <div class="chart-expand-source d-none" id="chartExpandSource">
+          <i class="bi bi-database"></i>
+          <div><strong>Data source</strong><span></span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="chartExpandDownload"><i class="bi bi-download me-1"></i>Download PNG</button>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>window.Chart || document.write('<script src="<?= base_url('assets/js/chart.umd.min.js') ?>"><\/script>');</script>
@@ -105,6 +129,74 @@ function closeSidebar() {
     sidebar?.classList.remove('mobile-open');
     if (overlay) overlay.style.display = 'none';
 }
+
+/* ── Top bar quick search ────────────────────────────────────
+   Matches the sidebar's own links (so it only ever offers pages this
+   role can open), plus "search documents / templates for …" shortcuts. */
+(function initTopbarSearch() {
+    const input   = document.getElementById('topbarSearchInput');
+    const results = document.getElementById('topbarSearchResults');
+    if (!input || !results) return;
+
+    const pages = [...document.querySelectorAll('#sidebar .nav-link')]
+        .map(a => ({ label: a.querySelector('.sidebar-label')?.textContent.trim() || '', href: a.href, icon: a.querySelector('.nav-icon')?.className || 'bi bi-dot' }))
+        .filter((p, i, all) => p.label && all.findIndex(o => o.href === p.href) === i);
+    let active = 0;
+
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function items(q) {
+        const needle = q.toLowerCase();
+        const list = pages.filter(p => p.label.toLowerCase().includes(needle)).slice(0, 6)
+            .map(p => ({ ...p, hint: 'Page' }));
+        if (input.dataset.docsUrl) list.push({ label: 'Search documents for “' + q + '”', href: input.dataset.docsUrl + '?q=' + encodeURIComponent(q), icon: 'bi bi-folder2-open', hint: 'Documents' });
+        list.push({ label: 'Search templates for “' + q + '”', href: input.dataset.templatesUrl + '?q=' + encodeURIComponent(q), icon: 'bi bi-file-earmark-text', hint: 'Templates' });
+        return list;
+    }
+    function render() {
+        const q = input.value.trim();
+        if (!q) { results.classList.remove('open'); results.innerHTML = ''; return; }
+        const list = items(q);
+        active = Math.min(active, list.length - 1);
+        results.innerHTML = list.map((it, i) =>
+            '<a href="' + esc(it.href) + '" class="topbar-search-item' + (i === active ? ' active' : '') + '" role="option">'
+            + '<i class="' + esc(it.icon) + '"></i><span>' + esc(it.label) + '</span><small>' + it.hint + '</small></a>').join('');
+        results.classList.add('open');
+    }
+    function go(href) {
+        results.classList.remove('open');
+        input.value = '';
+        input.blur();
+        typeof loadPage === 'function' ? loadPage(href) : (location.href = href);
+    }
+    input.addEventListener('input', () => { active = 0; render(); });
+    input.addEventListener('focus', render);
+    input.addEventListener('keydown', e => {
+        const links = results.querySelectorAll('.topbar-search-item');
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            active = (active + (e.key === 'ArrowDown' ? 1 : -1) + links.length) % Math.max(links.length, 1);
+            render();
+        } else if (e.key === 'Enter' && links[active]) {
+            e.preventDefault();
+            go(links[active].href);
+        } else if (e.key === 'Escape') {
+            results.classList.remove('open');
+            input.blur();
+        }
+    });
+    results.addEventListener('click', e => {
+        const link = e.target.closest('.topbar-search-item');
+        if (!link) return;
+        e.preventDefault();
+        e.stopPropagation();
+        go(link.href);
+    });
+    document.addEventListener('click', e => { if (!e.target.closest('#topbarSearch')) results.classList.remove('open'); });
+    // Ctrl/Cmd + K focuses the search from anywhere.
+    document.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); }
+    });
+})();
 
 /* ── Notification panel ──────────────────────────────────── */
 const notifPanel = document.getElementById('notif-panel');
@@ -891,6 +983,144 @@ function chartColor(alpha = 1) {
 function chartColorAlt() {
     return getComputedStyle(document.documentElement).getPropertyValue('--chart-2').trim();
 }
+
+/* ── Click a chart to expand it ──────────────────────────────
+   Any Chart.js chart on any page: a click opens a large copy in
+   #chartExpandModal, titled after the card it sits in. The copy gets its
+   own data arrays (so the two charts never share state) and a legend
+   whenever there's more than one series to tell apart. */
+let expandedChart = null;
+
+/* The numbers behind a chart as a table: one row per label, one column per
+   series. Optional hints on the chart's <canvas>:
+     data-label-header  first column's heading (default "Category")
+     data-unit          suffix for values, e.g. "%"
+     data-table-total   "1" adds a Total column / row (only for counts)
+   Doughnut / pie charts get a Share column and a Total row automatically. */
+function chartDataTableHtml(chart, canvas) {
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const labels   = chart.data.labels || [];
+    const datasets = chart.data.datasets || [];
+    const unit     = canvas.dataset.unit || '';
+    const isPie    = ['doughnut', 'pie'].includes(chart.config.type);
+    const withTotal = isPie || canvas.dataset.tableTotal === '1';
+    const fmt = v => (v === null || v === undefined || Number.isNaN(Number(v)))
+        ? '—'
+        : Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) + unit;
+    const sum = arr => arr.reduce((a, v) => a + (Number(v) || 0), 0);
+    if (!labels.length || !datasets.length) return '';
+
+    // A placeholder slice (e.g. "No documents") isn't real data.
+    if (isPie && labels.length === 1 && /^no /i.test(labels[0])) {
+        return '<p class="text-muted small text-center mb-0 py-2">No data to show yet.</p>';
+    }
+
+    let head = '<th>' + esc(canvas.dataset.labelHeader || 'Category') + '</th>';
+    if (isPie) {
+        head += '<th class="text-end">Count</th><th class="text-end">Share</th>';
+    } else {
+        datasets.forEach(d => { head += '<th class="text-end">' + esc(d.label || 'Value') + '</th>'; });
+        if (withTotal && datasets.length > 1) head += '<th class="text-end">Total</th>';
+    }
+
+    const pieTotal = isPie ? sum(datasets[0].data) : 0;
+    const rows = labels.map((label, i) => {
+        let cells = '<td>' + esc(label) + '</td>';
+        if (isPie) {
+            const v = Number(datasets[0].data[i]) || 0;
+            cells += '<td class="text-end">' + fmt(v) + '</td><td class="text-end">' + (pieTotal ? (v / pieTotal * 100).toFixed(1) : '0') + '%</td>';
+        } else {
+            datasets.forEach(d => { cells += '<td class="text-end">' + fmt(d.data[i]) + '</td>'; });
+            if (withTotal && datasets.length > 1) cells += '<td class="text-end fw-semibold">' + fmt(sum(datasets.map(d => d.data[i]))) + '</td>';
+        }
+        return '<tr>' + cells + '</tr>';
+    }).join('');
+
+    let foot = '';
+    if (isPie) {
+        foot = '<tr><td>Total</td><td class="text-end">' + fmt(pieTotal) + '</td><td class="text-end">100%</td></tr>';
+    } else if (withTotal) {
+        foot = '<tr><td>Total</td>' + datasets.map(d => '<td class="text-end">' + fmt(sum(d.data)) + '</td>').join('')
+            + (datasets.length > 1 ? '<td class="text-end">' + fmt(sum(datasets.map(d => sum(d.data)))) + '</td>' : '') + '</tr>';
+    }
+
+    return '<table class="table table-sm mb-0"><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody>'
+        + (foot ? '<tfoot>' + foot + '</tfoot>' : '') + '</table>';
+}
+
+function openChartModal(canvas) {
+    const src = Chart.getChart(canvas);
+    if (!src) return;
+
+    const card  = canvas.closest('.card');
+    const head  = card && card.querySelector('.dash-card-head > span, .card-header .fw-semibold, .card-header');
+    const title = (head ? head.textContent : '').replace(/\s+/g, ' ').trim() || 'Chart';
+    const modalEl = document.getElementById('chartExpandModal');
+    modalEl.querySelector('#chartExpandTitle span').textContent = title;
+    modalEl.dataset.fileName = title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'chart';
+
+    document.getElementById('chartExpandTable').innerHTML = chartDataTableHtml(src, canvas);
+
+    // Where the numbers come from: the chart's data-source attribute.
+    const sourceBox = document.getElementById('chartExpandSource');
+    const source    = (canvas.dataset.source || '').trim();
+    sourceBox.querySelector('span').textContent = source;
+    sourceBox.classList.toggle('d-none', source === '');
+
+    const type     = src.config.type;
+    const multi    = src.data.datasets.length > 1 || type === 'doughnut' || type === 'pie';
+    const baseOpts = src.config.options || {};
+    modalEl._chartConfig = {
+        type: type,
+        data: {
+            labels: [...(src.data.labels || [])],
+            // Bars capped thin for a small card would look like hairlines full-size.
+            datasets: src.data.datasets.map(d => ({ ...d, data: [...d.data], ...(d.maxBarThickness ? { maxBarThickness: d.maxBarThickness * 2 } : {}) })),
+        },
+        options: {
+            ...baseOpts,
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 400 },
+            plugins: {
+                ...(baseOpts.plugins || {}),
+                legend: { display: multi, position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 16 } },
+            },
+        },
+    };
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+(function initChartExpand() {
+    const modalEl = document.getElementById('chartExpandModal');
+    if (!modalEl) return;
+
+    // Build the copy only once the modal is visible, so it sizes to the full width.
+    modalEl.addEventListener('shown.bs.modal', () => {
+        if (expandedChart) expandedChart.destroy();
+        expandedChart = new Chart(document.getElementById('chartExpandCanvas'), modalEl._chartConfig);
+    });
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        if (expandedChart) { expandedChart.destroy(); expandedChart = null; }
+    });
+    document.getElementById('chartExpandDownload').addEventListener('click', () => {
+        if (!expandedChart) return;
+        const a = document.createElement('a');
+        a.href = expandedChart.toBase64Image('image/png', 1);
+        a.download = (modalEl.dataset.fileName || 'chart') + '.png';
+        a.click();
+    });
+
+    // Delegated, so charts added later by AJAX navigation work too. Capture
+    // phase + preventDefault: a chart inside a card link (e.g. the teacher
+    // dashboard's Task Status card) must expand, not navigate away.
+    document.addEventListener('click', e => {
+        const canvas = e.target.closest('canvas');
+        if (!canvas || canvas.id === 'chartExpandCanvas' || !Chart.getChart(canvas)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        openChartModal(canvas);
+    }, true);
+})();
 </script>
 
 <?php if (isset($extraScript)): ?>

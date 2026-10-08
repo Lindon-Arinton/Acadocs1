@@ -49,6 +49,8 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('templates/preview/(:num)', 'Shared\Templates::preview/$1');
     $routes->post('templates/certificates/generate', 'Shared\Templates::generateCertificates');
     $routes->match(['get', 'post'], 'property-management', 'Admin\Properties::index');
+    $routes->get('property-management/(:num)/history', 'Admin\Properties::history/$1');
+    $routes->get('property-management/par/(:num)', 'Admin\Properties::par/$1');
     $routes->match(['get', 'post'], 'users', 'Admin\Users::index');
     $routes->match(['get', 'post'], 'tasks', 'Admin\Tasks::index');
     $routes->match(['get', 'post'], 'tasks/(:num)', 'Admin\Tasks::view/$1');

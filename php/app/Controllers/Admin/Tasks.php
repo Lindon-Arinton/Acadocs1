@@ -66,8 +66,8 @@ class Tasks extends BaseController
                     ]);
 
                     $recipients = $assignedRole === 'specific'
-                        ? (new UserModel())->whereIn('id', $specificUserIds)->findAll()
-                        : (new UserModel())->where('role', $assignedRole)->findAll();
+                        ? (new UserModel())->active()->whereIn('id', $specificUserIds)->findAll()
+                        : (new UserModel())->active()->where('role', $assignedRole)->findAll();
 
                     if ($assignedRole === 'specific') {
                         $assigneeModel = new TaskAssigneeModel();
@@ -125,12 +125,12 @@ class Tasks extends BaseController
         foreach ($tasks as &$task) {
             $task['eligible_count']  = $task['assigned_role'] === 'specific'
                 ? $assigneeModel->where('task_id', $task['id'])->countAllResults()
-                : $userModel->where('role', $task['assigned_role'])->countAllResults();
+                : $userModel->active()->where('role', $task['assigned_role'])->countAllResults();
             $task['submitted_count'] = $submissionModel->where('task_id', $task['id'])->countAllResults();
         }
         unset($task);
 
-        $assignableUsers     = $userModel->whereIn('role', ['teacher', 'adas'])->orderBy('name', 'ASC')->findAll();
+        $assignableUsers     = $userModel->active()->whereIn('role', ['teacher', 'adas'])->orderBy('name', 'ASC')->findAll();
         $departmentsByUserId = (new TeacherSubjectModel())->departmentsByUserId();
         foreach ($assignableUsers as &$u) {
             $u['departments'] = $departmentsByUserId[(int) $u['id']] ?? [];
@@ -221,7 +221,7 @@ class Tasks extends BaseController
         $submittedUserIds = array_column($submissions, 'user_id');
         $pendingUsers      = $task['assigned_role'] === 'specific'
             ? (new TaskAssigneeModel())->usersForTask($id)
-            : (new UserModel())->where('role', $task['assigned_role'])->orderBy('name')->findAll();
+            : (new UserModel())->active()->where('role', $task['assigned_role'])->orderBy('name')->findAll();
         $pendingUsers      = array_values(array_filter(
             $pendingUsers,
             static fn (array $u) => ! in_array($u['id'], $submittedUserIds, true)
@@ -269,7 +269,7 @@ class Tasks extends BaseController
         $submittedUserIds = array_column($submissions, 'user_id');
         $pendingUsers      = $task['assigned_role'] === 'specific'
             ? (new TaskAssigneeModel())->usersForTask($id)
-            : (new UserModel())->where('role', $task['assigned_role'])->orderBy('name')->findAll();
+            : (new UserModel())->active()->where('role', $task['assigned_role'])->orderBy('name')->findAll();
         $pendingUsers      = array_values(array_filter(
             $pendingUsers,
             static fn (array $u) => ! in_array($u['id'], $submittedUserIds, true)

@@ -2,7 +2,9 @@
 
 namespace App\Controllers\Api;
 
+use App\Models\PropertyConditionLogModel;
 use App\Models\RoomPropertyModel;
+use CodeIgniter\Database\RawSql;
 
 class PropertiesController extends BaseApiController
 {
@@ -32,9 +34,12 @@ class PropertiesController extends BaseApiController
             'grade'            => $b['grade'] ?? '',
             'item_name'        => $b['item_name'] ?? '',
             'quantity'         => (int) ($b['quantity'] ?? 1),
-            'condition_status' => $b['condition_status'] ?? 'Good',
+            'condition_status' => in_array($b['condition_status'] ?? '', RoomPropertyModel::CONDITIONS, true) ? $b['condition_status'] : 'Serviceable',
+            'acquisition_type' => in_array($b['acquisition_type'] ?? '', RoomPropertyModel::ACQUISITIONS, true) ? $b['acquisition_type'] : 'New',
+            'notes'            => $b['notes'] ?? null,
             'uploaded_by'      => $b['uploaded_by'] ?? (currentUser()['name'] ?? null),
         ]);
+        (new PropertyConditionLogModel())->record((int) $id, null, $b['condition_status'] ?? 'Serviceable', 'Item added');
 
         return $this->jsonResponse(['id' => $id, 'message' => 'Created.'], 201);
     }
@@ -46,10 +51,21 @@ class PropertiesController extends BaseApiController
             return $this->jsonError('Method not allowed.', 405);
         }
 
-        $b = $this->body();
-        (new RoomPropertyModel())->update($id, [
-            'condition_status' => $b['condition_status'],
-        ]);
+        $b     = $this->body();
+        $model = new RoomPropertyModel();
+        $item  = $model->find($id);
+        $to    = $b['condition_status'] ?? '';
+        if (! $item) {
+            return $this->jsonError('Item not found.', 404);
+        }
+        if (! in_array($to, RoomPropertyModel::CONDITIONS, true)) {
+            return $this->jsonError('condition_status must be Serviceable or Non-serviceable.', 422);
+        }
+
+        if ($to !== $item['condition_status']) {
+            $model->update($id, ['condition_status' => $to, 'updated_at' => new RawSql('NOW()')]);
+            (new PropertyConditionLogModel())->record($id, $item['condition_status'], $to, $b['remarks'] ?? null);
+        }
 
         return $this->jsonResponse(['message' => 'Updated.']);
     }

@@ -37,6 +37,34 @@ if (! function_exists('submissionBadge')) {
     }
 }
 
+if (! function_exists('fileTypeStyle')) {
+    /**
+     * Icon + colors for a file extension, shared by Templates and Document
+     * Management file lists.
+     *
+     * @return array{0:string,1:string,2:string} [bootstrap icon, text color, background]
+     */
+    function fileTypeStyle(?string $ext): array
+    {
+        return [
+            'pdf'  => ['bi-file-earmark-pdf-fill',   '#991b1b', '#fee2e2'],
+            'doc'  => ['bi-file-earmark-word-fill',  '#1e40af', '#dbeafe'],
+            'docx' => ['bi-file-earmark-word-fill',  '#1e40af', '#dbeafe'],
+            'xls'  => ['bi-file-earmark-excel-fill', '#065f46', '#d1fae5'],
+            'xlsx' => ['bi-file-earmark-excel-fill', '#065f46', '#d1fae5'],
+            'csv'  => ['bi-filetype-csv',            '#065f46', '#d1fae5'],
+            'ppt'  => ['bi-file-earmark-ppt-fill',   '#c2410c', '#ffedd5'],
+            'pptx' => ['bi-file-earmark-ppt-fill',   '#c2410c', '#ffedd5'],
+            'txt'  => ['bi-file-earmark-text-fill',  '#374151', '#f3f4f6'],
+            'zip'  => ['bi-file-earmark-zip-fill',   '#713f12', '#fef9c3'],
+            'rar'  => ['bi-file-earmark-zip-fill',   '#713f12', '#fef9c3'],
+            'jpg'  => ['bi-file-earmark-image-fill', '#3730a3', '#eff6ff'],
+            'jpeg' => ['bi-file-earmark-image-fill', '#3730a3', '#eff6ff'],
+            'png'  => ['bi-file-earmark-image-fill', '#3730a3', '#eff6ff'],
+        ][strtolower((string) $ext)] ?? ['bi-file-earmark-fill', '#374151', '#f3f4f6'];
+    }
+}
+
 if (! function_exists('richText')) {
     /**
      * Escapes user text, then renders **bold** and *italic* markers as HTML.

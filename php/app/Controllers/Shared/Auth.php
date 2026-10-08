@@ -18,7 +18,7 @@ class Auth extends BaseController
             return redirect()->to(self::ROLE_DASHBOARDS[currentUser()['role']] ?? '/dashboard');
         }
 
-        $error = '';
+        $error = $this->request->getGet('deactivated') ? 'Your account has been deactivated. Please contact the school administrator.' : '';
         $email = '';
 
         if ($this->request->getMethod() === 'POST') {
@@ -28,14 +28,16 @@ class Auth extends BaseController
             if ($email && $password) {
                 $user = (new UserModel())->findByEmail($email);
 
-                if ($user && password_verify($password, $user['password'])) {
+                if ($user && password_verify($password, $user['password']) && ! (int) $user['is_active']) {
+                    $error = 'This account has been deactivated. Please contact the school administrator.';
+                } elseif ($user && password_verify($password, $user['password'])) {
                     unset($user['password']);
                     session()->set('user', $user);
 
                     return redirect()->to(self::ROLE_DASHBOARDS[$user['role']] ?? '/dashboard');
                 }
 
-                $error = 'Invalid email or password. Please try again.';
+                $error = $error ?: 'Invalid email or password. Please try again.';
             } else {
                 $error = 'Please enter your email and password.';
             }

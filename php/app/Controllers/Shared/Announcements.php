@@ -45,7 +45,7 @@ class Announcements extends BaseController
 
                     $poster     = currentUser();
                     $notifModel = new NotificationModel();
-                    foreach ((new UserModel())->where('id !=', $poster['id'])->findAll() as $recipient) {
+                    foreach ((new UserModel())->active()->where('id !=', $poster['id'])->findAll() as $recipient) {
                         $notifModel->insert([
                             'user_id' => $recipient['id'],
                             'type'    => 'announcement',

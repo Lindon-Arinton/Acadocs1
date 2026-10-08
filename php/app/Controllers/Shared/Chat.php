@@ -78,7 +78,7 @@ class Chat extends BaseController
         $canCreateGroup = hasRole('admin');
 
         $users = $canMessage
-            ? (new UserModel())->where('id !=', $user['id'])->orderBy('name', 'ASC')->findAll()
+            ? (new UserModel())->active()->where('id !=', $user['id'])->orderBy('name', 'ASC')->findAll()
             : [];
 
         foreach ($users as &$u) {

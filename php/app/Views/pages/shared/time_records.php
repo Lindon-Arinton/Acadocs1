@@ -1,14 +1,39 @@
 <?php include APPPATH . 'Views/layout/header.php'; ?>
 
-<!-- Page Header -->
+<?php
+// The selected date is the page's headline; prev / next / today step through days.
+$dtrIsToday = $dateFilter === date('Y-m-d');
+$dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string {
+    return base_url('time-records') . '?' . http_build_query(array_filter([
+        'date'   => $date,
+        'sort'   => $sort !== 'name_az' ? $sort : null,
+        'status' => $statusFilter !== 'all' ? $statusFilter : null,
+    ]));
+};
+?>
+<!-- Page Header: the selected date is the headline -->
 <div class="page-header">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="position:relative;z-index:1">
     <div>
-      <h4><i class="bi bi-clock me-2"></i>Daily Time Records</h4>
-      <p>Employee attendance, time-in &amp; time-out monitoring</p>
+      <div class="small fw-semibold mb-1" style="opacity:.8;letter-spacing:.04em;text-transform:uppercase;">
+        <i class="bi bi-clock me-1"></i>Daily Time Records
+      </div>
+      <h4 class="dtr-date-title"><?= date('l, F j, Y', strtotime($dateFilter)) ?></h4>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <?php if ($dtrIsToday): ?>
+        <div class="live-badge"><div class="live-dot"></div>Today · <span id="dtrLiveClock"><?= date('g:i:s A') ?></span></div>
+        <?php else: ?>
+        <div class="live-badge"><i class="bi bi-calendar3"></i><?= e(\CodeIgniter\I18n\Time::parse($dateFilter)->humanize()) ?></div>
+        <?php endif; ?>
+        <p class="mb-0">Employee attendance, time-in &amp; time-out monitoring</p>
+      </div>
     </div>
     <div class="d-flex gap-2 align-items-center">
-      <div class="live-badge"><div class="live-dot"></div><?= date('F d, Y', strtotime($dateFilter)) ?></div>
+      <a href="<?= $dtrDayUrl(date('Y-m-d', strtotime($dateFilter . ' -1 day'))) ?>" class="btn btn-sm btn-outline-light" title="Previous day"><i class="bi bi-chevron-left"></i></a>
+      <?php if (! $dtrIsToday): ?>
+      <a href="<?= $dtrDayUrl(date('Y-m-d')) ?>" class="btn btn-sm btn-light fw-semibold" style="color:var(--primary);">Today</a>
+      <?php endif; ?>
+      <a href="<?= $dtrDayUrl(date('Y-m-d', strtotime($dateFilter . ' +1 day'))) ?>" class="btn btn-sm btn-outline-light" title="Next day"><i class="bi bi-chevron-right"></i></a>
     </div>
   </div>
 </div>
@@ -356,6 +381,15 @@ $canManageHolidays = hasRole('admin', 'adas') ? 'true' : 'false';
 
 $extraScript = <<<HTML
 <script>
+// Live clock in the header when viewing today. One shared timer, reset on
+// each (re)injection so AJAX navigation doesn't stack intervals.
+clearInterval(window.dtrClockTimer);
+window.dtrClockTimer = setInterval(function () {
+    var el = document.getElementById('dtrLiveClock');
+    if (!el) { clearInterval(window.dtrClockTimer); return; }
+    el.textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+}, 1000);
+
 // Values are read inside the function body (not as top-level const/let)
 // because this script gets re-injected on every AJAX filter navigation on
 // this same page — a top-level const here would collide with the one the

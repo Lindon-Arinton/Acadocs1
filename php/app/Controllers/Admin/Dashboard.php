@@ -8,6 +8,7 @@ use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
 use App\Models\PerformanceByLevelModel;
 use App\Models\PerformanceBySubjectModel;
+use App\Models\TimeRecordModel;
 
 class Dashboard extends BaseController
 {
@@ -52,7 +53,9 @@ class Dashboard extends BaseController
         $requestedMonth   = (string) $this->request->getGet('month');
         $enrollmentMonth  = in_array($requestedMonth, $enrollmentMonths, true) ? $requestedMonth : (end($enrollmentMonths) ?: null);
         $enrollment       = $enrollmentModel->forYear($currentYear, $enrollmentMonth);
-        $perfLevel  = (new PerformanceByLevelModel())->where('school_year', $currentYear)->where('term', $currentTerm)->orderBy('grade_level')->findAll();
+        $perfLevel  = (new PerformanceByLevelModel())->where('school_year', $currentYear)->where('term', $currentTerm)->findAll();
+        // Grade 7 → 10 in numeric order (a text sort puts "Grade 10" first).
+        usort($perfLevel, static fn ($x, $y) => (int) filter_var($x['grade_level'], FILTER_SANITIZE_NUMBER_INT) <=> (int) filter_var($y['grade_level'], FILTER_SANITIZE_NUMBER_INT));
 
         $avgMps = $perfLevel !== [] ? round(array_sum(array_column($perfLevel, 'mps')) / count($perfLevel), 2) : null;
 
@@ -138,6 +141,8 @@ class Dashboard extends BaseController
         $dropoutDelta   = $this->seriesDelta($dropoutSeries, false);
         $mpsDelta       = $this->seriesDelta($mpsYearSeries, false);
 
+        $dtrToday = (new TimeRecordModel())->daySummary(date('Y-m-d'));
+
         $insights = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary);
 
         return view('pages/admin/dashboard', [
@@ -170,6 +175,7 @@ class Dashboard extends BaseController
             'dropoutDelta'       => $dropoutDelta,
             'mpsDelta'           => $mpsDelta,
             'insights'           => $insights,
+            'dtrToday'           => $dtrToday,
         ]);
     }
 
@@ -200,19 +206,20 @@ class Dashboard extends BaseController
 
         if ($lowest !== null && (float) $lowest['mps'] < 80) {
             $insights[] = [
-                'tone' => 'danger',
-                'icon' => 'bi-exclamation-triangle-fill',
-                'text' => '<strong>' . e($lowest['subject']) . '</strong> (' . e($lowest['grade_level']) . ') has the lowest MPS at <strong>' . e($lowest['mps']) . '%</strong> — teacher ' . e($lowest['instructor']) . '.',
+                'tone'  => 'danger',
+                'icon'  => 'bi-exclamation-triangle-fill',
+                'title' => 'Focus area: ' . e($lowest['subject']),
+                'text'  => '<strong>' . e($lowest['subject']) . '</strong> (' . e($lowest['grade_level']) . ') has the lowest MPS at <strong>' . e($lowest['mps']) . '%</strong>' . (trim((string) $lowest['instructor'], " 	—-") !== '' ? ' — teacher ' . e($lowest['instructor']) : '') . '.',
             ];
         }
 
         if ($complianceRate !== null) {
             if ($complianceRate < 60) {
-                $insights[] = ['tone' => 'danger', 'icon' => 'bi-clipboard-x-fill', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — well below the 85% target.'];
+                $insights[] = ['tone' => 'danger', 'icon' => 'bi-clipboard-x-fill', 'title' => 'Submissions need attention', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — well below the 85% target.'];
             } elseif ($complianceRate < 85) {
-                $insights[] = ['tone' => 'warning', 'icon' => 'bi-clipboard-check', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — below the 85% target.'];
+                $insights[] = ['tone' => 'warning', 'icon' => 'bi-clipboard-check', 'title' => 'Submissions below target', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — below the 85% target.'];
             } else {
-                $insights[] = ['tone' => 'success', 'icon' => 'bi-clipboard-check-fill', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — on track.'];
+                $insights[] = ['tone' => 'success', 'icon' => 'bi-clipboard-check-fill', 'title' => 'Submissions on track', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — on track.'];
             }
         }
 
@@ -221,6 +228,7 @@ class Dashboard extends BaseController
             $insights[] = [
                 'tone' => $improved ? 'success' : 'warning',
                 'icon' => $improved ? 'bi-graph-down-arrow' : 'bi-graph-up-arrow',
+                'title' => $improved ? 'Drop-out rate improved' : 'Drop-out rate went up',
                 'text' => 'Drop-out rate ' . ($improved ? 'decreased by' : 'rose by') . ' <strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' pts</strong> vs ' . e($dropoutDelta['vsLabel']) . '.',
             ];
         }
@@ -230,6 +238,7 @@ class Dashboard extends BaseController
             $insights[] = [
                 'tone' => $improved ? 'success' : 'warning',
                 'icon' => $improved ? 'bi-arrow-up-circle-fill' : 'bi-arrow-down-circle-fill',
+                'title' => $improved ? 'MPS improved' : 'MPS declined',
                 'text' => 'Average MPS ' . ($improved ? 'improved by' : 'declined by') . ' <strong>' . number_format(abs($mpsDelta['delta']), 2) . ' pts</strong> vs ' . e($mpsDelta['vsLabel']) . '.',
             ];
         }
@@ -240,6 +249,7 @@ class Dashboard extends BaseController
                 $insights[] = [
                     'tone' => 'success',
                     'icon' => 'bi-star-fill',
+                    'title' => 'Top subject: ' . e($top['subject']),
                     'text' => '<strong>' . e($top['subject']) . '</strong> is the top-performing subject at <strong>' . e($top['mps']) . '%</strong>.',
                 ];
             }
@@ -250,6 +260,7 @@ class Dashboard extends BaseController
             $insights[] = [
                 'tone' => 'info',
                 'icon' => $up ? 'bi-people-fill' : 'bi-person-dash-fill',
+                'title' => 'Enrollment ' . ($up ? 'increased' : 'decreased') . ' by ' . number_format(abs($enrolleesDelta['delta']), 1) . '%',
                 'text' => 'Enrollment ' . ($up ? 'rose' : 'fell') . ' <strong>' . number_format(abs($enrolleesDelta['delta']), 1) . '%</strong> vs ' . e($enrolleesDelta['vsLabel']) . '.',
             ];
         }
@@ -259,6 +270,7 @@ class Dashboard extends BaseController
             $insights[] = [
                 'tone' => $pending >= 10 ? 'warning' : 'info',
                 'icon' => 'bi-hourglass-split',
+                'title' => 'Documents awaiting review',
                 'text' => '<strong>' . $pending . '</strong> document' . ($pending === 1 ? '' : 's') . ' awaiting review.',
             ];
         }

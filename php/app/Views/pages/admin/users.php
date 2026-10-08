@@ -31,6 +31,15 @@
           <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
           <div class="maroon-select-panel"></div>
         </div>
+        <div class="maroon-select maroon-select-sm" style="width:auto;">
+          <select name="status" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <option value="all"      <?= $status==='all'      ? 'selected' : '' ?>>All Accounts</option>
+            <option value="active"   <?= $status==='active'   ? 'selected' : '' ?>>Active</option>
+            <option value="inactive" <?= $status==='inactive' ? 'selected' : '' ?>>Deactivated</option>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-diagram-3 text-muted"></i>
           <div class="maroon-select maroon-select-sm" style="width:auto;">
@@ -62,7 +71,7 @@
     <div class="table-responsive">
       <table class="table mb-0" id="users-table">
         <thead>
-          <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Joined</th><th class="text-center">Actions</th></tr>
+          <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Joined</th><th class="text-center">Actions</th></tr>
         </thead>
         <tbody>
           <?php
@@ -74,6 +83,7 @@
           foreach ($users as $i => $u):
             [$rbg,$rtc] = $roleCfg[$u['role']] ?? ['var(--surface-hover)','var(--text-secondary)'];
             $isMe = $u['id'] == currentUser()['id'];
+            $isActive = (int) $u['is_active'] === 1;
             // ADAS may manage every account except admins (Users::index enforces this too).
             $canManage = hasRole('admin') || $u['role'] !== 'admin';
 
@@ -105,7 +115,7 @@
                 ], $teacher['subjects'] ?? []),
             ];
           ?>
-          <tr>
+          <tr <?= $isActive ? '' : 'style="opacity:.6"' ?>>
             <td class="text-muted"><?= $i+1 ?></td>
             <td>
               <div class="d-flex align-items-center gap-2">
@@ -130,6 +140,13 @@
               <?php endforeach; ?>
               <?php if (empty($u['departments'])): ?><span class="text-muted">—</span><?php endif; ?>
             </td>
+            <td>
+              <?php if ($isActive): ?>
+              <span class="badge badge-reviewed">Active</span>
+              <?php else: ?>
+              <span class="badge badge-secondary" title="Deactivated <?= $u['deactivated_at'] ? e(date('M d, Y', strtotime($u['deactivated_at']))) : '' ?>">Deactivated</span>
+              <?php endif; ?>
+            </td>
             <td class="text-muted" style="font-size:.78rem"><?= date('M d, Y', strtotime($u['created_at'])) ?></td>
             <td class="text-center">
               <?php if ($canManage): ?>
@@ -145,6 +162,21 @@
               </button>
               <?php if (!$isMe): ?>
               <form method="POST" action="<?= base_url('users') ?>" class="d-inline ajax-form"
+                    <?php if ($isActive): ?>
+                    data-confirm-title="Deactivate <?= e($u['name']) ?>?"
+                    data-confirm-text="They won't be able to sign in, and will stop receiving tasks and notifications. Their records are kept, and you can reactivate them anytime."
+                    data-confirm-icon="warning"
+                    <?php else: ?>
+                    data-confirm-title="Reactivate <?= e($u['name']) ?>?"
+                    data-confirm-text="They will be able to sign in again."
+                    <?php endif; ?>>
+                <input type="hidden" name="action" value="<?= $isActive ? 'deactivate' : 'reactivate' ?>">
+                <input type="hidden" name="id" value="<?= $u['id'] ?>">
+                <button class="btn btn-ghost btn-sm <?= $isActive ? 'text-warning' : 'text-success' ?>" title="<?= $isActive ? 'Deactivate account' : 'Reactivate account' ?>">
+                  <i class="bi <?= $isActive ? 'bi-person-slash' : 'bi-person-check' ?>"></i>
+                </button>
+              </form>
+              <form method="POST" action="<?= base_url('users') ?>" class="d-inline ajax-form"
                     data-confirm-title="Delete <?= e(addslashes($u['name'])) ?>?"
                     data-confirm-text="This will permanently remove this user account.">
                 <input type="hidden" name="action" value="delete">
@@ -159,7 +191,7 @@
           </tr>
           <?php endforeach; ?>
           <?php if (empty($users)): ?>
-          <tr><td colspan="7" class="text-center py-5 text-muted">No users found matching your search.</td></tr>
+          <tr><td colspan="8" class="text-center py-5 text-muted">No users found matching your search.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>

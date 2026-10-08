@@ -1,21 +1,4 @@
 <?php
-$extCfg = [
-    'pdf'  => ['bi-file-earmark-pdf-fill',   '#991b1b', '#fee2e2'],
-    'doc'  => ['bi-file-earmark-word-fill',  '#1e40af', '#dbeafe'],
-    'docx' => ['bi-file-earmark-word-fill',  '#1e40af', '#dbeafe'],
-    'xls'  => ['bi-file-earmark-excel-fill', '#065f46', '#d1fae5'],
-    'xlsx' => ['bi-file-earmark-excel-fill', '#065f46', '#d1fae5'],
-    'csv'  => ['bi-filetype-csv',            '#065f46', '#d1fae5'],
-    'ppt'  => ['bi-file-earmark-ppt-fill',   '#c2410c', '#ffedd5'],
-    'pptx' => ['bi-file-earmark-ppt-fill',   '#c2410c', '#ffedd5'],
-    'txt'  => ['bi-file-earmark-text-fill',  '#374151', '#f3f4f6'],
-    'zip'  => ['bi-file-earmark-zip-fill',   '#713f12', '#fef9c3'],
-    'rar'  => ['bi-file-earmark-zip-fill',   '#713f12', '#fef9c3'],
-    'jpg'  => ['bi-file-earmark-image-fill', '#3730a3', '#eff6ff'],
-    'jpeg' => ['bi-file-earmark-image-fill', '#3730a3', '#eff6ff'],
-    'png'  => ['bi-file-earmark-image-fill', '#3730a3', '#eff6ff'],
-];
-
 if (! function_exists('tplFormatBytes')) {
     function tplFormatBytes(int $bytes): string
     {
@@ -163,7 +146,7 @@ include APPPATH . 'Views/layout/header.php';
     <?php else: ?>
     <div class="list-group list-group-flush">
       <?php foreach ($items as $t):
-        [$icon, $tc, $bg] = $extCfg[$t['file_ext']] ?? ['bi-file-earmark-fill', '#374151', '#f3f4f6'];
+        [$icon, $tc, $bg] = fileTypeStyle($t['file_ext']);
         $conversions      = \App\Controllers\Shared\Templates::conversionTargets($t['file_ext']);
         // Only the Download button that actually has a dropdown attached
         // switches to the brand red — a plain Download (no conversions)

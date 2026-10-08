@@ -70,6 +70,24 @@ class Users extends BaseController
                     }
                     $model->delete((int) $this->request->getPost('id'));
                     $message = 'User deleted.';
+                } elseif ($action === 'deactivate' || $action === 'reactivate') {
+                    // e.g. the outgoing principal when a new one takes over —
+                    // they can no longer sign in, but their records stay.
+                    $userId = (int) $this->request->getPost('id');
+                    if ($userId === (int) currentUser()['id']) {
+                        return $isAjax ? $this->ajaxError('You cannot deactivate your own account.') : redirect()->to('/users');
+                    }
+                    $target = $model->find($userId);
+                    if (! $target) {
+                        return $isAjax ? $this->ajaxError('User not found.', 404) : redirect()->to('/users');
+                    }
+
+                    $activate = $action === 'reactivate';
+                    $model->update($userId, [
+                        'is_active'      => $activate ? 1 : 0,
+                        'deactivated_at' => $activate ? null : date('Y-m-d H:i:s'),
+                    ]);
+                    $message = $target['name'] . ($activate ? ' can sign in again.' : ' has been deactivated and can no longer sign in.');
                 } elseif ($action === 'reset_pw') {
                     $model->update((int) $this->request->getPost('id'), [
                         'password' => password_hash($this->request->getPost('new_password'), PASSWORD_BCRYPT),
@@ -92,12 +110,17 @@ class Users extends BaseController
         $search     = trim($this->request->getGet('q') ?? '');
         $sort       = $this->request->getGet('sort') ?? 'role';
         $department = $this->request->getGet('dept') ?? 'all';
+        $status     = $this->request->getGet('status') ?? 'all';
 
-        $builder = $model->select('id,name,email,role,created_at')
+        $builder = $model->select('id,name,email,role,is_active,deactivated_at,created_at')
             ->groupStart()
                 ->like('name', $search)
                 ->orLike('email', $search)
             ->groupEnd();
+
+        if ($status === 'active' || $status === 'inactive') {
+            $builder->where('is_active', $status === 'active' ? 1 : 0);
+        }
 
         match ($sort) {
             'name_az' => $builder->orderBy('name', 'ASC'),
@@ -137,6 +160,7 @@ class Users extends BaseController
             'sort'        => $sort,
             'department'  => $department,
             'departments' => $departments,
+            'status'      => $status,
             'gradeLevels' => self::GRADE_LEVELS,
             'flash'       => session()->getFlashdata('flash'),
         ]);
