@@ -3,12 +3,17 @@
  * "Daily Time Records — as of today" panel for the dashboards.
  * Expects $dtrToday from TimeRecordModel::daySummary().
  */
+// label => [--s-* color token, icon]
 $dtrStatusCfg = [
-    'Present'  => ['present',  'bi-check-circle-fill'],
-    'Late'     => ['late',     'bi-alarm-fill'],
-    'Absent'   => ['absent',   'bi-x-circle-fill'],
-    'On Leave' => ['on-leave', 'bi-calendar-check'],
+    'Present'  => ['present', 'bi-check-circle-fill'],
+    'Late'     => ['late',    'bi-alarm-fill'],
+    'Absent'   => ['absent',  'bi-x-circle-fill'],
+    'On Leave' => ['leave',   'bi-calendar-check'],
 ];
+// Only on days that have them (break days), so normal days keep four tiles.
+if (($dtrToday['counts']['Academic Break'] ?? 0) > 0) {
+    $dtrStatusCfg['Academic Break'] = ['break', 'bi-calendar-range-fill'];
+}
 $dtrShowMax = 5;
 $dtrNames = static function (array $rows, bool $withTime) use ($dtrShowMax): string {
     $out = [];
@@ -30,11 +35,11 @@ $dtrNames = static function (array $rows, bool $withTime) use ($dtrShowMax): str
   </div>
   <div class="card-body card-body-tight">
     <div class="row g-2 text-center mb-2">
-      <?php foreach ($dtrStatusCfg as $label => [$cls, $icon]): ?>
-      <div class="col-3">
-        <a href="<?= base_url('time-records?status=' . urlencode($label)) ?>" class="d-block text-decoration-none rounded-3 py-2" style="background:var(--s-<?= $cls === 'on-leave' ? 'leave' : $cls ?>-bg);">
-          <div class="fw-bold" style="font-size:1.25rem;line-height:1.1;color:var(--s-<?= $cls === 'on-leave' ? 'leave' : $cls ?>-tx);"><?= (int) $dtrToday['counts'][$label] ?></div>
-          <div style="font-size:.64rem;color:var(--s-<?= $cls === 'on-leave' ? 'leave' : $cls ?>-tx);"><i class="bi <?= $icon ?> me-1"></i><?= $label ?></div>
+      <?php foreach ($dtrStatusCfg as $label => [$tok, $icon]): ?>
+      <div class="col">
+        <a href="<?= base_url('time-records?status=' . urlencode($label)) ?>" class="d-block text-decoration-none rounded-3 py-2" style="background:var(--s-<?= $tok ?>-bg);">
+          <div class="fw-bold" style="font-size:1.25rem;line-height:1.1;color:var(--s-<?= $tok ?>-tx);"><?= (int) $dtrToday['counts'][$label] ?></div>
+          <div style="font-size:.64rem;color:var(--s-<?= $tok ?>-tx);"><i class="bi <?= $icon ?> me-1"></i><?= $label ?></div>
         </a>
       </div>
       <?php endforeach; ?>

@@ -220,6 +220,7 @@ $insightTone = [
 
   <!-- Side rail: insights + today's time records -->
   <div class="dash-area-side d-flex flex-column gap-3">
+    <?php $calendarCardClass = 'card dash-card'; include APPPATH . 'Views/partials/school_calendar.php'; ?>
     <div class="card dash-card">
       <div class="dash-card-head">
         <span><i class="bi bi-lightbulb"></i>Insights</span>
@@ -319,7 +320,12 @@ $insightTone = [
       </button>
     </div>
     <?php
-      $mpsBadge = static fn ($mps): array => $mps >= 85 ? ['Excellent', 'badge-submitted'] : ($mps >= 75 ? ['Satisfactory', 'badge-reviewed'] : ['Needs Improvement', 'badge-returned']);
+      // DepEd descriptor (Advancing … Emerging) as [label, pill class].
+      $mpsBadge = static function ($mps): array {
+          $d = mpsDescriptor((float) $mps);
+
+          return [$d['label'], $d['class']];
+      };
       // "A, B" => linked names (person card) for teachers with an account; placeholders => "Not assigned".
       $teacherCell = static function (string $instructor) use ($perfTeachers): string {
           $instructor = trim($instructor);

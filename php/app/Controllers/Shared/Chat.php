@@ -68,6 +68,7 @@ class Chat extends BaseController
 
             $last = $messageModel->lastForConversation((int) $c['id']);
 
+            $c['has_messages'] = $last !== null;
             $c['last_message'] = $last['body'] ?? null;
             $c['last_time']    = $last['created_at'] ?? $c['created_at'];
             $c['unread']       = $messageModel->unreadCount((int) $c['id'], (int) $user['id'], $c['last_read_at']);
@@ -98,6 +99,14 @@ class Chat extends BaseController
         if ($openId && ! $participantModel->isParticipant($openId, (int) $user['id'])) {
             $openId = 0;
         }
+
+        // A direct chat nobody has written in yet (a name clicked, then left)
+        // stays out of everyone's list — no need to delete it — except the one
+        // being opened right now. It shows up once the first message is sent.
+        $conversations = array_values(array_filter(
+            $conversations,
+            static fn (array $c): bool => $c['type'] !== 'direct' || $c['has_messages'] || (int) $c['id'] === $openId
+        ));
 
         return view('pages/shared/chat', [
             'pageTitle'      => 'Chat',

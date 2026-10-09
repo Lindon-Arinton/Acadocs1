@@ -324,13 +324,13 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
       </div>
       <div>
         <table>
-          <thead><tr><th>Grade Level</th><th class="num">MPS (Term <?= (int) $currentTerm ?>)</th><th>Standing</th></tr></thead>
+          <thead><tr><th>Grade Level</th><th class="num">MPS (Term <?= (int) $currentTerm ?>)</th><th>Descriptor</th></tr></thead>
           <tbody>
             <?php foreach ($perfLevel as $p): $m = (float) $p['mps']; ?>
             <tr>
               <td><?= e($p['grade_level']) ?></td>
               <td class="num"><?= $pct($m) ?></td>
-              <td><span class="<?= $m >= 75 ? 'good' : 'bad' ?>"><?= $m >= 75 ? 'Meets 75%' : 'Below 75%' ?></span></td>
+              <td><span class="<?= $m >= 75 ? 'good' : 'bad' ?>"><?= mpsDescriptor($m)['label'] ?></span></td>
             </tr>
             <?php endforeach; ?>
             <?php if ($perfLevel === []): ?><tr><td colspan="3" class="muted">No grade-level MPS for SY <?= e(str_replace('-', '–', $currentYear)) ?>.</td></tr><?php endif; ?>
@@ -351,19 +351,20 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
     <div class="two-col">
       <div class="chart-box" style="height:<?= max(210, count($avgPerf) * 22 + 40) ?>px;"><canvas id="chartSubjects"></canvas></div>
       <table>
-        <thead><tr><th>#</th><th>Learning Area</th><th class="num">Average MPS</th></tr></thead>
+        <thead><tr><th>#</th><th>Learning Area</th><th class="num">Average MPS</th><th>Descriptor</th></tr></thead>
         <tbody>
           <?php foreach ($avgPerf as $i => $p): ?>
           <tr>
             <td class="muted"><?= $i + 1 ?></td>
             <td><?= e($p['subject']) ?></td>
             <td class="num"><span class="<?= $p['mps'] >= 75 ? '' : 'bad' ?>"><?= $pct($p['mps']) ?></span></td>
+            <td class="muted"><?= mpsDescriptor((float) $p['mps'])['label'] ?></td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     </div>
-    <p class="note">Average across grade levels, SY <?= e(str_replace('-', '–', $currentYear)) ?>, Term <?= (int) $currentTerm ?>. Scores below 75% are shown in red.</p>
+    <p class="note">Average across grade levels, SY <?= e(str_replace('-', '–', $currentYear)) ?>, Term <?= (int) $currentTerm ?>. Scores below 75% (Developing or Emerging) are shown in red. Descriptors: 90–100 Advancing, 80–89 Benchmarking, 75–79 Connecting, 65–74 Developing, below 65 Emerging.</p>
     <?php endif; ?>
   </section>
   <?php endif; ?>

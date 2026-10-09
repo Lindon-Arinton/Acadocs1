@@ -5,6 +5,7 @@ namespace App\Controllers\Teacher;
 use App\Controllers\BaseController;
 use App\Libraries\MpsCalculator;
 use App\Libraries\MpsScoreImporter;
+use App\Libraries\SchoolCalendar;
 use App\Models\MpsTestScoreModel;
 use App\Models\TeacherModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -149,12 +150,15 @@ class PerformanceMps extends BaseController
             return redirect()->to($redirect);
         }
 
-        $year = trim($this->request->getGet('year') ?? '') ?: self::YEAR_OPTIONS[0];
+        // With no year/term picked, open on the term in progress per the school calendar.
+        $today = (new SchoolCalendar())->termOn();
+
+        $year = trim($this->request->getGet('year') ?? '') ?: ($today['schoolYear'] ?? self::YEAR_OPTIONS[0]);
         if (! self::isValidYear($year)) {
             $year = self::YEAR_OPTIONS[0];
         }
 
-        $term = (int) ($this->request->getGet('term') ?? self::TERM_OPTIONS[0]);
+        $term = (int) ($this->request->getGet('term') ?? $today['term'] ?? self::TERM_OPTIONS[0]);
         if (! in_array($term, self::TERM_OPTIONS, true)) {
             $term = self::TERM_OPTIONS[0];
         }
@@ -410,7 +414,9 @@ class PerformanceMps extends BaseController
         $scores        = [];
         foreach ($scoreRows as $row) {
             $key = $periodByLabel[$row['test_period']] ?? null;
-            if ($key !== null) {
+            // A 0 MPS is an unfilled score, not a real result: leave it blank
+            // and out of the average instead of dragging it to 0.00%.
+            if ($key !== null && (float) $row['mps'] > 0) {
                 $scores[$row['grade_level'] . '|' . $row['subject'] . '|' . ($row['section'] ?? self::NO_SECTION)][$key] = (float) $row['mps'];
             }
         }

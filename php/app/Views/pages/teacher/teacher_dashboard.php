@@ -1,108 +1,100 @@
 <?php include APPPATH . 'Views/layout/header.php'; ?>
 
-<div class="page-header">
-  <div>
-    <h4><i class="bi bi-house-fill me-2"></i>Welcome back, <?= e($user['name']) ?></h4>
-    <?php
-    // teacher['subjects'] is now a list of structured rows (subject/grade_level/section,
-    // one per section — see TeacherModel::findWithSubjects()); collapse them into a
-    // short "SUBJECT (n sections)" summary for this one-line header, same idea as the
-    // old flat "MAPEH 9 (5)" strings this replaced.
-    $subjectCounts = [];
-    foreach ($teacher['subjects'] ?? [] as $subjectRow) {
-        $label = trim((string) ($subjectRow['subject'] ?? ''));
-        if ($label === '') {
-            continue;
-        }
-        $subjectCounts[$label] = ($subjectCounts[$label] ?? 0) + 1;
-    }
-    $subjectParts = [];
-    foreach ($subjectCounts as $label => $count) {
-        $subjectParts[] = $count > 1 ? "{$label} ({$count})" : $label;
-    }
-    $subjects = implode(', ', $subjectParts);
-    $metaParts = [];
-    if ($teacher) {
-        $metaParts[] = $teacher['grade_level'] ?: 'Not set';
-        if (! empty($teacher['advisory'])) {
-            $metaParts[] = 'Adviser, ' . $teacher['advisory'];
-        }
-        if ($subjects !== '') {
-            $metaParts[] = $subjects;
-        }
-    }
-    ?>
-    <p class="mb-0"><?= $teacher ? e(implode(' · ', $metaParts)) : 'Teacher Dashboard' ?></p>
-  </div>
-</div>
-
 <?php
-$completionRate = $taskStats['total'] > 0 ? round($taskStats['completed'] / $taskStats['total'] * 100, 1) : null;
-$insightTone = [
-  'danger'  => ['bg' => '#fee2e2', 'fg' => '#ef4444', 'tint' => 'rgba(239,68,68,.08)'],
-  'warning' => ['bg' => '#fef9c3', 'fg' => '#b45309', 'tint' => 'rgba(180,83,9,.08)'],
-  'success' => ['bg' => '#d1fae5', 'fg' => '#059669', 'tint' => 'rgba(5,150,105,.08)'],
-  'info'    => ['bg' => '#fff0f0', 'fg' => '#800000', 'tint' => 'rgba(128,0,0,.06)'],
-];
+// teacher['subjects'] is a list of structured rows (subject/grade_level/section,
+// one per section — see TeacherModel::findWithSubjects()); collapse them into a
+// short "SUBJECT (n sections)" summary for the one-line header.
+$subjectCounts = [];
+foreach ($teacher['subjects'] ?? [] as $subjectRow) {
+    $label = trim((string) ($subjectRow['subject'] ?? ''));
+    if ($label === '') {
+        continue;
+    }
+    $subjectCounts[$label] = ($subjectCounts[$label] ?? 0) + 1;
+}
+$subjectParts = [];
+foreach ($subjectCounts as $label => $count) {
+    $subjectParts[] = $count > 1 ? "{$label} ({$count})" : $label;
+}
+$subjects  = implode(', ', $subjectParts);
+$metaParts = [];
+if ($teacher) {
+    $metaParts[] = $teacher['grade_level'] ?: 'Not set';
+    if (! empty($teacher['advisory'])) {
+        $metaParts[] = 'Adviser, ' . $teacher['advisory'];
+    }
+    if ($subjects !== '') {
+        $metaParts[] = $subjects;
+    }
+}
+
+$completionRate = $taskStats['total'] > 0 ? round($taskStats['completed'] / $taskStats['total'] * 100) : null;
+$insightTone    = ['danger' => 'is-danger', 'warning' => 'is-warning', 'success' => 'is-success', 'info' => 'is-info'];
+$mpsTone        = static fn (?float $v) => mpsDescriptor($v)['class'] ?? ''; // DepEd descriptor color
+// Task Status donut + legend: shades of the theme chart color (maroon in light mode, gold in dark).
+$taskStatusAlpha = ['completed' => 1, 'pending' => .55, 'overdue' => .25];
 ?>
 
-<!-- Stat tile strip -->
-<div class="stat-tile-row mb-3">
-  <?php foreach ([
-    ['total',     'Assigned Tasks', 'bi-list-task'],
-    ['completed', 'Completed',      'bi-check-circle-fill'],
-    ['pending',   'Pending',        'bi-hourglass-split'],
-    ['overdue',   'Overdue',        'bi-exclamation-triangle-fill'],
-  ] as [$key, $label, $icon]): ?>
-  <a href="<?= base_url('submit-documents') ?>" class="stat-tile dashboard-card-link">
-    <div class="stat-tile-top">
-      <div class="stat-tile-icon" style="background:#fff0f0;color:#800000;"><i class="bi <?= $icon ?>"></i></div>
-      <span class="stat-tile-name"><?= $label ?></span>
-    </div>
-    <div class="stat-tile-body">
-      <div>
-        <div class="stat-tile-value"><?= $taskStats[$key] ?></div>
-        <div class="stat-tile-caption">Tasks</div>
-      </div>
-    </div>
+<!-- Welcome banner -->
+<div class="td-hero">
+  <span class="td-hero-icon"><i class="bi bi-house-fill"></i></span>
+  <div class="td-hero-text">
+    <h4>Welcome back, <?= e($user['name']) ?></h4>
+    <p><?= $teacher ? e(implode(' · ', $metaParts)) : 'Teacher Dashboard' ?></p>
+  </div>
+  <a href="<?= base_url('time-records') ?>" class="td-hero-date" title="Open Time Records">
+    <i class="bi bi-calendar3"></i>
+    <span><small>Today is</small><?= date('M d, Y') ?></span>
+    <i class="bi bi-chevron-right td-hero-date-arrow"></i>
   </a>
-  <?php endforeach; ?>
 </div>
 
-<!-- Bento row: task progress + activity (left) / insights + side rail (right) -->
-<div class="dashboard-grid mb-3">
-  <div>
-    <?php if ($completionRate !== null): ?>
-    <a href="<?= base_url('submit-documents') ?>" class="dashboard-card-link">
-    <div class="card mb-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between mb-2">
-          <span class="fw-semibold">Tasks Completed</span>
-          <strong style="color:var(--maroon)"><?= $taskStats['completed'] ?> of <?= $taskStats['total'] ?></strong>
-        </div>
-        <div class="progress" style="height:12px;">
-          <div class="progress-bar" style="width:<?= $completionRate ?>%;background:var(--maroon)!important;border-radius:8px;"></div>
-        </div>
-      </div>
+<div class="dashboard-grid td-grid">
+  <div class="td-main">
+    <!-- Task KPI tiles -->
+    <div class="td-kpis">
+      <?php foreach ([
+        ['total',     'Assigned Tasks', 'bi-list-ul'],
+        ['completed', 'Completed',      'bi-check-circle-fill'],
+        ['pending',   'Pending',        'bi-hourglass-split'],
+        ['overdue',   'Overdue',        'bi-exclamation-triangle-fill'],
+      ] as [$key, $label, $icon]): ?>
+      <a href="<?= base_url('submit-documents') ?>" class="td-kpi">
+        <div class="td-kpi-top"><span class="td-icon"><i class="bi <?= $icon ?>"></i></span><?= $label ?></div>
+        <div class="td-kpi-value"><?= $taskStats[$key] ?></div>
+        <div class="td-kpi-caption">Task(s)</div>
+        <i class="bi bi-chevron-right td-kpi-arrow"></i>
+      </a>
+      <?php endforeach; ?>
     </div>
+
+    <?php if ($completionRate !== null): ?>
+    <a href="<?= base_url('submit-documents') ?>" class="td-card td-progress-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="td-card-title"><i class="bi bi-check-circle-fill"></i>Tasks Completed</span>
+        <strong class="td-accent"><?= $taskStats['completed'] ?> of <?= $taskStats['total'] ?></strong>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="td-progress"><div style="width:<?= $completionRate ?>%"></div></div>
+        <strong class="td-progress-pct"><?= $completionRate ?>%</strong>
+      </div>
     </a>
     <?php endif; ?>
 
-    <div class="card">
-      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Task Activity</span>
-        <a href="<?= base_url('submit-documents') ?>" class="btn btn-maroon btn-sm">
-          <i class="bi bi-list-task me-1"></i>To Do List
-        </a>
+    <!-- Recent task activity -->
+    <div class="td-card p-0">
+      <div class="td-card-head">
+        <span class="td-card-title"><i class="bi bi-clock-history"></i>Recent Task Activity</span>
+        <a href="<?= base_url('submit-documents') ?>" class="btn btn-maroon btn-sm td-btn"><i class="bi bi-list-ul me-1"></i>To Do List</a>
       </div>
-      <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+      <div class="table-responsive">
+        <table class="table td-table mb-0">
           <thead><tr><th>Task</th><th>Submitted</th><th>Status</th></tr></thead>
           <tbody>
             <?php foreach ($recentActivity as $a): ?>
             <tr>
-              <td><?= e($a['title']) ?></td>
-              <td class="small text-muted"><?= date('M d, Y', strtotime($a['submitted_at'])) ?></td>
+              <td class="fw-semibold"><?= e($a['title']) ?></td>
+              <td class="text-muted"><?= date('M d, Y', strtotime($a['submitted_at'])) ?></td>
               <td><span class="status-pill <?= submissionBadge($a['status']) ?>"><?= e($a['status']) ?></span></td>
             </tr>
             <?php endforeach; ?>
@@ -115,10 +107,9 @@ $insightTone = [
     </div>
 
     <!-- My MPS Performance: the teacher's own subjects & sections -->
-    <?php $mpsTone = static fn (?float $v) => $v === null ? '' : ($v >= 75 ? 'mps-good' : ($v >= 50 ? 'mps-mid' : 'mps-low')); ?>
-    <div class="card mt-3" id="my-mps">
-      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span class="fw-semibold"><i class="bi bi-graph-up-arrow me-2 text-muted"></i>My MPS Performance</span>
+    <div class="td-card p-0" id="my-mps">
+      <div class="td-card-head flex-wrap gap-2">
+        <span class="td-card-title"><i class="bi bi-graph-up-arrow"></i>My MPS Performance</span>
         <div class="d-flex align-items-center gap-2">
           <?php if ($mps['periods']): ?>
           <form method="GET" action="<?= base_url('teacher-dashboard') ?>">
@@ -134,117 +125,121 @@ $insightTone = [
             </div>
           </form>
           <?php endif; ?>
-          <a href="<?= base_url('performance/mps' . ($mps['year'] ? '?year=' . urlencode($mps['year']) . '&term=' . (int) $mps['term'] : '')) ?>" class="btn btn-maroon btn-sm">
+          <a href="<?= base_url('performance/mps' . ($mps['year'] ? '?year=' . urlencode($mps['year']) . '&term=' . (int) $mps['term'] : '')) ?>" class="btn btn-maroon btn-sm td-btn">
             <i class="bi bi-pencil-square me-1"></i>Enter Scores
           </a>
         </div>
       </div>
       <?php if ($mps['scored'] === 0): ?>
-      <div class="card-body text-center text-muted py-4 small">
+      <div class="text-center text-muted py-4 px-3 small">
         <i class="bi bi-graph-up fs-3 d-block mb-2"></i>
         No MPS scores yet for your subjects<?= $mps['period'] ? ' in this term' : '' ?>. Enter them to see how each of your sections is doing.
       </div>
       <?php else: ?>
-      <div class="card-body pb-2">
-        <div class="row g-2 text-center">
-          <div class="col-4">
-            <div class="text-muted" style="font-size:.7rem;">OVERALL AVERAGE</div>
-            <span class="mps-avg <?= $mpsTone($mps['overall']) ?>"><?= number_format($mps['overall'], 2) ?>%</span>
+      <div class="td-mps-summary">
+        <div>
+          <div class="td-label">Overall Average</div>
+          <span class="mps-avg <?= $mpsTone($mps['overall']) ?>"><?= number_format($mps['overall'], 2) ?>%</span>
+          <div class="small text-muted mt-1"><?= e(mpsDescriptor($mps['overall'])['label']) ?></div>
+        </div>
+        <div>
+          <div class="td-label">At Mastery (75%+)</div>
+          <div class="fw-bold"><?= $mps['atMastery'] ?> <span class="text-muted fw-normal small">of <?= $mps['scored'] ?> classes</span></div>
+        </div>
+        <div class="min-w-0">
+          <div class="td-label">Needs Most Help</div>
+          <div class="small fw-semibold text-truncate" title="<?= e($mps['lowest']['subject'] . ' · ' . ($mps['lowest']['section'] ?? $mps['lowest']['grade'])) ?>">
+            <?= e($mps['lowest']['subject']) ?> · <?= e($mps['lowest']['section'] ?? $mps['lowest']['grade']) ?>
           </div>
-          <div class="col-4">
-            <div class="text-muted" style="font-size:.7rem;">AT MASTERY (75%+)</div>
-            <div class="fw-bold" style="font-size:1.05rem;"><?= $mps['atMastery'] ?> <span class="text-muted fw-normal small">of <?= $mps['scored'] ?> classes</span></div>
-          </div>
-          <div class="col-4">
-            <div class="text-muted" style="font-size:.7rem;">NEEDS MOST HELP</div>
-            <div class="small fw-semibold text-truncate" title="<?= e($mps['lowest']['subject'] . ' · ' . ($mps['lowest']['section'] ?? $mps['lowest']['grade'])) ?>">
-              <?= e($mps['lowest']['subject']) ?> · <?= e($mps['lowest']['section'] ?? $mps['lowest']['grade']) ?>
-            </div>
-            <span class="mps-pill <?= $mpsTone($mps['lowest']['avg']) ?>"><?= number_format($mps['lowest']['avg'], 2) ?>%</span>
-          </div>
+          <span class="mps-pill <?= $mpsTone($mps['lowest']['avg']) ?>"><?= number_format($mps['lowest']['avg'], 2) ?>%</span>
         </div>
       </div>
       <div class="table-responsive">
-        <table class="table table-sm mb-0 align-middle">
+        <table class="table td-table mb-0 align-middle">
           <thead>
-            <tr><th class="ps-3">Subject</th><th>Grade · Section</th><th class="text-center">Sum. 1</th><th class="text-center">Sum. 2</th><th class="text-center">Exam</th><th class="text-center pe-3">Average</th></tr>
+            <tr><th>Subject</th><th>Grade · Section</th><th class="text-center">Sum. 1</th><th class="text-center">Sum. 2</th><th class="text-center">Exam</th><th class="text-center">Average</th><th>Descriptor</th></tr>
           </thead>
           <tbody>
             <?php foreach ($mps['rows'] as $r): ?>
             <tr>
-              <td class="ps-3 fw-semibold small"><?= e($r['subject']) ?></td>
-              <td class="small text-muted"><?= e($r['grade']) ?><?= $r['section'] ? ' · ' . e($r['section']) : '' ?></td>
+              <td class="fw-semibold"><?= e($r['subject']) ?></td>
+              <td class="text-muted"><?= e($r['grade']) ?><?= $r['section'] ? ' · ' . e($r['section']) : '' ?></td>
               <?php foreach (['s1', 's2', 'exam'] as $k): ?>
-              <td class="text-center small"><?= $r[$k] !== null ? number_format($r[$k], 2) : '<span class="text-muted">—</span>' ?></td>
+              <td class="text-center"><?= $r[$k] !== null ? number_format($r[$k], 2) : '' ?></td>
               <?php endforeach; ?>
-              <td class="text-center pe-3">
+              <td class="text-center">
                 <?php if ($r['avg'] !== null): ?>
                 <span class="mps-pill <?= $mpsTone($r['avg']) ?>"><?= number_format($r['avg'], 2) ?>%</span>
-                <?php else: ?><span class="text-muted small">—</span><?php endif; ?>
+                <?php endif; ?>
               </td>
+              <td class="small"><?= e(mpsDescriptor($r['avg'])['label'] ?? '') ?></td>
             </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
       </div>
+      <div class="desc-legend px-3 py-2 border-top">
+        <?php foreach (MPS_DESCRIPTORS as [$min, $label, $range]): ?>
+        <span class="mps-pill desc-<?= strtolower($label) ?>"><?= $range ?> <?= $label ?></span>
+        <?php endforeach; ?>
+      </div>
       <?php endif; ?>
     </div>
   </div>
 
-  <div class="side-rail-stack">
+  <!-- Side rail -->
+  <div class="td-rail">
+    <?php $calendarCardClass = 'td-card'; include APPPATH . 'Views/partials/school_calendar.php'; ?>
+
     <?php if (! empty($insights)): ?>
-    <div class="card">
-      <div class="card-header bg-white py-2">
-        <span class="fw-semibold small"><i class="bi bi-lightbulb-fill me-2 text-muted"></i>Insights</span>
-      </div>
-      <div class="card-body card-body-tight d-flex flex-column gap-2">
-        <?php foreach ($insights as $insight): $t = $insightTone[$insight['tone']]; ?>
-        <div class="d-flex align-items-start gap-2 p-2 rounded-3" style="background:<?= $t['tint'] ?>;">
-          <div class="stat-tile-icon" style="width:28px;height:28px;font-size:.8rem;background:<?= $t['bg'] ?>;color:<?= $t['fg'] ?>;flex-shrink:0;">
-            <i class="bi <?= $insight['icon'] ?>"></i>
-          </div>
-          <p class="small mb-0" style="padding-top:.15rem;"><?= $insight['text'] ?></p>
+    <div class="td-card">
+      <div class="td-card-title mb-3"><i class="bi bi-lightbulb"></i>Insights</div>
+      <div class="d-flex flex-column gap-2">
+        <?php foreach ($insights as $insight): ?>
+        <div class="td-insight <?= $insightTone[$insight['tone']] ?>">
+          <i class="bi <?= $insight['icon'] ?>"></i>
+          <p class="mb-0"><?= $insight['text'] ?></p>
         </div>
         <?php endforeach; ?>
       </div>
     </div>
     <?php endif; ?>
 
-    <!-- Announcements: kept high in the side rail, right under Insights, since these are time-sensitive and shouldn't get buried. The badge counts only unread ones and clears once the Announcements page is visited. -->
-    <a href="<?= base_url('announcements') ?>" class="dashboard-card-link">
-    <div class="card">
-      <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-        <span class="fw-semibold"><i class="bi bi-megaphone-fill me-2 text-muted"></i>Announcements</span>
-        <?php if ($unreadAnnouncementsCount > 0): ?>
-        <span class="badge rounded-pill" style="background:#fbbf24;color:#7c2d12;"><?= $unreadAnnouncementsCount ?></span>
-        <?php endif; ?>
+    <!-- Announcements: high in the rail since they're time-sensitive. The badge counts only unread ones and clears once the Announcements page is visited. -->
+    <div class="td-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="td-card-title"><i class="bi bi-megaphone-fill"></i>Announcements
+          <?php if ($unreadAnnouncementsCount > 0): ?><span class="badge rounded-pill ms-1" style="background:#fbbf24;color:#7c2d12;"><?= $unreadAnnouncementsCount ?></span><?php endif; ?>
+        </span>
+        <a href="<?= base_url('announcements') ?>" class="td-link">View All</a>
       </div>
-      <ul class="list-group list-group-flush">
-        <?php foreach ($announcements as $a): ?>
-        <li class="list-group-item py-2 px-3">
-          <div class="fw-semibold small"><?= e($a['title']) ?></div>
-          <div class="text-muted" style="font-size:.72rem;"><?= date('M d', strtotime($a['date'])) ?> · <?= e($a['type']) ?></div>
-        </li>
+      <div class="d-flex flex-column gap-2">
+        <?php foreach (array_slice($announcements, 0, 3) as $a): ?>
+        <a href="<?= base_url('announcements?id=' . (int) $a['id']) ?>" class="td-list-item">
+          <i class="bi bi-calendar-event td-list-icon"></i>
+          <span class="min-w-0 flex-grow-1">
+            <span class="td-list-title"><?= e($a['title']) ?></span>
+            <span class="td-list-meta"><?= date('M d', strtotime($a['date'])) ?> · <?= e($a['type']) ?></span>
+          </span>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </a>
         <?php endforeach; ?>
         <?php if (empty($announcements)): ?>
-        <li class="list-group-item py-3 px-3 text-center text-muted small">No announcements yet.</li>
+        <div class="text-center text-muted small py-2">No announcements yet.</div>
         <?php endif; ?>
-      </ul>
+      </div>
     </div>
-    </a>
 
     <?php if (! empty($docFeedback)): ?>
     <!-- Read-only: the document submission form is retired, but historical
          documents and any private principal feedback on them still need a
          home — this is what document_feedback notifications link to. -->
-    <div class="card" id="document-feedback">
-      <div class="card-header bg-white py-3 fw-semibold">
-        <i class="bi bi-chat-square-text-fill me-2 text-muted"></i>Document Feedback
-      </div>
-      <div class="card-body card-body-tight d-flex flex-column gap-2">
+    <div class="td-card" id="document-feedback">
+      <div class="td-card-title mb-3"><i class="bi bi-chat-square-text-fill"></i>Document Feedback</div>
+      <div class="d-flex flex-column gap-2">
         <?php foreach ($docFeedback as $doc): ?>
-        <div class="p-2 rounded-3" style="background:rgba(128,0,0,.06);">
-          <div class="fw-semibold small"><?= e($doc['type']) ?> — <?= e($doc['subject']) ?></div>
+        <div class="td-list-item d-block">
+          <div class="td-list-title"><?= e($doc['type']) ?> — <?= e($doc['subject']) ?></div>
           <?php foreach (explode('|||', $doc['feedback_comments']) as $fb): ?>
           <p class="small text-muted mb-0 mt-1"><?= e($fb) ?></p>
           <?php endforeach; ?>
@@ -255,35 +250,31 @@ $insightTone = [
     <?php endif; ?>
 
     <?php if ($taskStats['total'] > 0): ?>
-    <a href="<?= base_url('submit-documents') ?>" class="dashboard-card-link">
-    <div class="card">
-      <div class="card-header bg-white py-2">
-        <span class="fw-semibold small"><i class="bi bi-pie-chart me-2 text-muted"></i>Task Status</span>
-      </div>
-      <div class="card-body card-body-tight d-flex align-items-center gap-3">
-        <div class="donut-wrap" style="width:90px;height:90px;">
-          <canvas id="taskStatusChart" data-label-header="Status" data-source="Tasks assigned to you in Tasks &amp; Assignments, matched against your own uploads on the To Do List." height="90" width="90"></canvas>
+    <a href="<?= base_url('submit-documents') ?>" class="td-card td-card-link">
+      <div class="td-card-title mb-3"><i class="bi bi-pie-chart-fill"></i>Task Status</div>
+      <div class="d-flex align-items-center gap-4">
+        <div class="donut-wrap" style="width:120px;height:120px;">
+          <canvas id="taskStatusChart" data-label-header="Status" data-source="Tasks assigned to you in Tasks &amp; Assignments, matched against your own uploads on the To Do List." height="120" width="120"></canvas>
           <div class="donut-center-label">
-            <div class="donut-center-value"><?= $taskStats['total'] ?></div>
+            <div class="donut-center-value" style="font-size:1.5rem;"><?= $taskStats['total'] ?></div>
             <div class="donut-center-caption">Total</div>
           </div>
         </div>
-        <div class="w-100">
-          <?php foreach (['Completed' => ['completed', 'rgba(var(--chart-rgb),1)'], 'Pending' => ['pending', 'rgba(var(--chart-rgb),.5)'], 'Overdue' => ['overdue', 'rgba(220,38,38,1)']] as $label => [$key, $dotColor]): ?>
-          <div class="d-flex justify-content-between small mb-1">
-            <span><span class="d-inline-block rounded-circle me-1" style="width:9px;height:9px;background:<?= $dotColor ?>;"></span><?= $label ?></span>
+        <div class="flex-grow-1 d-flex flex-column gap-2">
+          <?php foreach (['Completed' => 'completed', 'Pending' => 'pending', 'Overdue' => 'overdue'] as $label => $key): ?>
+          <div class="d-flex justify-content-between small">
+            <span><span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;background:rgba(var(--chart-rgb),<?= $taskStatusAlpha[$key] ?>);"></span><?= $label ?></span>
             <strong><?= $taskStats[$key] ?></strong>
           </div>
           <?php endforeach; ?>
         </div>
       </div>
-    </div>
     </a>
     <?php endif; ?>
 
-    <div class="card">
-      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="bi bi-calendar-check me-2 text-muted"></i>My Attendance</span>
+    <div class="td-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="td-card-title"><i class="bi bi-calendar-check"></i>My Attendance</span>
         <?php if (! empty($myAttendanceMonths)): ?>
         <form method="GET" action="<?= base_url('teacher-dashboard') ?>">
           <div class="maroon-select maroon-select-sm" style="width:auto;">
@@ -299,36 +290,29 @@ $insightTone = [
         </form>
         <?php endif; ?>
       </div>
-      <div class="card-body">
-        <div class="row g-3 text-center">
-          <div class="col-6">
-            <div class="fw-bold fs-4 text-success"><?= $myAttendance['Present'] ?></div>
-            <div class="text-muted small">Present</div>
-          </div>
-          <div class="col-6">
-            <div class="fw-bold fs-4 text-danger"><?= $myAttendance['Absent'] ?></div>
-            <div class="text-muted small">Absent</div>
-          </div>
-        </div>
+      <div class="td-attendance">
+        <div><div class="td-att-value text-success"><?= $myAttendance['Present'] ?></div><div class="td-att-label">Present</div></div>
+        <div><div class="td-att-value text-danger"><?= $myAttendance['Absent'] ?></div><div class="td-att-label">Absent</div></div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header bg-white py-3 fw-semibold">
-        <i class="bi bi-link-45deg me-2 text-muted"></i>Quick Links
+    <div class="td-card">
+      <div class="td-card-title mb-3"><i class="bi bi-link-45deg"></i>Quick Links</div>
+      <?php if (empty($links)): ?>
+      <div class="text-center text-muted small py-2">
+        <span class="td-empty-icon"><i class="bi bi-link-45deg"></i></span>
+        No links yet.
       </div>
-      <ul class="list-group list-group-flush">
+      <?php else: ?>
+      <div class="d-flex flex-column gap-2">
         <?php foreach ($links as $l): ?>
-        <li class="list-group-item py-2 px-3">
-          <a href="<?= e($l['url']) ?>" target="_blank" rel="noopener" class="text-decoration-none small fw-semibold d-flex align-items-center gap-2">
-            <i class="bi bi-box-arrow-up-right text-muted"></i><?= e($l['title']) ?>
-          </a>
-        </li>
+        <a href="<?= e($l['url']) ?>" target="_blank" rel="noopener" class="td-list-item">
+          <i class="bi bi-box-arrow-up-right td-list-icon"></i>
+          <span class="td-list-title min-w-0 flex-grow-1 text-truncate"><?= e($l['title']) ?></span>
+        </a>
         <?php endforeach; ?>
-        <?php if (empty($links)): ?>
-        <li class="list-group-item py-3 px-3 text-center text-muted small">No links yet.</li>
-        <?php endif; ?>
-      </ul>
+      </div>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -339,9 +323,9 @@ new Chart(document.getElementById("taskStatusChart"), {
   type: "doughnut",
   data: {
     labels: ["Completed","Pending","Overdue"],
-    datasets: [{ data:[' . implode(',', [$taskStats['completed'], $taskStats['pending'], $taskStats['overdue']]) . '], backgroundColor:[chartColor(1),chartColor(.5),"rgba(220,38,38,1)"], borderWidth:0 }]
+    datasets: [{ data:[' . implode(',', [$taskStats['completed'], $taskStats['pending'], $taskStats['overdue']]) . '], backgroundColor:[' . implode(',', array_map(static fn ($a) => 'chartColor(' . $a . ')', $taskStatusAlpha)) . '], borderWidth:0 }]
   },
-  options: { responsive:true, maintainAspectRatio:false, cutout:"64%", plugins:{legend:{display:false}} }
+  options: { responsive:true, maintainAspectRatio:false, cutout:"74%", plugins:{legend:{display:false}} }
 });
 </script>';
 endif;

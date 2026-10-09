@@ -15,14 +15,15 @@ class TimeRecordsController extends BaseApiController
             ? $model->where('date', $date)->orderBy('employee_name')->findAll()
             : $model->orderBy('date', 'DESC')->orderBy('employee_name')->findAll();
 
-        $summary = ['present' => 0, 'late' => 0, 'absent' => 0, 'on_leave' => 0];
+        $summary = ['present' => 0, 'late' => 0, 'absent' => 0, 'on_leave' => 0, 'academic_break' => 0];
         foreach ($rows as $r) {
             match ($r['status']) {
-                'Present'  => $summary['present']++,
-                'Late'     => $summary['late']++,
-                'Absent'   => $summary['absent']++,
-                'On Leave' => $summary['on_leave']++,
-                default    => null,
+                'Present'        => $summary['present']++,
+                'Late'           => $summary['late']++,
+                'Absent'         => $summary['absent']++,
+                'On Leave'       => $summary['on_leave']++,
+                'Academic Break' => $summary['academic_break']++,
+                default          => null,
             };
         }
 

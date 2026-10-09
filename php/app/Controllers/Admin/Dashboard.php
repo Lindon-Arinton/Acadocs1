@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Libraries\MpsCalculator;
+use App\Libraries\SchoolCalendar;
 use App\Models\DepedKpiReportModel;
 use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
@@ -116,7 +117,10 @@ class Dashboard extends BaseController
             ->orderBy('term', 'DESC')
             ->first();
 
-        $currentTerm = $latestPeriod['term'] ?? self::CURRENT_TERM;
+        // No MPS for this year yet: fall back to the term in progress, if it's this year.
+        $calendarTerm = (new SchoolCalendar())->termOn();
+        $currentTerm  = $latestPeriod['term']
+            ?? (($calendarTerm['schoolYear'] ?? null) === $currentYear ? $calendarTerm['term'] : self::CURRENT_TERM);
 
         // Enrollment is stored as monthly snapshots; default to the latest one.
         $enrollmentModel  = new EnrollmentByLevelModel();
@@ -419,12 +423,12 @@ class Dashboard extends BaseController
 
         if ($avgPerf !== []) {
             $top = $avgPerf[0]; // avgPerf is already sorted DESC by mps
-            if ($top['mps'] >= 85) {
+            if ($top['mps'] >= 80) { // Benchmarking or Advancing
                 $insights[] = [
                     'tone' => 'success',
                     'icon' => 'bi-star-fill',
                     'title' => 'Top subject: ' . e($top['subject']),
-                    'text' => '<strong>' . e($top['subject']) . '</strong> is the school\'s strongest subject this term, with an average MPS of <strong>' . e($top['mps']) . '%</strong> across grade levels.',
+                    'text' => '<strong>' . e($top['subject']) . '</strong> is the school\'s strongest subject this term, with an average MPS of <strong>' . e($top['mps']) . '%</strong> (' . mpsDescriptor((float) $top['mps'])['label'] . ') across grade levels.',
                 ];
             }
         }

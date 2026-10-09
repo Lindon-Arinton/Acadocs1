@@ -1,5 +1,5 @@
 -- ============================================================================
---  ACADOCS — mock data for every table (37 tables)
+--  ACADOCS — mock data for every table (38 tables)
 --  Import AFTER acadocs_schema_cleaned.sql, into the empty `acadocs` database.
 --
 --  Logins (password for every account: Password123!)
@@ -2891,6 +2891,11 @@ INSERT INTO `holidays` (`date`, `label`, `created_at`) VALUES
 ('2026-12-25', 'Christmas Day', '2026-06-01 08:00:00'),
 ('2026-12-30', 'Rizal Day', '2026-06-01 08:00:00');
 
+-- academic_breaks (2 rows)
+INSERT INTO `academic_breaks` (`label`, `start_date`, `end_date`, `created_at`) VALUES
+('Christmas Break', '2026-12-19', '2027-01-03', '2026-06-01 08:00:00'),
+('EOSY Break', '2027-04-09', '2027-05-09', '2026-06-01 08:00:00');
+
 -- biometric_employees (2 rows)
 INSERT INTO `biometric_employees` (`id`, `ac_no`, `name`, `department`, `is_placeholder`, `created_at`) VALUES
 (1, '13', 'DELA ROSA, PEDRO A.', 'Matabungkay NHS — Utility', 0, '2026-06-15 07:00:00'),
@@ -4299,8 +4304,9 @@ INSERT INTO `password_resets` (`user_id`, `code_hash`, `attempts`, `expires_at`,
 INSERT INTO `api_tokens` (`user_id`, `token_hash`, `device_info`, `last_used_at`, `expires_at`, `created_at`) VALUES
 (1, 'b01933c773b0a04c4a0ac05cb52bc1d997970b46e411130c380be0f1aec4c531', 'ACADOCS Mobile (Android 14)', '2026-09-30 18:22:00', '2026-12-31 23:59:59', '2026-09-01 08:00:00');
 
--- migrations (51 rows)
+-- migrations (52 rows)
 INSERT INTO `migrations` (`version`, `class`, `group`, `namespace`, `time`, `batch`) VALUES
+('2026-10-09-000001', 'App\\Database\\Migrations\\AddAcademicBreaks', 'default', 'App', 1791561600, 1),
 ('2026-01-01-000001', 'App\\Database\\Migrations\\CreateUsers', 'default', 'App', 1790920800, 1),
 ('2026-01-01-000002', 'App\\Database\\Migrations\\CreateTeachers', 'default', 'App', 1790920800, 1),
 ('2026-01-01-000003', 'App\\Database\\Migrations\\CreateAnnouncements', 'default', 'App', 1790920800, 1),

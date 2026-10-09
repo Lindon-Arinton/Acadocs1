@@ -24,6 +24,28 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `academic_breaks`
+--
+
+CREATE TABLE `academic_breaks` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `label` varchar(150) NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `academic_breaks`
+--
+
+INSERT INTO `academic_breaks` (`id`, `label`, `start_date`, `end_date`, `created_at`) VALUES
+(1, 'Christmas Break', '2026-12-19', '2027-01-03', '2026-10-09 13:52:00'),
+(2, 'EOSY Break', '2027-04-09', '2027-05-09', '2026-10-09 13:52:00');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `announcements`
 --
 
@@ -1400,7 +1422,7 @@ CREATE TABLE `time_records` (
   `user_id` int(10) UNSIGNED DEFAULT NULL,
   `time_in` time DEFAULT NULL,
   `time_out` time DEFAULT NULL,
-  `status` enum('Present','Late','Absent','On Leave') NOT NULL,
+  `status` enum('Present','Late','Absent','On Leave','Academic Break') NOT NULL,
   `remarks` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -7282,6 +7304,13 @@ INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `ac_no`, `positi
 --
 
 --
+-- Indexes for table `academic_breaks`
+--
+ALTER TABLE `academic_breaks`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `start_date_end_date` (`start_date`,`end_date`);
+
+--
 -- Indexes for table `announcements`
 --
 ALTER TABLE `announcements`
@@ -7581,6 +7610,12 @@ ALTER TABLE `users`
 --
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `academic_breaks`
+--
+ALTER TABLE `academic_breaks`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `announcements`

@@ -1,8 +1,9 @@
 <?php
+// Avatar colors: one theme-aware maroon tint for every role (see --chat-avatar-* in app.css).
 $roleCfg = [
-    'admin'   => ['#fff0f0', '#800000'],
-    'teacher' => ['#dbeafe', '#1e40af'],
-    'adas'    => ['#f3f4f6', '#374151'],
+    'admin'   => ['var(--chat-avatar-bg)', 'var(--chat-avatar-tx)'],
+    'teacher' => ['var(--chat-avatar-bg)', 'var(--chat-avatar-tx)'],
+    'adas'    => ['var(--chat-avatar-bg)', 'var(--chat-avatar-tx)'],
 ];
 
 if (! function_exists('chatInitials')) {
@@ -17,27 +18,30 @@ if (! function_exists('chatInitials')) {
 include APPPATH . 'Views/layout/header.php';
 ?>
 
-<?php if ($canCreateGroup): ?>
-<div class="d-flex justify-content-end mb-2">
-  <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newGroupModal">
-    <i class="bi bi-people me-1"></i>New Group Chat
-  </button>
-</div>
-<?php endif; ?>
+<div class="chat-card">
+  <div class="d-flex h-100 chat-shell" id="chatShell">
 
-<div class="card chat-card" style="height:calc(100vh - 130px);min-height:420px;overflow:hidden;">
-  <div class="d-flex h-100 chat-shell" id="chatShell" style="min-height:0;">
-
-    <!-- Left panel -->
-    <div class="border-end d-flex flex-column chat-left-panel" style="width:300px;flex-shrink:0;">
-      <div class="p-2 border-bottom">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" id="chatSearchInput" class="form-control border-start-0 ps-0"
-                 placeholder="Search people or chats..." autocomplete="off">
+    <!-- Left panel: directory + conversations -->
+    <div class="chat-panel d-flex flex-column chat-left-panel">
+      <div class="chat-panel-head">
+        <span class="chat-panel-icon"><i class="bi bi-chat-dots"></i></span>
+        <div class="flex-grow-1" style="min-width:0;">
+          <div class="chat-panel-title">Messages</div>
+          <div class="chat-panel-sub">Connect and collaborate with your colleagues.</div>
         </div>
+        <?php if ($canCreateGroup): ?>
+        <button type="button" class="chat-new-group-btn" data-bs-toggle="modal" data-bs-target="#newGroupModal" title="New Group Chat" aria-label="New Group Chat">
+          <i class="bi bi-people"></i><i class="bi bi-plus"></i>
+        </button>
+        <?php endif; ?>
+      </div>
+      <div class="chat-panel-tools">
+        <label class="chat-search">
+          <i class="bi bi-search"></i>
+          <input type="text" id="chatSearchInput" placeholder="Search people or chats..." autocomplete="off">
+        </label>
         <?php if ($canCreate): ?>
-        <div class="d-flex gap-1 flex-wrap mt-2" id="chatRoleFilter">
+        <div class="d-flex gap-2 flex-wrap mt-3" id="chatRoleFilter">
           <button type="button" class="chat-filter-pill active" data-role="all">All</button>
           <button type="button" class="chat-filter-pill" data-role="admin">Admin</button>
           <button type="button" class="chat-filter-pill" data-role="teacher">Teacher</button>
@@ -53,7 +57,6 @@ include APPPATH . 'Views/layout/header.php';
           <?php foreach ($conversations as $c): ?>
           <?php $otherIsAdmin = $c['type'] === 'direct' && ($c['other_role'] ?? null) === 'admin'; ?>
           <div class="chat-convo-item position-relative"
-                  style="border-bottom:1px solid var(--border);"
                   data-id="<?= $c['id'] ?>" data-search="<?= e(mb_strtolower($c['display_name'])) ?>"
                   data-photo="<?= $c['other_photo'] ? e(base_url('uploads/avatars/' . $c['other_photo'])) : '' ?>"
                   data-other-role="<?= e($c['other_role'] ?? '') ?>"
@@ -61,27 +64,23 @@ include APPPATH . 'Views/layout/header.php';
                   data-type="<?= e($c['type']) ?>"
                   data-member-count="<?= (int) $c['member_count'] ?>"
                   data-muted="<?= $c['muted'] ? '1' : '0' ?>">
-            <div class="w-100 text-start align-items-center" role="button" tabindex="0"
-                  style="display:flex;gap:.5rem;padding:.7rem 2.4rem .7rem 1rem;cursor:pointer;"
+            <div class="chat-row w-100 text-start" role="button" tabindex="0" style="padding-right:2.4rem;"
                   onclick="openConversation(<?= $c['id'] ?>)">
             <?php if ($c['type'] === 'direct' && ! empty($c['other_photo'])): ?>
-            <img src="<?= e(base_url('uploads/avatars/' . $c['other_photo'])) ?>" alt=""
-                 style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;<?= $otherIsAdmin ? 'box-shadow:0 0 0 2px #800000;' : '' ?>">
+            <img src="<?= e(base_url('uploads/avatars/' . $c['other_photo'])) ?>" alt="" class="chat-avatar<?= $otherIsAdmin ? ' chat-avatar-ring' : '' ?>">
             <?php else: ?>
-            <div style="width:38px;height:38px;border-radius:50%;background:<?= $c['type']==='group' ? '#fff0f0' : ($otherIsAdmin ? '#fff0f0' : 'var(--surface-hover)') ?>;color:<?= $c['type']==='group' ? '#800000' : ($otherIsAdmin ? '#800000' : 'var(--text-secondary)') ?>;font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <?= $c['type'] === 'group' ? '<i class="bi bi-people-fill"></i>' : e(chatInitials($c['display_name'])) ?>
-            </div>
+            <span class="chat-avatar"><?= $c['type'] === 'group' ? '<i class="bi bi-people-fill"></i>' : e(chatInitials($c['display_name'])) ?></span>
             <?php endif; ?>
             <div class="flex-grow-1" style="min-width:0;">
               <div class="d-flex justify-content-between align-items-center gap-1">
-                <span class="fw-semibold text-truncate" style="font-size:.82rem;color:var(--text);">
+                <span class="fw-semibold chat-row-name text-truncate">
                   <?= e($c['display_name']) ?><?= $otherIsAdmin ? ' <span style="font-weight:600;">(Principal)</span>' : '' ?>
                 </span>
-                <span class="text-muted flex-shrink-0" style="font-size:.65rem;"><?= date('M d', strtotime($c['last_time'])) ?></span>
+                <span class="chat-row-time flex-shrink-0"><?= date('M d', strtotime($c['last_time'])) ?></span>
               </div>
               <div class="d-flex justify-content-between align-items-center gap-1">
-                <span class="text-muted text-truncate" style="font-size:.75rem;">
-                  <?= $c['last_message'] !== null ? e(mb_strimwidth($c['last_message'], 0, 40, '…')) : 'No messages yet' ?>
+                <span class="chat-row-sub text-truncate">
+                  <?= $c['last_message'] !== null ? e(mb_strimwidth($c['last_message'], 0, 40, '…')) : 'No messages yet.' ?>
                 </span>
                 <?php if ($c['unread'] > 0): ?>
                 <span class="badge bg-danger flex-shrink-0" style="font-size:.62rem;"><?= $c['unread'] ?></span>
@@ -89,6 +88,7 @@ include APPPATH . 'Views/layout/header.php';
               </div>
             </div>
             </div>
+            <i class="bi bi-chevron-right chat-row-arrow chat-convo-arrow"></i>
             <button type="button" class="chat-convo-delete-btn" title="<?= $c['type'] === 'group' ? 'Leave group' : 'Delete chat' ?>"
                     onclick="event.stopPropagation(); deleteConversationFromList(<?= $c['id'] ?>, '<?= $c['type'] === 'group' ? 'group' : 'direct' ?>');">
               <i class="bi bi-trash3"></i>
@@ -101,23 +101,20 @@ include APPPATH . 'Views/layout/header.php';
         <?php if ($canCreate): ?>
         <div class="chat-section-label" id="allUsersLabel">All Users</div>
         <div id="allUsersList">
-          <?php foreach ($users as $u): [$rbg, $rtc] = $roleCfg[$u['role']] ?? ['#f3f4f6', '#374151']; ?>
-          <button type="button" class="chat-user-item w-100 text-start border-0 bg-transparent align-items-center"
-                  style="display:flex;gap:.5rem;padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;"
+          <?php foreach ($users as $u): ?>
+          <button type="button" class="chat-user-item chat-row w-100 text-start"
                   data-role="<?= e($u['role']) ?>" data-search="<?= e(mb_strtolower($u['name'])) ?>"
                   onclick="startDirectChat(<?= $u['id'] ?>, this)">
             <?php if (! empty($u['photo'])): ?>
-            <img src="<?= e(base_url('uploads/avatars/' . $u['photo'])) ?>" alt=""
-                 style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+            <img src="<?= e(base_url('uploads/avatars/' . $u['photo'])) ?>" alt="" class="chat-avatar">
             <?php else: ?>
-            <div style="width:34px;height:34px;border-radius:50%;background:<?= $rbg ?>;color:<?= $rtc ?>;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <?= e(chatInitials($u['name'])) ?>
-            </div>
+            <span class="chat-avatar"><?= e(chatInitials($u['name'])) ?></span>
             <?php endif; ?>
-            <div class="flex-grow-1" style="min-width:0;">
-              <div class="fw-semibold text-truncate" style="font-size:.8rem;"><?= e($u['name']) ?></div>
-              <div class="text-muted" style="font-size:.68rem;"><?= e(ucfirst($u['role'])) ?></div>
-            </div>
+            <span class="flex-grow-1" style="min-width:0;">
+              <span class="chat-row-name text-truncate"><?= e($u['name']) ?></span>
+              <span class="chat-row-sub"><?= e(ucfirst($u['role'])) ?></span>
+            </span>
+            <i class="bi bi-chevron-right chat-row-arrow"></i>
           </button>
           <?php endforeach; ?>
         </div>
@@ -132,35 +129,34 @@ include APPPATH . 'Views/layout/header.php';
     </div>
 
     <!-- Thread pane -->
-    <div class="flex-grow-1 d-flex flex-column chat-thread-pane" style="min-width:0;">
-      <div id="threadEmpty" class="d-flex align-items-center justify-content-center h-100 text-muted">
-        <div class="text-center"><i class="bi bi-chat-square-text fs-1 d-block mb-2"></i>Select a conversation to start chatting</div>
+    <div class="chat-panel flex-grow-1 d-flex flex-column chat-thread-pane" style="min-width:0;">
+      <div id="threadEmpty" class="chat-empty">
+        <svg class="chat-empty-art" viewBox="0 0 200 160" aria-hidden="true">
+          <path class="chat-empty-blob" d="M48 34c22-22 70-26 101-8 30 17 41 52 26 82-15 31-55 44-90 37S20 118 16 88c-3-21 14-37 32-54z"/>
+          <rect class="chat-empty-back" x="96" y="62" width="64" height="46" rx="10"/>
+          <path class="chat-empty-back" d="M138 106l10 14 2-14z"/>
+          <rect class="chat-empty-front" x="44" y="38" width="80" height="56" rx="12"/>
+          <path class="chat-empty-front" d="M58 92l-6 18 20-18z"/>
+          <circle class="chat-empty-dot" cx="68" cy="66" r="5"/><circle class="chat-empty-dot" cx="84" cy="66" r="5"/><circle class="chat-empty-dot" cx="100" cy="66" r="5"/>
+          <path class="chat-empty-spark" d="M140 30l6-10M152 42l11-5M156 58l11 1M30 96l-10 4M34 110l-8 8"/>
+        </svg>
+        <h4 class="chat-empty-title">Select a conversation</h4>
+        <p class="chat-empty-text"><?= $canCreate ? 'Choose someone from the directory to start a conversation.' : 'Choose a conversation from the list to open it.' ?></p>
       </div>
       <div id="threadActive" class="d-none h-100 d-flex flex-column" style="min-height:0;">
-        <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+        <div class="chat-thread-head">
           <div class="d-flex align-items-center gap-2" style="min-width:0;">
             <button type="button" class="btn btn-sm btn-ghost chat-mobile-back-btn" onclick="closeConversationMobile()" title="Back to chats">
               <i class="bi bi-arrow-left"></i>
             </button>
-            <div id="threadHeader" class="fw-semibold" style="font-size:.88rem;"></div>
+            <div id="threadHeader"></div>
           </div>
-          <div class="d-flex align-items-center gap-1">
-            <button type="button" class="btn btn-sm btn-ghost" onclick="openInfoPanel()" title="Conversation info">
-              <i class="bi bi-info-circle"></i>
-            </button>
-            <div class="dropdown">
-              <button class="btn btn-sm btn-ghost" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Conversation options">
-                <i class="bi bi-three-dots-vertical"></i>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li id="viewMembersItem" class="d-none"><a class="dropdown-item" href="#" onclick="openInfoPanel();return false;"><i class="bi bi-people me-2"></i>View Members</a></li>
-                <li><a class="dropdown-item" href="#" id="muteMenuLink" onclick="toggleMute();return false;"><i class="bi bi-bell-slash me-2"></i><span id="muteMenuLabel">Mute Notifications</span></a></li>
-                <li><hr class="dropdown-divider"><a class="dropdown-item text-danger" href="#" onclick="confirmLeaveGroup();return false;"><i class="bi bi-box-arrow-right me-2" id="leaveGroupIcon"></i><span id="leaveGroupLabel">Delete Chat</span></a></li>
-              </ul>
-            </div>
-          </div>
+          <!-- Members, mute and delete/leave all live in the Chat Info panel. -->
+          <button type="button" class="chat-head-btn" onclick="openInfoPanel()" title="Chat info (members, mute, delete)">
+            <i class="bi bi-info-circle"></i>
+          </button>
         </div>
-        <div class="flex-grow-1 overflow-auto p-3" id="threadMessages" style="background:var(--bg);"></div>
+        <div class="flex-grow-1 overflow-auto p-3" id="threadMessages"></div>
         <div id="typingIndicator" class="px-3 pb-1 text-muted d-none" style="font-size:.72rem;"></div>
         <div id="replyBanner" class="d-none px-2 pt-2">
           <div class="d-flex align-items-center justify-content-between chat-reply-banner">
@@ -178,16 +174,16 @@ include APPPATH . 'Views/layout/header.php';
             <button type="button" onclick="clearAttachment()" style="background:none;border:0;padding:0;line-height:1;color:var(--muted);font-size:.9rem;">&times;</button>
           </span>
         </div>
-        <form id="sendForm" class="p-2 border-top d-flex gap-2 align-items-center">
+        <form id="sendForm" class="chat-composer">
           <input type="file" id="attachInput" class="d-none"
                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar">
-          <button type="button" class="btn btn-outline-secondary btn-sm" title="Attach photo or file"
+          <button type="button" class="chat-attach-btn" title="Attach photo or file"
                   onclick="document.getElementById('attachInput').click()">
             <i class="bi bi-paperclip"></i>
           </button>
-          <input type="text" id="messageInput" class="form-control form-control-sm" placeholder="Type a message..."
+          <input type="text" id="messageInput" class="chat-input" placeholder="Type a message..."
                  autocomplete="off" maxlength="2000">
-          <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-send"></i></button>
+          <button class="chat-send-btn" type="submit" title="Send"><i class="bi bi-send-fill"></i></button>
         </form>
       </div>
     </div>
@@ -195,7 +191,7 @@ include APPPATH . 'Views/layout/header.php';
     <!-- Chat info panel: slides in on the right (Messenger's "chat details"
          layout) instead of a centered modal — conversation avatar, mute
          toggle, member list (admins can add/remove), leave/delete action. -->
-    <div class="chat-info-panel d-none" id="chatInfoPanel">
+    <div class="chat-panel chat-info-panel d-none" id="chatInfoPanel">
       <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
         <span class="fw-semibold" style="font-size:.85rem;">Chat Info</span>
         <button type="button" class="chat-icon-btn" onclick="closeInfoPanel()" title="Close">
@@ -205,6 +201,15 @@ include APPPATH . 'Views/layout/header.php';
 
       <div class="overflow-auto flex-grow-1">
         <div class="p-3 border-bottom text-center" id="chatInfoHeader"></div>
+
+        <!-- Search within this conversation's messages -->
+        <div class="p-2 border-bottom">
+          <label class="chat-search chat-search-sm">
+            <i class="bi bi-search"></i>
+            <input type="text" id="chatMsgSearch" placeholder="Search in conversation..." autocomplete="off">
+          </label>
+          <div id="chatMsgSearchResults" class="chat-msg-results"></div>
+        </div>
 
         <div class="p-2 border-bottom">
           <button type="button" class="btn btn-sm btn-outline-secondary w-100 text-start" onclick="toggleMute()">
@@ -331,10 +336,11 @@ let replyToMessage = null;
 let editingMessageId = null;
 let lastTypingPingAt = 0;
 
+// One maroon tint for every avatar (theme-aware — see --chat-avatar-* in app.css).
 const CHAT_ROLE_COLORS = {
-    admin:   ['#fff0f0', '#800000'],
-    teacher: ['#dbeafe', '#1e40af'],
-    adas:    ['#f3f4f6', '#374151'],
+    admin:   ['var(--chat-avatar-bg)', 'var(--chat-avatar-tx)'],
+    teacher: ['var(--chat-avatar-bg)', 'var(--chat-avatar-tx)'],
+    adas:    ['var(--chat-avatar-bg)', 'var(--chat-avatar-tx)'],
 };
 
 function chatEscapeHtml(str) {
@@ -564,7 +570,9 @@ function renderMessages(messages, participants) {
     container.innerHTML = '';
 
     if (messages.length === 0) {
-        container.innerHTML = '<p class=\"text-muted text-center small mt-3\">No messages yet. Say hello!</p>';
+        // Same illustration as the no-conversation-selected pane.
+        const art = document.querySelector('#threadEmpty .chat-empty-art');
+        container.innerHTML = '<div class=\"chat-empty\">' + (art ? art.outerHTML : '') + '<p class=\"chat-empty-hello\">No messages yet. Say hello!</p></div>';
         return;
     }
 
@@ -711,6 +719,8 @@ function updateTypingIndicator(typing) {
 }
 
 function openConversation(id) {
+    // Only chats in the list can be opened (a stale or hidden id would show as an unnamed \"Conversation\").
+    if (!document.querySelector('.chat-convo-item[data-id=\"' + id + '\"]')) return;
     activeConversationId = id;
     replyToMessage = null;
     editingMessageId = null;
@@ -732,12 +742,12 @@ function openConversation(id) {
 
     const header = document.getElementById('threadHeader');
     header.innerHTML = '';
-    header.style.cssText = 'display:flex;align-items:center;gap:.6rem;';
+    header.style.cssText = 'display:flex;align-items:center;gap:.75rem;';
 
     const avatarWrap = document.createElement('div');
     avatarWrap.style.cssText = 'position:relative;flex-shrink:0;';
     const avatar = document.createElement('div');
-    avatar.style.cssText = 'width:32px;height:32px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;';
+    avatar.style.cssText = 'width:40px;height:40px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;';
     if (photo) {
         avatar.innerHTML = '<img src=\"' + photo + '\" style=\"width:100%;height:100%;object-fit:cover;\">';
     } else {
@@ -755,7 +765,9 @@ function openConversation(id) {
     }
 
     const nameCol = document.createElement('div');
+    nameCol.style.minWidth = '0';
     const nameSpan = document.createElement('div');
+    nameSpan.className = 'chat-thread-name';
     if (activeConversationType === 'direct' && activeConversationOtherId) {
         nameSpan.className = 'person-link';
         nameSpan.dataset.personId = activeConversationOtherId;
@@ -771,28 +783,29 @@ function openConversation(id) {
 
     const subSpan = document.createElement('div');
     subSpan.id = 'threadSubtext';
-    subSpan.className = 'text-muted';
-    subSpan.style.cssText = 'font-size:.68rem;font-weight:400;';
+    subSpan.className = 'chat-thread-sub';
+    // Groups: member count. Direct chats: the other person's role.
+    const otherRole = item ? item.dataset.otherRole : '';
+    const roleLabels = { admin: 'Principal', adas: 'ADAS' };
+    if (activeConversationType !== 'group') {
+        subSpan.dataset.role = roleLabels[otherRole] || (otherRole ? otherRole.charAt(0).toUpperCase() + otherRole.slice(1) : '');
+    }
     subSpan.textContent = activeConversationType === 'group'
         ? (item ? item.dataset.memberCount : '') + ' members'
-        : '';
+        : subSpan.dataset.role;
     nameCol.appendChild(subSpan);
 
     header.appendChild(avatarWrap);
     header.appendChild(nameCol);
 
-    document.getElementById('viewMembersItem').classList.toggle('d-none', activeConversationType !== 'group');
     document.getElementById('panelMembersSection').classList.toggle('d-none', activeConversationType !== 'group');
 
     const leaveLabel = activeConversationType === 'group' ? 'Leave Group' : 'Delete Chat';
     const leaveIconClass = 'bi me-2 ' + (activeConversationType === 'group' ? 'bi-box-arrow-right' : 'bi-trash-fill');
-    document.getElementById('leaveGroupLabel').textContent = leaveLabel;
-    document.getElementById('leaveGroupIcon').className = leaveIconClass;
     document.getElementById('panelLeaveLabel').textContent = leaveLabel;
     document.getElementById('panelLeaveIcon').className = leaveIconClass;
 
     const muteLabel = (item && item.dataset.muted === '1') ? 'Unmute Notifications' : 'Mute Notifications';
-    document.getElementById('muteMenuLabel').textContent = muteLabel;
     document.getElementById('panelMuteLabel').textContent = muteLabel;
 
     closeInfoPanel();
@@ -840,7 +853,8 @@ function fetchMessages() {
                 const sub = document.getElementById('threadSubtext');
                 if (state && dot && sub) {
                     dot.classList.toggle('d-none', !state.online);
-                    sub.textContent = state.online ? 'Active now' : formatLastActive(state.last_active_at);
+                    const presence = state.online ? 'Active now' : formatLastActive(state.last_active_at);
+                    sub.textContent = sub.dataset.role ? sub.dataset.role + (presence ? ' · ' + presence : '') : presence;
                 }
             }
         })
@@ -1054,7 +1068,6 @@ function toggleMute() {
         .then(data => {
             if (data.status !== 'success') return;
             const label = data.muted ? 'Unmute Notifications' : 'Mute Notifications';
-            document.getElementById('muteMenuLabel').textContent = label;
             document.getElementById('panelMuteLabel').textContent = label;
             const item = document.querySelector('.chat-convo-item[data-id=\"' + activeConversationId + '\"]');
             if (item) item.dataset.muted = data.muted ? '1' : '0';
@@ -1062,19 +1075,31 @@ function toggleMute() {
         .catch(() => {});
 }
 
-/* Shared by the thread-header \"Leave/Delete\" menu item and the hover delete
+/* Shared by the Chat Info panel's \"Leave/Delete\" button and the hover delete
    button on each conversation-list row — same server action either way
    (Chat::leave removes just the caller's own participant row). */
 function performLeaveConversation(id, isGroup) {
     Swal.fire({
         icon: 'warning',
+        iconHtml: '<i class=\"bi bi-exclamation-lg\"></i>',
         title: isGroup ? 'Leave this group?' : 'Delete this chat?',
         text: isGroup
             ? 'You will stop seeing new messages unless someone adds you back.'
             : 'This removes it from your chat list. The other person keeps their copy — messaging them again starts a new chat.',
         showCancelButton: true,
-        confirmButtonText: isGroup ? 'Leave' : 'Delete',
-        confirmButtonColor: '#dc2626',
+        confirmButtonText: '<i class=\"bi ' + (isGroup ? 'bi-box-arrow-right' : 'bi-trash3') + ' me-2\"></i>' + (isGroup ? 'Leave' : 'Delete'),
+        cancelButtonText: 'Cancel',
+        buttonsStyling: false,
+        // Styled in app.css (.danger-swal*)
+        customClass: {
+            popup: 'danger-swal',
+            icon: 'danger-swal-icon',
+            title: 'danger-swal-title',
+            htmlContainer: 'danger-swal-text',
+            actions: 'danger-swal-actions',
+            confirmButton: 'danger-swal-confirm',
+            cancelButton: 'danger-swal-cancel',
+        },
     }).then(result => {
         if (!result.isConfirmed) return;
 
@@ -1107,8 +1132,77 @@ function deleteConversationFromList(id, type) {
 /* ── Right-side chat info panel ── */
 let currentMembers = [];
 
+/* ── Search within the open conversation (Chat Info panel) ──
+   Runs over the messages already loaded for the thread (all of them), newest
+   match first; clicking a result scrolls to that bubble and flashes it. */
+function chatSearchSnippet(text, q) {
+    const i = text.toLowerCase().indexOf(q);
+    const start = Math.max(0, i - 30);
+    const end = Math.min(text.length, i + q.length + 60);
+    return (start > 0 ? '…' : '')
+        + chatEscapeHtml(text.slice(start, i))
+        + '<mark>' + chatEscapeHtml(text.slice(i, i + q.length)) + '</mark>'
+        + chatEscapeHtml(text.slice(i + q.length, end))
+        + (end < text.length ? '…' : '');
+}
+
+function searchConversation() {
+    const input = document.getElementById('chatMsgSearch');
+    const box = document.getElementById('chatMsgSearchResults');
+    if (!input || !box) return;
+    const q = input.value.trim().toLowerCase();
+    box.innerHTML = '';
+    if (q.length < 2) return;
+
+    const hits = (lastRenderedMessages || []).filter(m => !m.deleted && m.body && m.body.toLowerCase().includes(q)).reverse();
+    if (!hits.length) {
+        box.innerHTML = '<p class=\"text-muted small text-center my-2\">No messages found.</p>';
+        return;
+    }
+
+    const count = document.createElement('div');
+    count.className = 'chat-msg-results-count';
+    count.textContent = hits.length + ' result' + (hits.length === 1 ? '' : 's');
+    box.appendChild(count);
+
+    hits.slice(0, 50).forEach(m => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chat-msg-result';
+        const meta = document.createElement('div');
+        meta.className = 'chat-msg-result-meta';
+        const day = new Date(String(m.created_at).replace(' ', 'T')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        meta.textContent = (m.is_me ? 'You' : m.sender_name) + ' · ' + day + ', ' + m.time;
+        const text = document.createElement('div');
+        text.className = 'chat-msg-result-text';
+        text.innerHTML = chatSearchSnippet(m.body, q);
+        btn.append(meta, text);
+        btn.addEventListener('click', () => jumpToMessage(m.id));
+        box.appendChild(btn);
+    });
+}
+
+function jumpToMessage(id) {
+    const bubble = document.getElementById('msgBubble-' + id);
+    if (!bubble) return;
+    // On phones the panel covers the thread — close it first.
+    if (window.innerWidth < 768) closeInfoPanel();
+    bubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    bubble.classList.remove('chat-msg-flash');
+    void bubble.offsetWidth;
+    bubble.classList.add('chat-msg-flash');
+}
+
+document.getElementById('chatMsgSearch')?.addEventListener('input', searchConversation);
+
 function openInfoPanel() {
     if (!activeConversationId) return;
+
+    // Fresh search for whichever conversation the panel is opened on.
+    const msgSearch = document.getElementById('chatMsgSearch');
+    if (msgSearch) msgSearch.value = '';
+    const msgResults = document.getElementById('chatMsgSearchResults');
+    if (msgResults) msgResults.innerHTML = '';
 
     const item = document.querySelector('.chat-convo-item[data-id=\"' + activeConversationId + '\"]');
     const headerEl = document.getElementById('chatInfoHeader');
@@ -1437,7 +1531,9 @@ document.querySelectorAll('.group-member-checkbox').forEach(cb => {
     cb.addEventListener('change', syncGroupSelectAllState);
 });
 
-" . ($openId ? "document.addEventListener('DOMContentLoaded', () => openConversation({$openId}));" : '') . "
+" . ($openId ? "// Called directly, not via DOMContentLoaded: AJAX navigation replays that event to every
+// listener ever added, so a listener from an earlier ?open= visit would reopen a stale chat.
+openConversation({$openId});" : '') . "
 </script>";
 include APPPATH . 'Views/layout/footer.php';
 ?>

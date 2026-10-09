@@ -86,6 +86,7 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             <option value="Late"     <?= $statusFilter==='Late'     ? 'selected' : '' ?>>Late</option>
             <option value="Absent"   <?= $statusFilter==='Absent'   ? 'selected' : '' ?>>Absent</option>
             <option value="On Leave" <?= $statusFilter==='On Leave' ? 'selected' : '' ?>>On Leave</option>
+            <option value="Academic Break" <?= $statusFilter==='Academic Break' ? 'selected' : '' ?>>Academic Break</option>
           </select>
           <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
           <div class="maroon-select-panel"></div>
@@ -99,6 +100,9 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
         <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#holidaysModal">
           <i class="bi bi-calendar-x me-1"></i>Manage Holidays
         </button>
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#breaksModal">
+          <i class="bi bi-calendar-range me-1"></i>Academic Breaks
+        </button>
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
           <i class="bi bi-upload me-1"></i>Import
         </button>
@@ -108,17 +112,26 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
   </div>
 </div>
 
+<?php if ($activeBreak): ?>
+<div class="alert alert-academic-break d-flex align-items-center gap-2 mb-4">
+  <i class="bi bi-calendar-range-fill flex-shrink-0"></i>
+  <span><strong><?= e($activeBreak['label']) ?></strong> · <?= date('M j', strtotime($activeBreak['start_date'])) ?> – <?= date('M j, Y', strtotime($activeBreak['end_date'])) ?>.
+    School days with no punches in this range are recorded as <strong>Academic Break</strong>, not Absent.</span>
+</div>
+<?php endif; ?>
+
 <!-- Summary stats: click a card to filter the table by that status; click it again to go back to All -->
-<div class="row g-3 mb-4">
+<div class="row row-cols-2 row-cols-sm-3 row-cols-lg-5 g-3 mb-4">
   <?php foreach ([
-    ['Present',  'present',  'bi-check-circle-fill', $summary['Present']],
-    ['Late',     'late',     'bi-alarm-fill',        $summary['Late']],
-    ['Absent',   'absent',   'bi-x-circle-fill',     $summary['Absent']],
-    ['On Leave', 'on-leave', 'bi-calendar-check',    $summary['On Leave']],
+    ['Present',        'present',        'bi-check-circle-fill',    $summary['Present']],
+    ['Late',           'late',           'bi-alarm-fill',           $summary['Late']],
+    ['Absent',         'absent',         'bi-x-circle-fill',        $summary['Absent']],
+    ['On Leave',       'on-leave',       'bi-calendar-check',       $summary['On Leave']],
+    ['Academic Break', 'academic-break', 'bi-calendar-range-fill',  $summary['Academic Break']],
   ] as [$label,$cls,$icon,$cnt]):
     $isActive = $statusFilter === $label;
   ?>
-  <div class="col-6 col-sm-3">
+  <div class="col">
     <div class="card text-center py-3 status-filter-card <?= $isActive ? 'active' : '' ?>" role="button"
          onclick="filterByStatus('<?= e($label) ?>')">
       <div class="mb-2">
@@ -182,7 +195,7 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             <td class="text-center">
               <?php
               $cls = strtolower(str_replace(' ','-',$r['status']));
-              $icons = ['Present'=>'bi-check-circle-fill','Late'=>'bi-exclamation-circle-fill','Absent'=>'bi-x-circle-fill','On Leave'=>'bi-calendar-check-fill'];
+              $icons = ['Present'=>'bi-check-circle-fill','Late'=>'bi-exclamation-circle-fill','Absent'=>'bi-x-circle-fill','On Leave'=>'bi-calendar-check-fill','Academic Break'=>'bi-calendar-range-fill'];
               ?>
               <span class="badge badge-<?= $cls ?>">
                 <i class="bi <?= $icons[$r['status']] ?? 'bi-circle' ?>"></i>
@@ -244,6 +257,7 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
                 <select name="status" id="editStatus" class="maroon-select-native">
                   <option>Present</option><option>Late</option>
                   <option>Absent</option><option>On Leave</option>
+                  <option>Academic Break</option>
                 </select>
                 <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
                 <div class="maroon-select-panel"></div>
@@ -281,7 +295,8 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             For each employee and day, the earliest <strong>C/In</strong> becomes Time In and the latest <strong>C/Out</strong> becomes Time Out.
             A Time In after 7:30 AM is marked <strong>Late</strong>, and a missing In or Out is marked <strong>Present (incomplete)</strong>.
             A school day with no punch, within that employee's range in the file, is marked <strong>Absent</strong> unless a record already exists.
-            Weekends and dates listed under Manage Holidays are never counted as absences.
+            Weekends and dates listed under Manage Holidays are never counted as absences, and school days
+            inside an <strong>Academic Break</strong> are recorded as Academic Break instead.
           </p>
           <p class="text-muted mb-3" style="font-size:.75rem;">
             The older daily layout (AC-No, Name, Department, Date, Time) is still accepted.
@@ -357,6 +372,82 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
               <?php endforeach; ?>
               <?php if (empty($holidays)): ?>
               <tr><td colspan="3" class="text-center text-muted py-3">No holidays added yet.</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Academic Breaks Modal -->
+<?php $breakDatePicker = static fn (string $name) => '
+            <div class="maroon-dp">
+              <input type="text" class="form-control form-control-sm maroon-dp-display" placeholder="Select date" readonly required>
+              <input type="hidden" name="' . $name . '">
+              <div class="maroon-dp-panel">
+                <div class="maroon-dp-header">
+                  <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+                  <span class="maroon-dp-month-label"></span>
+                  <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                <div class="maroon-dp-grid"></div>
+              </div>
+            </div>'; ?>
+<div class="modal fade" id="breaksModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-calendar-range me-2"></i>Academic Breaks</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:.82rem;">
+          School days with no punches inside a break are recorded as <strong>Academic Break</strong>, not Absent.
+          Adding a break also changes imported absences already in that range; removing it changes them back.
+        </p>
+        <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form row g-2 align-items-end mb-3">
+          <input type="hidden" name="action" value="break_add">
+          <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+          <div class="col-md-4">
+            <label class="form-label">Name</label>
+            <input type="text" name="break_label" class="form-control form-control-sm" placeholder="e.g. EOSY Break" maxlength="150" required>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label">Start</label><?= $breakDatePicker('break_start') ?>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label">End</label><?= $breakDatePicker('break_end') ?>
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Add</button>
+          </div>
+        </form>
+        <div class="table-responsive" style="max-height:260px;overflow-y:auto;">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Name</th><th>Dates</th><th></th></tr></thead>
+            <tbody>
+              <?php foreach ($academicBreaks as $b): ?>
+              <tr>
+                <td class="fw-semibold"><?= e($b['label']) ?></td>
+                <td class="text-muted"><?= date('M j, Y', strtotime($b['start_date'])) ?> – <?= date('M j, Y', strtotime($b['end_date'])) ?></td>
+                <td class="text-end">
+                  <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form d-inline" data-confirm-title="Remove this academic break?" data-confirm-text="Imported records it marked as Academic Break go back to Absent." data-confirm-icon="warning">
+                    <input type="hidden" name="action" value="break_delete">
+                    <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+                    <input type="hidden" name="break_id" value="<?= (int) $b['id'] ?>">
+                    <button type="submit" class="btn btn-ghost btn-sm text-danger" title="Remove"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              <?php if (empty($academicBreaks)): ?>
+              <tr><td colspan="3" class="text-center text-muted py-3">No academic breaks added yet.</td></tr>
               <?php endif; ?>
             </tbody>
           </table>

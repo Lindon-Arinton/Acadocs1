@@ -6,7 +6,11 @@ use CodeIgniter\Model;
 
 class TimeRecordModel extends Model
 {
-    public const STATUSES = ['Present', 'Late', 'Absent', 'On Leave'];
+    public const STATUSES = ['Present', 'Late', 'Absent', 'On Leave', 'Academic Break'];
+
+    /** Remarks the importer writes, so adding/removing a break only touches records it produced. */
+    public const NO_PUNCH_REMARK = 'No punches recorded (import)';
+    public const BREAK_REMARK    = 'Academic break: ';
 
     protected $table = 'time_records';
     protected $primaryKey = 'id';

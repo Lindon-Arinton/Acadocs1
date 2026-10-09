@@ -78,7 +78,11 @@
   <div class="card mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
       <span class="fw-semibold"><i class="bi bi-clipboard-data me-2 text-muted"></i>MPS — Term <?= (int) $term ?>, SY <?= e($year) ?></span>
-      <span class="text-muted small"><span class="mps-legend mps-good"></span>75% and up (mastery) <span class="mps-legend mps-mid ms-2"></span>50–74% <span class="mps-legend mps-low ms-2"></span>below 50%</span>
+      <span class="desc-legend">
+        <?php foreach (MPS_DESCRIPTORS as [$min, $label, $range]): ?>
+        <span class="mps-pill desc-<?= strtolower($label) ?>"><?= $range ?> <?= $label ?></span>
+        <?php endforeach; ?>
+      </span>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -185,23 +189,27 @@
 <?php
 $extraScript = <<<'HTML'
 <script>
-// Each row's Average = mean of the test periods entered so far, colored
-// against the 75% mastery level; recomputed as the teacher types.
-function mpsTone(v) { return v >= 75 ? 'mps-good' : (v >= 50 ? 'mps-mid' : 'mps-low'); }
+// Each row's Average = mean of the test periods entered so far, colored by
+// DepEd descriptor (same bands as mpsDescriptor() in acadocs_helper.php);
+// recomputed as the teacher types.
+var MPS_BANDS = [[90, 'Advancing'], [80, 'Benchmarking'], [75, 'Connecting'], [65, 'Developing'], [0, 'Emerging']];
+var MPS_BAND_CLASSES = MPS_BANDS.map(([, label]) => 'desc-' + label.toLowerCase());
+function mpsBand(v) { return MPS_BANDS.find(([min]) => v >= min) || MPS_BANDS[MPS_BANDS.length - 1]; }
 function updateMpsRow(row) {
     const values = [...row.querySelectorAll('.mps-input')]
         .map(i => i.value.trim() === '' ? null : Number(i.value))
         .filter(v => v !== null && !Number.isNaN(v));
     row.querySelectorAll('.mps-input').forEach(i => {
-        i.classList.remove('mps-good', 'mps-mid', 'mps-low');
-        if (i.value.trim() !== '' && !Number.isNaN(Number(i.value))) i.classList.add(mpsTone(Number(i.value)));
+        i.classList.remove(...MPS_BAND_CLASSES);
+        if (i.value.trim() !== '' && !Number.isNaN(Number(i.value))) i.classList.add('desc-' + mpsBand(Number(i.value))[1].toLowerCase());
     });
     const avg = row.querySelector('.mps-avg');
-    avg.classList.remove('mps-good', 'mps-mid', 'mps-low');
+    avg.classList.remove(...MPS_BAND_CLASSES);
     if (!values.length) { avg.textContent = '—'; return; }
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    avg.textContent = mean.toFixed(2) + '%';
-    avg.classList.add(mpsTone(mean));
+    const label = mpsBand(mean)[1];
+    avg.textContent = mean.toFixed(2) + '% · ' + label;
+    avg.classList.add('desc-' + label.toLowerCase());
 }
 document.querySelectorAll('.mps-score-row').forEach(row => {
     updateMpsRow(row);

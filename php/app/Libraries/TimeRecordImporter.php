@@ -2,6 +2,7 @@
 
 namespace App\Libraries;
 
+use App\Models\AcademicBreakModel;
 use App\Models\BiometricEmployeeModel;
 use App\Models\HolidayModel;
 use App\Models\TimeRecordModel;
@@ -37,6 +38,9 @@ class TimeRecordImporter
     /** @var array<string,bool> cached holiday dates (Y-m-d => true) */
     private array $holidayDates = [];
 
+    /** @var list<array{label:string,start_date:string,end_date:string}> cached academic breaks */
+    private array $academicBreaks = [];
+
     public function __construct()
     {
         $this->employees   = new BiometricEmployeeModel();
@@ -44,14 +48,15 @@ class TimeRecordImporter
         $this->timeRecords = new TimeRecordModel();
         $this->users       = new UserModel();
 
-        $this->holidayDates = array_fill_keys($this->holidays->allDates(), true);
+        $this->holidayDates   = array_fill_keys($this->holidays->allDates(), true);
+        $this->academicBreaks = (new AcademicBreakModel())->findAll();
     }
 
     /**
      * @return array{
      *   rows_read: int, inserted: int, updated: int,
      *   present: int, late: int, absent: int, incomplete: int,
-     *   skipped_non_school_day: int,
+     *   academic_break: int, skipped_non_school_day: int,
      *   placeholders_created: string[],
      *   errors: string[],
      *   latest_date: ?string,
@@ -67,6 +72,7 @@ class TimeRecordImporter
             'late'                    => 0,
             'absent'                  => 0,
             'incomplete'              => 0,
+            'academic_break'          => 0,
             'skipped_non_school_day'  => 0,
             'placeholders_created'    => [],
             'errors'                  => [],
@@ -140,11 +146,9 @@ class TimeRecordImporter
                     continue;
                 }
 
-                $status   = 'Absent';
+                [$status, $remarks] = $this->noPunchStatus($date, $summary);
                 $timeIn   = null;
                 $timeOut  = null;
-                $remarks  = 'No punches recorded (import)';
-                $summary['absent']++;
             } elseif (count($times) === 1) {
                 $status  = 'Present';
                 $timeIn  = $times[0];
@@ -386,8 +390,8 @@ class TimeRecordImporter
                     continue;
                 }
 
-                $summary['absent']++;
-                $this->saveRecord($existingIds, $summary, $employeeId, $employee['name'], $date, null, null, 'Absent', 'No punches recorded (import)', $employee['user_id'] ?? null);
+                [$status, $remarks] = $this->noPunchStatus($date, $summary);
+                $this->saveRecord($existingIds, $summary, $employeeId, $employee['name'], $date, null, null, $status, $remarks, $employee['user_id'] ?? null);
             }
         }
 
@@ -634,6 +638,27 @@ class TimeRecordImporter
         sort($valid);
 
         return $valid;
+    }
+
+    /**
+     * A school day with no punches: Absent, unless it falls in an academic
+     * break (then it's recorded as such, not held against anyone).
+     *
+     * @return array{0:string,1:string} [status, remarks]
+     */
+    private function noPunchStatus(string $date, array &$summary): array
+    {
+        foreach ($this->academicBreaks as $break) {
+            if ($date >= $break['start_date'] && $date <= $break['end_date']) {
+                $summary['academic_break']++;
+
+                return ['Academic Break', TimeRecordModel::BREAK_REMARK . $break['label']];
+            }
+        }
+
+        $summary['absent']++;
+
+        return ['Absent', TimeRecordModel::NO_PUNCH_REMARK];
     }
 
     private function isWeekendOrHoliday(string $date): bool

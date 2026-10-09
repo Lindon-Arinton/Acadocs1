@@ -34,6 +34,18 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `acadocs` /*!40100 DEFAULT CHARACTER SE
 USE `acadocs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `academic_breaks` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `label` varchar(150) NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `start_date_end_date` (`start_date`,`end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `announcements` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `type` enum('Announcement','Questionnaires','Forms') NOT NULL,
@@ -656,7 +668,7 @@ CREATE TABLE `time_records` (
   `user_id` int(10) unsigned DEFAULT NULL,
   `time_in` time DEFAULT NULL,
   `time_out` time DEFAULT NULL,
-  `status` enum('Present','Late','Absent','On Leave') NOT NULL,
+  `status` enum('Present','Late','Absent','On Leave','Academic Break') NOT NULL,
   `remarks` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),

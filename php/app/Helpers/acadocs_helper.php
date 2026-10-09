@@ -141,3 +141,38 @@ if (! function_exists('submissionTimingBadge')) {
             : '<span class="timing-badge timing-ontime" title="Submitted before the deadline"><i class="bi bi-check-circle-fill me-1"></i>On time</span>';
     }
 }
+
+if (! function_exists('mpsDescriptor')) {
+    /**
+     * DepEd grade descriptor for a score out of 100 (used for MPS):
+     * 90–100 Advancing, 80–89 Benchmarking, 75–79 Connecting,
+     * 65–74 Developing, below 65 Emerging. 75 is the mastery line.
+     *
+     * @return array{label:string,class:string,range:string}|null null when there's no score
+     */
+    function mpsDescriptor(?float $score): ?array
+    {
+        if ($score === null) {
+            return null;
+        }
+
+        foreach (MPS_DESCRIPTORS as [$min, $label, $range]) {
+            if ($score >= $min) {
+                return ['label' => $label, 'class' => 'desc-' . strtolower($label), 'range' => $range];
+            }
+        }
+
+        return null;
+    }
+}
+
+if (! defined('MPS_DESCRIPTORS')) {
+    /** [lowest score, descriptor, range label], highest band first — see mpsDescriptor(). */
+    define('MPS_DESCRIPTORS', [
+        [90, 'Advancing',    '90–100'],
+        [80, 'Benchmarking', '80–89'],
+        [75, 'Connecting',   '75–79'],
+        [65, 'Developing',   '65–74'],
+        [0,  'Emerging',     '0–64'],
+    ]);
+}
