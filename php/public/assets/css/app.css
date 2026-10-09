@@ -1516,10 +1516,10 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
   overflow: hidden;
   animation: login-bg-reveal 1.6s cubic-bezier(.22,1,.36,1) both;
 }
+/* Still photo: no zoom/pan, so the campus stays put behind the card. */
 .login-bg-photo {
-  position: absolute; inset: -4%;
+  position: absolute; inset: 0;
   background: url('../img/login-bg.jpg') center 40% / cover no-repeat;
-  animation: login-kenburns 32s ease-in-out 1.6s infinite alternate;
 }
 .login-bg-overlay {
   position: absolute; inset: 0;
@@ -1527,13 +1527,10 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
     radial-gradient(ellipse at center, transparent 35%, rgba(20,0,0,.55) 100%),
     linear-gradient(120deg, rgba(61,5,5,.84) 0%, rgba(92,10,10,.6) 45%, rgba(20,0,0,.35) 100%);
 }
+/* A plain fade-in on load: no zoom or blur, so the photo appears already in place. */
 @keyframes login-bg-reveal {
-  from { opacity: 0; transform: scale(1.12); filter: blur(10px); }
-  to   { opacity: 1; transform: scale(1);    filter: none; }
-}
-@keyframes login-kenburns {
-  from { transform: scale(1)    translate(0, 0); }
-  to   { transform: scale(1.12) translate(-2%, -1.5%); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Card: transparent shell so the illustration side can be frosted glass
@@ -1730,7 +1727,6 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
   /* Photo fills the area above the desk so the building isn't hidden behind it. */
   position: absolute; inset: -4% -6% 34% -6%;
   background: url('../img/login-bg.jpg') 35% 60% / cover no-repeat;
-  animation: login-kenburns 30s ease-in-out infinite alternate;
 }
 .auth-photo-tint {
   position: absolute; inset: 0;

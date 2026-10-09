@@ -131,7 +131,8 @@
 
   <!-- ── Right: campus photo scene ──────────────────────── -->
   <section class="auth-right" aria-hidden="true">
-    <div class="auth-par" data-depth="6">
+    <!-- The photo stays put (depth 0); only the books and cards in front drift with the cursor. -->
+    <div class="auth-par" data-depth="0">
       <div class="auth-photo"></div>
     </div>
     <div class="auth-photo-tint"></div>
