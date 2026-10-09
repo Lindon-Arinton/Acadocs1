@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Libraries\TimeRecordImporter;
 use App\Models\HolidayModel;
 use App\Models\TimeRecordModel;
+use App\Models\UserModel;
 
 class TimeRecords extends BaseController
 {
@@ -108,7 +109,17 @@ class TimeRecords extends BaseController
 
         $records = $builder->findAll();
 
+        // Each record carries its owner's account (time_records.user_id) — map it so
+        // the name can open the person card (personLink()); unlinked scans stay plain.
+        $userIdsByEmployeeId = [];
+        foreach ($records as $r) {
+            if (! empty($r['user_id'])) {
+                $userIdsByEmployeeId[$r['employee_id']] = (int) $r['user_id'];
+            }
+        }
+
         return view('pages/shared/time_records', [
+            'userIdsByEmployeeId' => $userIdsByEmployeeId,
             'pageTitle'    => 'Time Records',
             'records'      => $records,
             'summary'      => $summary,

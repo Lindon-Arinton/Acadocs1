@@ -56,15 +56,18 @@ $insightTone = [
       <i class="bi bi-calendar3"></i>
       <span>
         <small>School Year</small>
-        <select id="dashboard-year-filter"
-                onchange="loadPage('<?= base_url('dashboard') ?>?year=' + encodeURIComponent(this.value))">
+        <select id="dashboard-year-filter" onchange="onDashboardYearChange(this)">
+          <option value="__other">Custom…</option>
+          <?php if ($range !== null): ?>
+          <option value="__range" selected><?= e($range['label']) ?> (<?= (int) $range['count'] ?> yrs)</option>
+          <?php endif; ?>
           <?php foreach ($years as $y): ?>
-          <option value="<?= e($y) ?>" <?= $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
+          <option value="<?= e($y) ?>" <?= $range === null && $y === $currentYear ? 'selected' : '' ?>><?= e(str_replace('-', '–', $y)) ?></option>
           <?php endforeach; ?>
         </select>
       </span>
     </label>
-    <?php if (hasRole('admin')): ?>
+    <?php if (hasRole('admin', 'adas')): ?>
     <button type="button" class="btn dash-btn dash-btn-primary" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
       <i class="bi bi-person-plus me-2"></i>Add Enrollment
     </button>
@@ -72,11 +75,27 @@ $insightTone = [
       <i class="bi bi-upload me-2"></i>Import KPI Report
     </button>
     <?php endif; ?>
+    <button type="button" class="btn dash-btn" onclick="openReportModal()">
+      <i class="bi bi-file-earmark-bar-graph me-2"></i>Generate Report
+    </button>
     <button type="button" class="btn dash-btn" onclick="document.getElementById('dash-breakdown').scrollIntoView({ behavior: 'smooth', block: 'start' })">
       <i class="bi bi-bar-chart-line me-2"></i>View Data
     </button>
   </div>
 </div>
+
+<?php if ($range !== null): ?>
+<div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2 mb-3 small">
+  <i class="bi bi-calendar-range"></i>
+  <span>
+    Showing trends for <strong>SY <?= $range['start'] ?>–<?= $range['start'] + 1 ?></strong> to
+    <strong>SY <?= $range['end'] - 1 ?>–<?= $range['end'] ?></strong> (<?= (int) $range['count'] ?> school years).
+    Single-year cards show <strong>SY <?= e(str_replace('-', '–', $currentYear)) ?></strong>, the latest in this range.
+  </span>
+  <a href="#" class="ms-auto fw-semibold text-decoration-none" onclick="openYearRangeModal(); return false;"><i class="bi bi-sliders me-1"></i>Change</a>
+  <a href="<?= base_url('dashboard') ?>" class="fw-semibold text-decoration-none"><i class="bi bi-x-circle me-1"></i>Clear</a>
+</div>
+<?php endif; ?>
 
 <!-- KPI cards (the first three also switch the trend chart below) -->
 <div class="dash-kpis mb-3">
@@ -157,7 +176,7 @@ $insightTone = [
       <span><i class="bi bi-gender-ambiguous"></i>Gender &amp; Grade Enrollment</span>
       <?php if (! empty($enrollmentMonths)): ?>
       <select class="dash-mini-select" id="enrollment-month-filter" aria-label="Enrollment month"
-              onchange="loadPage('<?= base_url('dashboard') ?>?year=<?= urlencode($currentYear) ?>&month=' + encodeURIComponent(this.value), { scroll: false })">
+              onchange="loadPage('<?= base_url('dashboard') ?>?<?= $range !== null ? 'range=' . $range['start'] . '-' . $range['end'] : 'year=' . urlencode($currentYear) ?>&month=' + encodeURIComponent(this.value), { scroll: false })">
         <?php foreach (array_reverse($enrollmentMonths) as $m): ?>
         <option value="<?= e($m) ?>" <?= $m === $enrollmentMonth ? 'selected' : '' ?>><?= e(date('M Y', strtotime($m . '-01'))) ?></option>
         <?php endforeach; ?>
@@ -288,40 +307,74 @@ $insightTone = [
       </div>
     </div>
 
-    <div class="dash-card-body p-0 d-none" data-tab-panel="data:subject">
-      <div class="d-flex justify-content-end px-3 pt-2">
-        <button type="button" id="perfViewAllBtn" class="btn btn-sm btn-outline-secondary" onclick="togglePerfBreakdown()">
-          <i class="bi bi-list-ul me-1"></i>View All
-        </button>
-      </div>
-      <div class="table-responsive">
-        <table class="table dash-table mb-0">
-          <thead><tr><th>Subject</th><th>Grade Level</th><th>Teacher</th><th class="text-end">MPS</th><th class="text-center">Status</th></tr></thead>
-          <tbody id="perfSummaryBody">
-            <?php foreach ($avgPerf as $p):
-              $badge = $p['mps'] >= 85 ? ['Excellent', 'badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory', 'badge-reviewed'] : ['Needs Improvement', 'badge-returned']);
-            ?>
-            <tr>
-              <td class="fw-semibold"><?= e($p['subject']) ?></td><td class="text-muted">All Grades</td><td class="text-muted">—</td>
-              <td class="text-end fw-bold"><?= $p['mps'] ?>%</td>
-              <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-          <tbody id="perfFullBody" class="d-none">
-            <?php foreach ($allPerf as $p):
-              $badge = $p['mps'] >= 85 ? ['Excellent', 'badge-submitted'] : ($p['mps'] >= 75 ? ['Satisfactory', 'badge-reviewed'] : ['Needs Improvement', 'badge-returned']);
-            ?>
-            <tr>
-              <td class="fw-semibold"><?= e($p['subject']) ?></td><td class="text-muted"><?= e($p['grade_level']) ?></td><td class="text-muted"><?= e($p['instructor']) ?></td>
-              <td class="text-end fw-bold"><?= $p['mps'] ?>%</td>
-              <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+  <div class="dash-card-body p-0 d-none" data-tab-panel="data:subject">
+    <div class="d-flex justify-content-end px-3 pt-2">
+      <button type="button" id="perfViewAllBtn" class="btn btn-sm btn-outline-secondary" onclick="togglePerfBreakdown()">
+        <i class="bi bi-list-ul me-1"></i>View All
+      </button>
     </div>
+    <?php
+      $mpsBadge = static fn ($mps): array => $mps >= 85 ? ['Excellent', 'badge-submitted'] : ($mps >= 75 ? ['Satisfactory', 'badge-reviewed'] : ['Needs Improvement', 'badge-returned']);
+      // "A, B" => linked names (person card) for teachers with an account; placeholders => "Not assigned".
+      $teacherCell = static function (string $instructor) use ($perfTeachers): string {
+          $instructor = trim($instructor);
+          if (in_array($instructor, \App\Libraries\MpsCalculator::UNKNOWN_INSTRUCTORS, true)) {
+              return '<span class="text-muted fst-italic">Not assigned</span>';
+          }
+          $names = array_filter(array_map('trim', explode(',', $instructor)));
+
+          return implode(', ', array_map(static fn ($n) => personLink($perfTeachers[$n] ?? null, $n), $names));
+      };
+      $perfBySubject = [];
+      foreach ($allPerf as $p) {
+          $perfBySubject[$p['subject']][] = $p;
+      }
+    ?>
+    <div class="table-responsive" id="perfSummaryTable">
+      <table class="table dash-table mb-0">
+        <thead>
+          <tr>
+            <th>Subject</th><th class="text-center">Grade Levels</th>
+            <th class="text-end">Average MPS</th><th class="text-center">Status</th><th style="width:1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($avgPerf as $p): $badge = $mpsBadge($p['mps']); ?>
+          <tr class="perf-subject-row" role="button" tabindex="0" title="View <?= e($p['subject']) ?> by grade level and teacher"
+              data-subject="<?= e($p['subject']) ?>" onclick="openSubjectDetail(this)" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openSubjectDetail(this); }">
+            <td class="fw-semibold"><?= e($p['subject']) ?></td>
+            <td class="text-center text-muted"><?= count($perfBySubject[$p['subject']] ?? []) ?></td>
+            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
+            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
+            <td class="text-muted"><i class="bi bi-chevron-right"></i></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-responsive d-none" id="perfFullTable">
+      <table class="table dash-table mb-0">
+        <thead>
+          <tr>
+            <th>Subject</th><th>Grade Level</th><th>Teacher</th>
+            <th class="text-end">MPS</th><th class="text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($allPerf as $p): $badge = $mpsBadge($p['mps']); ?>
+          <tr>
+            <td class="fw-semibold"><?= e($p['subject']) ?></td>
+            <td class="text-muted"><?= e($p['grade_level']) ?></td>
+            <td><?= $teacherCell((string) $p['instructor']) ?></td>
+            <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $p['mps'] ?>%</span></td>
+            <td class="text-center"><span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 
     <?php if (! empty($depedKpis)): ?>
     <div class="dash-card-body p-0 d-none" data-tab-panel="data:deped">
@@ -365,7 +418,7 @@ $insightTone = [
   <em>Better Records. Brighter Futures.</em>
 </div>
 
-<?php if (hasRole('admin')): ?>
+<?php if (hasRole('admin', 'adas')): ?>
 <!-- Add Enrollment Modal -->
 <div class="modal fade" id="addEnrollmentModal" tabindex="-1">
   <div class="modal-dialog">
@@ -392,6 +445,11 @@ $insightTone = [
                    inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2026-2027"
                    value="<?= e($currentYear) ?>" placeholder="e.g. 2026-2027" pattern="\d{4}-\d{4}" required
                    oninput="updateEnrollmentTemplateLink(this.form)">
+            <datalist id="kpiYearOptions">
+              <?php foreach ($years as $y): ?>
+              <option value="<?= e($y) ?>"></option>
+              <?php endforeach; ?>
+            </datalist>
             <div class="form-text">Uploading a month again replaces it; other months are kept.</div>
           </div>
           <div class="mb-3">
@@ -416,27 +474,14 @@ $insightTone = [
         <h6 class="modal-title"><i class="bi bi-upload me-2"></i>Import KPI Report</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="<?= base_url('enrollment-kpis/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this file?" data-confirm-text="Existing KPI data for the selected school year will be overwritten.">
+      <form method="POST" action="<?= base_url('enrollment-kpis/import') ?>" class="ajax-form" enctype="multipart/form-data" data-sy-prompt="school_year" data-confirm-text="Existing KPI data for this school year will be overwritten.">
+        <input type="hidden" name="school_year" value="">
         <div class="modal-body">
           <p class="text-muted" style="font-size:.82rem;">
-            Upload the DepEd "Key Performance Indicator" Word report (Indicator table plus the
-            "Enrolment per Grade Level" table). The document doesn't state its own school year, so
-            enter it below. Not sure of the format?
-            <a href="<?= base_url('enrollment-kpis/template') ?>?year=<?= urlencode($currentYear) ?>" id="kpiTemplateLink">Download the template</a>.
+            Upload the DepEd "Key Performance Indicator" Word report (the Indicator table). You'll be asked
+            which school year the data is for after you click Import. Not sure of the format?
+            <a href="<?= base_url('enrollment-kpis/template') ?>">Download the template</a>.
           </p>
-          <div class="mb-3">
-            <label class="form-label">School Year</label>
-            <input type="text" name="school_year" class="form-control form-control-sm sy-input" list="kpiYearOptions"
-                   inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2025-2026"
-                   value="<?= e($currentYear) ?>" placeholder="e.g. 2025-2026" pattern="\d{4}-\d{4}" required
-                   oninput="document.getElementById('kpiTemplateLink').href = '<?= base_url('enrollment-kpis/template') ?>?year=' + encodeURIComponent(this.value)">
-            <datalist id="kpiYearOptions">
-              <?php foreach ($years as $y): ?>
-              <option value="<?= e($y) ?>"></option>
-              <?php endforeach; ?>
-            </datalist>
-            <div class="form-text">Type a new school year (YYYY-YYYY) or pick an existing one. The template above will use this year.</div>
-          </div>
           <div class="mb-3">
             <label class="form-label">Word file (.docx)</label>
             <input type="file" name="import_file" class="form-control" accept=".docx" required>
@@ -452,13 +497,281 @@ $insightTone = [
 </div>
 <?php endif; ?>
 
+<!-- Generate Report -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-file-earmark-bar-graph me-2"></i>Generate Report</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="reportScope">Report for</label>
+          <select id="reportScope" class="form-select form-select-sm" required onchange="updateReportSections()">
+            <?php if ($range !== null): ?>
+            <option value="range:<?= $range['start'] ?>-<?= $range['end'] ?>" selected>SY <?= $range['start'] ?>–<?= $range['start'] + 1 ?> to SY <?= $range['end'] - 1 ?>–<?= $range['end'] ?> (current filter)</option>
+            <?php endif; ?>
+            <?php foreach ($years as $y): ?>
+            <option value="year:<?= e($y) ?>" <?= $range === null && $y === $currentYear ? 'selected' : '' ?>>SY <?= e(str_replace('-', '–', $y)) ?><?= $range === null && $y === $currentYear ? ' (current filter)' : '' ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="form-text">Defaults to the year the dashboard is showing. For a multi-year range, use <strong>Custom…</strong> in the School Year filter first.</div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small fw-semibold">Include in the report</span>
+          <span class="small">
+            <a href="#" class="link-maroon" onclick="setReportSections(true); return false;">Select all</a> ·
+            <a href="#" class="link-maroon" onclick="setReportSections(false); return false;">Clear</a>
+          </span>
+        </div>
+        <div class="report-section-list">
+          <?php foreach ($reportSections as $key => $label): ?>
+          <label class="report-section-option">
+            <input type="checkbox" class="form-check-input mt-0 report-section-cb" value="<?= e($key) ?>" checked>
+            <span><?= e($label) ?></span>
+            <span class="report-section-nodata">No data</span>
+          </label>
+          <?php endforeach; ?>
+        </div>
+        <div class="form-text d-none" id="reportNoDataNote">Sections marked <em>No data</em> have nothing recorded for the selected period.</div>
+        <div class="text-danger small mt-2 d-none" id="reportError">Tick at least one section.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="generateReport()"><i class="bi bi-file-earmark-arrow-down me-1"></i>Generate</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Year range ("Custom…" in the School Year filter) -->
+<div class="modal fade" id="yearRangeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-calendar-range me-2"></i>Choose a Year Range</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Trend charts, the DepEd history table and the year-over-year comparisons will only cover these school years.</p>
+        <?php
+          $syNow = $currentSchoolYearStart;
+          $presets = [5 => [$syNow - 4, $syNow + 1], 10 => [$syNow - 9, $syNow + 1]];
+        ?>
+        <div class="d-flex flex-column gap-2">
+          <?php foreach ($presets as $n => [$from, $to]): ?>
+          <label class="year-range-option">
+            <input type="radio" name="yearRangeChoice" value="<?= $from ?>-<?= $to ?>" class="form-check-input mt-0">
+            <span>
+              <span class="fw-semibold d-block">Last <?= $n ?> years</span>
+              <span class="small text-muted">SY <?= $from ?>–<?= $from + 1 ?> to SY <?= $to - 1 ?>–<?= $to ?></span>
+            </span>
+          </label>
+          <?php endforeach; ?>
+          <label class="year-range-option">
+            <input type="radio" name="yearRangeChoice" value="custom" class="form-check-input mt-0">
+            <span class="flex-grow-1">
+              <span class="fw-semibold d-block">Custom range</span>
+              <span class="d-flex align-items-center gap-2 mt-2">
+                <input type="text" id="yearRangeFrom" class="form-control form-control-sm text-center" style="width:90px;"
+                       inputmode="numeric" maxlength="4" placeholder="From" value="<?= $range['start'] ?? '' ?>">
+                <span class="fw-semibold">–</span>
+                <input type="text" id="yearRangeTo" class="form-control form-control-sm text-center" style="width:90px;"
+                       inputmode="numeric" maxlength="4" placeholder="To" value="<?= $range['end'] ?? '' ?>">
+              </span>
+              <span class="small text-muted d-block mt-1" id="yearRangePreview">e.g. 2014 – 2022</span>
+            </span>
+          </label>
+        </div>
+        <div class="text-danger small mt-2 d-none" id="yearRangeError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="applyYearRange()"><i class="bi bi-funnel me-1"></i>Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Learning-area detail: one subject's MPS per grade level and teacher (clicked row in Performance by Learning Area) -->
+<div class="modal fade" id="subjectDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-mortarboard me-2"></i><span id="subjectDetailTitle"></span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <?php foreach ($avgPerf as $p): $rows = $perfBySubject[$p['subject']] ?? []; usort($rows, static fn ($a, $b) => strnatcmp((string) $a['grade_level'], (string) $b['grade_level'])); $badge = $mpsBadge($p['mps']); ?>
+        <div class="d-none" data-subject-detail="<?= e($p['subject']) ?>">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+            <span>SY <?= e(str_replace('-', '–', $currentYear)) ?> · Term <?= (int) $currentTerm ?></span>
+            <span class="ms-auto">Average MPS <span class="badge bg-light text-dark border fw-bold ms-1"><?= $p['mps'] ?>%</span></span>
+            <span class="status-pill <?= $badge[1] ?>"><?= $badge[0] ?></span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr><th>Grade Level</th><th>Teacher</th><th class="text-end">MPS</th><th class="text-center">Status</th></tr>
+              </thead>
+              <tbody>
+                <?php foreach ($rows as $r): $rowBadge = $mpsBadge($r['mps']); ?>
+                <tr>
+                  <td class="fw-semibold"><?= e($r['grade_level']) ?></td>
+                  <td><?= $teacherCell((string) $r['instructor']) ?></td>
+                  <td class="text-end"><span class="badge bg-light text-dark border fw-bold"><?= $r['mps'] ?>%</span></td>
+                  <td class="text-center"><span class="status-pill <?= $rowBadge[1] ?>"><?= $rowBadge[0] ?></span></td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php
 $extraScript = '<script>
+/* ── Performance by Learning Area: clicked subject => its per-grade / per-teacher breakdown ── */
+function openSubjectDetail(row) {
+  const subject = row.dataset.subject;
+  document.getElementById("subjectDetailTitle").textContent = subject;
+  document.querySelectorAll("[data-subject-detail]").forEach(el => {
+    el.classList.toggle("d-none", el.dataset.subjectDetail !== subject);
+  });
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("subjectDetailModal")).show();
+}
+
+/* ── Generate Report: printable report of the ticked sections, same filters as the dashboard ── */
+const REPORT_URL   = ' . json_encode(base_url('dashboard/report')) . ';
+const REPORT_MONTH = ' . json_encode($enrollmentMonth ?? null) . ';
+// "Report for" option => sections that have data for it (Dashboard::reportAvailability()).
+const REPORT_AVAILABILITY = ' . json_encode($reportAvailability) . ';
+
+function openReportModal() {
+  document.getElementById("reportError").classList.add("d-none");
+  updateReportSections();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("reportModal")).show();
+}
+
+/* Sections with no data for the chosen period are unticked and disabled; the rest are ticked. */
+function updateReportSections() {
+  const available = REPORT_AVAILABILITY[document.getElementById("reportScope").value] || [];
+  let missing = 0;
+  document.querySelectorAll(".report-section-cb").forEach(cb => {
+    const ok = available.includes(cb.value);
+    cb.disabled = !ok;
+    cb.checked  = ok;
+    cb.closest(".report-section-option").classList.toggle("is-disabled", !ok);
+    if (!ok) missing++;
+  });
+  document.getElementById("reportNoDataNote").classList.toggle("d-none", missing === 0);
+  document.getElementById("reportError").classList.add("d-none");
+}
+
+function setReportSections(checked) {
+  document.querySelectorAll(".report-section-cb:not(:disabled)").forEach(cb => { cb.checked = checked; });
+}
+
+function generateReport() {
+  const sections = [...document.querySelectorAll(".report-section-cb:checked")].map(cb => cb.value);
+  if (!sections.length) {
+    document.getElementById("reportError").classList.remove("d-none");
+    return;
+  }
+
+  const [kind, value] = document.getElementById("reportScope").value.split(":");
+  const params = new URLSearchParams();
+  params.set(kind === "range" ? "range" : "year", value);
+  // Keep the enrollment month the dashboard is showing, but only for that same year/range.
+  if (REPORT_MONTH && document.getElementById("reportScope").selectedOptions[0].text.includes("(current filter)")) {
+    params.set("month", REPORT_MONTH);
+  }
+  sections.forEach(s => params.append("sections[]", s));
+
+  window.open(REPORT_URL + "?" + params.toString(), "_blank");
+  bootstrap.Modal.getInstance(document.getElementById("reportModal"))?.hide();
+}
+
+/* ── School Year filter: a single year, or "Custom…" for a year range ── */
+const DASHBOARD_URL = ' . json_encode(base_url('dashboard')) . ';
+const yearFilterEl = document.getElementById("dashboard-year-filter");
+yearFilterEl.dataset.prev = yearFilterEl.value;
+
+function onDashboardYearChange(sel) {
+  if (sel.value === "__other") {
+    sel.value = sel.dataset.prev; // keep showing the current choice behind the modal
+    openYearRangeModal();
+    return;
+  }
+  if (sel.value === "__range") return;
+  location.href = DASHBOARD_URL + "?year=" + encodeURIComponent(sel.value);
+}
+
+const CURRENT_RANGE = ' . json_encode($range !== null ? $range['start'] . '-' . $range['end'] : null) . ';
+
+function openYearRangeModal() {
+  document.getElementById("yearRangeError").classList.add("d-none");
+  if (CURRENT_RANGE) {
+    const preset = document.querySelector("input[name=yearRangeChoice][value=\"" + CURRENT_RANGE + "\"]");
+    (preset || document.querySelector("input[name=yearRangeChoice][value=custom]")).checked = true;
+  }
+  updateYearRangePreview();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("yearRangeModal")).show();
+}
+
+function updateYearRangePreview() {
+  const from = parseInt(document.getElementById("yearRangeFrom").value, 10);
+  const to   = parseInt(document.getElementById("yearRangeTo").value, 10);
+  const el   = document.getElementById("yearRangePreview");
+  el.textContent = from >= 1000 && to > from
+    ? "SY " + from + "–" + (from + 1) + " to SY " + (to - 1) + "–" + to + " (" + (to - from) + " school year" + (to - from === 1 ? "" : "s") + ")"
+    : "e.g. 2014 – 2022";
+}
+
+["yearRangeFrom", "yearRangeTo"].forEach(id => {
+  const input = document.getElementById(id);
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "").slice(0, 4);
+    document.querySelector("input[name=yearRangeChoice][value=custom]").checked = true;
+    updateYearRangePreview();
+  });
+  input.addEventListener("focus", () => { document.querySelector("input[name=yearRangeChoice][value=custom]").checked = true; });
+});
+
+function applyYearRange() {
+  const choice = document.querySelector("input[name=yearRangeChoice]:checked");
+  const errEl  = document.getElementById("yearRangeError");
+  const fail   = msg => { errEl.textContent = msg; errEl.classList.remove("d-none"); };
+
+  if (!choice) return fail("Pick a range first.");
+
+  let range = choice.value;
+  if (range === "custom") {
+    const from = parseInt(document.getElementById("yearRangeFrom").value, 10);
+    const to   = parseInt(document.getElementById("yearRangeTo").value, 10);
+    if (!(from >= 1000) || !(to >= 1000)) return fail("Enter both years as 4 digits, e.g. 2014 and 2022.");
+    if (to <= from) return fail("The second year must be after the first.");
+    if (to - from > 30) return fail("Please choose 30 years or fewer.");
+    range = from + "-" + to;
+  }
+
+  bootstrap.Modal.getInstance(document.getElementById("yearRangeModal"))?.hide();
+  location.href = DASHBOARD_URL + "?range=" + encodeURIComponent(range);
+}
+
 const maroon = chartColor(), maroonLight = chartColorAlt(), maroonDark = "#560000", crimson = "#dc143c";
 
 function togglePerfBreakdown() {
-  const summary = document.getElementById("perfSummaryBody");
-  const full = document.getElementById("perfFullBody");
+  const summary = document.getElementById("perfSummaryTable");
+  const full = document.getElementById("perfFullTable");
   const btn = document.getElementById("perfViewAllBtn");
   const showingFull = !full.classList.contains("d-none");
   full.classList.toggle("d-none", showingFull);

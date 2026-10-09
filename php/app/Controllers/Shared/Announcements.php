@@ -4,11 +4,83 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Models\AnnouncementModel;
+use App\Models\ConversationModel;
+use App\Models\ConversationParticipantModel;
+use App\Models\MessageModel;
 use App\Models\NotificationModel;
 use App\Models\UserModel;
 
 class Announcements extends BaseController
 {
+    private const IMAGE_EXT       = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    private const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+    /** Announcement photos are public assets (like avatars), served straight from public/. */
+    public static function imageDir(): string
+    {
+        return FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'announcements' . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Shares an announcement into chats: to people (their direct chat with
+     * the sharer, started if needed) and/or group chats the sharer is in.
+     * Each message carries the announcement (shown as a card in the chat)
+     * plus a plain-text fallback and the sharer's optional note.
+     */
+    public function share(int $id)
+    {
+        $announcement = (new AnnouncementModel())->find($id);
+        if (! $announcement) {
+            return $this->ajaxError('This announcement no longer exists.', 404);
+        }
+
+        $me       = (int) currentUser()['id'];
+        $note     = trim((string) $this->request->getPost('note'));
+        $userIds  = array_values(array_unique(array_filter(array_map('intval', (array) ($this->request->getPost('user_ids') ?? [])), static fn (int $u) => $u !== $me)));
+        $groupIds = array_values(array_unique(array_filter(array_map('intval', (array) ($this->request->getPost('conversation_ids') ?? [])))));
+
+        if ($userIds === [] && $groupIds === []) {
+            return $this->ajaxError('Choose at least one person or group.');
+        }
+        if (mb_strlen($note) > 500) {
+            return $this->ajaxError('The message is too long (500 characters max).');
+        }
+
+        $conversationModel = new ConversationModel();
+        $participantModel  = new ConversationParticipantModel();
+        $targets           = [];
+
+        foreach ((new UserModel())->whereIn('id', $userIds ?: [0])->findAll() as $u) {
+            $targets[] = $conversationModel->findOrCreateDirect($me, (int) $u['id']);
+        }
+        foreach ($groupIds as $cid) {
+            if ($participantModel->isParticipant($cid, $me)) {
+                $targets[] = $cid;
+            }
+        }
+        $targets = array_values(array_unique($targets));
+
+        if ($targets === []) {
+            return $this->ajaxError('None of the selected chats are available.');
+        }
+
+        $body = '📢 ' . $announcement['title'] . ($note !== '' ? "\n\n" . $note : '');
+        $messageModel = new MessageModel();
+        foreach ($targets as $cid) {
+            $messageModel->insert([
+                'conversation_id' => $cid,
+                'sender_id'       => $me,
+                'body'            => $body,
+                'announcement_id' => (int) $announcement['id'],
+            ]);
+            $participantModel->markRead($cid, $me);
+        }
+
+        $count = count($targets);
+
+        return $this->ajaxSuccess('Shared to ' . $count . ' chat' . ($count === 1 ? '' : 's') . '.');
+    }
+
     public function index()
     {
         $model = new AnnouncementModel();
@@ -26,8 +98,15 @@ class Announcements extends BaseController
             try {
                 if ($action === 'add') {
                     $type  = $this->request->getPost('type');
-                    $title = $this->request->getPost('title');
+                    $title = trim((string) $this->request->getPost('title'));
                     $date  = $this->request->getPost('date');
+
+                    // Only the title is required; content is optional.
+                    if ($title === '') {
+                        $error = 'Please enter a title.';
+
+                        return $isAjax ? $this->ajaxError($error) : redirect()->to('/announcements')->with('flash', ['type' => 'danger', 'msg' => $error]);
+                    }
 
                     if ($date < date('Y-m-d')) {
                         $error = 'Announcement date cannot be in the past.';
@@ -35,12 +114,35 @@ class Announcements extends BaseController
                         return $isAjax ? $this->ajaxError($error) : redirect()->to('/announcements')->with('flash', ['type' => 'danger', 'msg' => $error]);
                     }
 
+                    // Optional photo: validated before anything is saved.
+                    $image = null;
+                    $photo = $this->request->getFile('image');
+                    if ($photo && $photo->getError() !== UPLOAD_ERR_NO_FILE) {
+                        if (! $photo->isValid()) {
+                            return $isAjax ? $this->ajaxError('The photo could not be uploaded.') : redirect()->to('/announcements');
+                        }
+                        if ($photo->getSize() > self::MAX_IMAGE_BYTES) {
+                            return $isAjax ? $this->ajaxError('The photo must be 5 MB or smaller.') : redirect()->to('/announcements');
+                        }
+                        if (! in_array(strtolower($photo->getClientExtension()), self::IMAGE_EXT, true) || ! str_starts_with((string) $photo->getMimeType(), 'image/')) {
+                            return $isAjax ? $this->ajaxError('The photo must be a JPG, PNG, GIF or WEBP image.') : redirect()->to('/announcements');
+                        }
+
+                        if (! is_dir(self::imageDir())) {
+                            mkdir(self::imageDir(), 0755, true);
+                        }
+                        $image = $photo->getRandomName();
+                        $photo->move(self::imageDir(), $image);
+                    }
+
                     $announcementId = $model->insert([
-                        'type'    => $type,
-                        'title'   => $title,
-                        'content' => $this->request->getPost('content'),
-                        'date'    => $date,
-                        'status'  => 'active',
+                        'type'       => $type,
+                        'title'      => $title,
+                        'content'    => trim((string) $this->request->getPost('content')),
+                        'image'      => $image,
+                        'date'       => $date,
+                        'status'     => 'active',
+                        'created_by' => currentUser()['id'], // shown as "Posted by"
                     ]);
 
                     $poster     = currentUser();
@@ -52,13 +154,21 @@ class Announcements extends BaseController
                             'title'   => $title,
                             'sub'     => $type . ' · ' . date('M d', strtotime($date)),
                             'url'     => base_url('announcements') . '?id=' . $announcementId,
+                            'ref_type' => 'announcement',
+                            'ref_id'  => $announcementId,
                             'is_read' => 0,
                         ]);
                     }
 
                     $message = 'Announcement posted successfully.';
                 } elseif ($action === 'delete') {
-                    $model->delete((int) $this->request->getPost('id'));
+                    $announcementId = (int) $this->request->getPost('id');
+                    $existing       = $model->find($announcementId);
+                    $model->delete($announcementId);
+                    if (! empty($existing['image']) && is_file(self::imageDir() . $existing['image'])) {
+                        unlink(self::imageDir() . $existing['image']);
+                    }
+                    (new NotificationModel())->deleteForRef('announcement', $announcementId);
                     $message = 'Announcement deleted.';
                 }
             } catch (\Throwable $e) {
@@ -88,25 +198,37 @@ class Announcements extends BaseController
         $search = trim($this->request->getGet('q') ?? '');
         $sort   = $this->request->getGet('sort') ?? 'newest';
 
-        $builder = $model;
+        $builder = $model->select('announcements.*, users.name AS poster_name, users.role AS poster_role')
+            ->join('users', 'users.id = announcements.created_by', 'left');
         if ($filter !== 'all') {
-            $builder->where('type', $filter);
+            $builder->where('announcements.type', $filter);
         }
         if ($search !== '') {
             $builder->groupStart()
-                ->like('title', $search)
-                ->orLike('content', $search)
+                ->like('announcements.title', $search)
+                ->orLike('announcements.content', $search)
                 ->groupEnd();
         }
 
         match ($sort) {
-            'oldest'   => $builder->orderBy('date', 'ASC'),
-            'title_az' => $builder->orderBy('title', 'ASC'),
-            default    => $builder->orderBy('date', 'DESC'),
+            'oldest'   => $builder->orderBy('announcements.date', 'ASC'),
+            'title_az' => $builder->orderBy('announcements.title', 'ASC'),
+            default    => $builder->orderBy('announcements.date', 'DESC')->orderBy('announcements.id', 'DESC'),
         };
+
+        // "Share to chat" picker: everyone else, plus the group chats I'm in.
+        $me          = (int) currentUser()['id'];
+        $sharePeople = (new UserModel())->select('id, name, role')->where('id !=', $me)->orderBy('name', 'ASC')->findAll();
+        $shareGroups = (new ConversationModel())->select('conversations.id, conversations.name')
+            ->join('conversation_participants cp', 'cp.conversation_id = conversations.id')
+            ->where('cp.user_id', $me)->where('conversations.type', 'group')
+            ->orderBy('conversations.name', 'ASC')->findAll();
 
         return view('pages/shared/announcements', [
             'pageTitle'      => 'Announcements',
+            'sharePeople'    => $sharePeople,
+            'shareGroups'    => $shareGroups,
+            'openId'         => (int) ($requestedId ?? 0),
             'announcements'  => $builder->findAll(),
             'filter'         => $filter,
             'search'         => $search,

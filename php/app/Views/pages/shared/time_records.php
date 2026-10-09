@@ -158,7 +158,7 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
           <?php foreach ($records as $r): ?>
           <tr>
             <td class="text-muted"><?= e($r['employee_id']) ?></td>
-            <td class="fw-semibold"><?= e($r['employee_name']) ?></td>
+            <td class="fw-semibold"><?= personLink($userIdsByEmployeeId[$r['employee_id']] ?? null, $r['employee_name']) ?></td>
             <td class="text-center">
               <?php if ($r['time_in']): ?>
               <span class="d-inline-flex align-items-center gap-1">
@@ -415,7 +415,7 @@ function maybeShowHolidayAlert() {
         denyButtonColor: '#6b7280',
     }).then(function (result) {
         if (canManageHolidays && result.isConfirmed) {
-            new bootstrap.Modal(document.getElementById('holidaysModal')).show();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('holidaysModal')).show();
         }
     });
 }
@@ -437,7 +437,7 @@ function editRecord(r) {
     editStatus.value = r.status;
     editStatus.dispatchEvent(new Event('change'));
     document.getElementById('editRemarks').value = r.remarks  || '';
-    new bootstrap.Modal(document.getElementById('editModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
 }
 function exportTable(tableId, filename) {
     const rows = [...document.getElementById(tableId).querySelectorAll('tr')].map(r =>

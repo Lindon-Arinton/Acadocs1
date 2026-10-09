@@ -179,10 +179,25 @@ include APPPATH . 'Views/layout/header.php';
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-mortarboard text-muted"></i>
           <div class="maroon-select maroon-select-sm" style="width:auto;">
-            <select name="grade" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <select name="grade" class="maroon-select-native" onchange="this.form.section.value = 'all'; this.form.requestSubmit()">
               <option value="all" <?= $grade==='all'?'selected':'' ?>>All Grades</option>
               <?php foreach ($grades as $g): ?>
               <option value="<?= e($g) ?>" <?= $grade===$g?'selected':'' ?>><?= e($g) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+            <div class="maroon-select-panel"></div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-door-open text-muted"></i>
+          <div class="maroon-select maroon-select-sm" style="width:auto;">
+            <select name="section" class="maroon-select-native" onchange="this.form.requestSubmit()">
+              <option value="all" <?= $section === 'all' ? 'selected' : '' ?>>All Sections</option>
+              <?php foreach ($sectionOptions as $o): ?>
+              <option value="<?= e($o['section']) ?>" <?= $section === $o['section'] ? 'selected' : '' ?>>
+                <?= e($o['section']) ?><?= $grade === 'all' ? ' (' . e($o['grade']) . ')' : '' ?>
+              </option>
               <?php endforeach; ?>
             </select>
             <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
@@ -238,9 +253,18 @@ include APPPATH . 'Views/layout/header.php';
       </form>
       <div class="ms-auto d-flex gap-2 align-items-center">
         <span class="text-muted" style="font-size:.78rem;"><?= count($items) ?> items</span>
-        <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('prop-table','properties')">
-          <i class="bi bi-download me-1"></i>Export
-        </button>
+        <?php $exportQuery = ['grade' => $grade, 'section' => $section, 'condition' => $condition, 'issued' => $issued, 'q' => $search]; ?>
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-download me-1"></i>Export
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" data-no-ajax href="<?= base_url('property-management/export') . '?' . http_build_query($exportQuery + ['format' => 'xlsx']) ?>">
+              <i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+            <li><a class="dropdown-item" data-no-ajax href="<?= base_url('property-management/export') . '?' . http_build_query($exportQuery + ['format' => 'docx']) ?>">
+              <i class="bi bi-file-earmark-word me-2 text-primary"></i>Word (.docx)</a></li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -592,16 +616,6 @@ include APPPATH . 'Views/layout/header.php';
 <?php
 $extraScript = <<<'HTML'
 <script>
-function exportTable(tableId, filename) {
-    const rows = [...document.getElementById(tableId).querySelectorAll('tr')].map(r =>
-        [...r.querySelectorAll('th:not(.no-export),td:not(.no-export)')].map(c => JSON.stringify(c.innerText.trim())).join(',')
-    );
-    const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(new Blob([rows.join('\\n')],{type:'text/csv'})),
-        download: filename+'.csv'
-    });
-    a.click();
-}
 if (document.getElementById('propSearchInput')) initLiveSearch('propSearchInput', 'filterForm');
 
 function syncMaroon(sel) {

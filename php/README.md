@@ -3,7 +3,7 @@
 A CodeIgniter 4 MVC application built for **Matabungkay National High School**
 for day-to-day school administration: document submission/review, staff time
 records, enrollment & performance KPIs, a Messenger-style internal chat, a
-document/certificate template library with in-browser preview, and
+document template library with in-browser preview, and
 room/property inventory — all behind a single role-based login.
 
 ---
@@ -124,7 +124,6 @@ app/
 ├── Controllers/
 │   ├── Admin/                  — principal-facing controllers (Dashboard, Documents, Users, Tasks, Properties...)
 │   ├── Teacher/                — TeacherDashboard, SubmitDocuments, PerformanceMps
-│   ├── Adas/                   — AdasDashboard
 │   ├── Shared/                 — controllers reachable by more than one role (Chat, Templates, TimeRecords, Announcements, DocumentLinks, MyTasks, Profile...)
 │   └── Api/                    — JSON REST controllers, one per resource
 ├── Models/                     — one Model per table
@@ -133,8 +132,7 @@ app/
 │   ├── auth/login.php          — login page with a hand-authored animated SVG illustration
 │   └── pages/{admin,teacher,adas,shared}/*.php — one view per page
 ├── Libraries/
-│   ├── OfficeConverter.php     — LibreOffice-headless Office→PDF conversion (optional; degrades gracefully)
-│   └── CertificateGenerator.php— fills a Word template's ${Field} placeholders per row of an uploaded Excel list
+│   └── OfficeConverter.php     — LibreOffice-headless Office→PDF conversion (optional; degrades gracefully)
 ├── Helpers/acadocs_helper.php  — e(), currentUser(), hasRole()
 ├── Filters/AuthGuard.php       — login-required guard (session-based) + throttled presence-ping for chat
 └── Database/
@@ -172,7 +170,7 @@ public/
 | `holidays`                     | Non-school days excluded from time-record imports                |
 | `deped_documents`              | DepEd-required forms with completion tracking (API-only; no page route) |
 | `room_properties`              | Room/grade-section asset inventory (`grade`, `section`, `item_name`, `condition_status`) |
-| `template_categories`, `templates` | Document/certificate template library, grouped by category  |
+| `template_categories`, `templates` | Document template library, grouped by category  |
 | `conversations`, `conversation_participants`, `conversation_typing` | Chat: direct + group conversations, membership/read-state/mute, live typing indicators |
 | `messages`, `message_reactions` | Chat messages (reply-to, edit, soft-delete/"unsend") and per-message reactions |
 | `notifications`                | In-app notification bell feed                                    |
@@ -189,9 +187,8 @@ with `role = 'adas'`.
 
 | Feature                        | Admin | Teacher | ADAS |
 |----------------------------------|:-----:|:-------:|:----:|
-| Admin Dashboard                  | ✓     |         |      |
+| School Dashboard (KPIs, charts, insights, enrollment/KPI import) | ✓     |         | ✓    |
 | Teacher Dashboard (+ own present/absent count) |       | ✓       |      |
-| ADAS Dashboard (+ own present/absent count)    |       |         | ✓    |
 | Submit Documents                 | ✓     | ✓       |      |
 | Manage Documents                 | ✓     |         |      |
 | Tasks & Assignments (create)     | ✓     |         |      |
@@ -231,7 +228,7 @@ button rather than sharing space.
 `Shared\Templates::preview()` tries, in order:
 1. **LibreOffice** headless conversion to PDF, if installed (`OfficeConverter`) — highest fidelity, works for any Office format.
 2. **Client-side exact render** for `.doc`/`.docx` via the `docx-preview` library (loaded from CDN, needs `JSZip` loaded alongside it) — reproduces the real OOXML layout, fonts, and images in-browser regardless of server capability.
-3. **Server-side HTML fallback** for other Office formats via PhpWord/PhpSpreadsheet (already Composer dependencies for certificate generation) — lower fidelity, but works everywhere with zero extra setup.
+3. **Server-side HTML fallback** for other Office formats via PhpWord/PhpSpreadsheet (already Composer dependencies for the Excel/Word importers) — lower fidelity, but works everywhere with zero extra setup.
 
 None of these are required for the app to function — each tier degrades to
 the next rather than failing.
@@ -279,7 +276,7 @@ behind `authGuard`):
 
 ```
 /login, /logout
-/dashboard, /teacher-dashboard, /adas-dashboard
+/dashboard, /teacher-dashboard  (/adas-dashboard redirects to /dashboard)
 /submit-documents, /documents, /documents/(:num)/file, /documents/(:num)/download
 /performance/mps
 /announcements, /time-records, /deped-documents, /document-links

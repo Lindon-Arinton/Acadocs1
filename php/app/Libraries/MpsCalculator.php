@@ -15,6 +15,9 @@ class MpsCalculator
 {
     private const PLACEHOLDER_INSTRUCTOR = '—';
 
+    /** Instructor values that don't name a real person (placeholder / seeded data). */
+    public const UNKNOWN_INSTRUCTORS = ['', self::PLACEHOLDER_INSTRUCTOR, 'Subject Teacher'];
+
     private MpsTestScoreModel $scores;
     private PerformanceBySubjectModel $bySubject;
     private PerformanceByLevelModel $byLevel;
@@ -31,9 +34,12 @@ class MpsCalculator
      *   [testPeriodLabel => [gradeLevel => [subject => mps]]] — one already-blended
      *   value per grade+subject, e.g. from the Excel importer's grade-level grid,
      *   which doesn't break scores out by section. Saved with section = null.
+     * @param string|null $instructor name of the teacher saving these scores, recorded
+     *   against every grade+subject they touched (see assignInstructor()).
      */
-    public function saveScores(string $schoolYear, int $term, array $scoresByPeriod): void
+    public function saveScores(string $schoolYear, int $term, array $scoresByPeriod, ?string $instructor = null): void
     {
+        $touched = [];
         foreach ($scoresByPeriod as $testPeriod => $byGrade) {
             foreach ($byGrade as $gradeLevel => $bySubject) {
                 foreach ($bySubject as $subject => $value) {
@@ -43,11 +49,13 @@ class MpsCalculator
                     }
 
                     $this->upsertScore($schoolYear, $term, $gradeLevel, $subject, null, $testPeriod, (float) $value);
+                    $touched[$gradeLevel . '|' . $subject] = [$gradeLevel, $subject];
                 }
             }
         }
 
         $this->recompute($schoolYear, $term);
+        $this->assignInstructor($schoolYear, $term, $touched, $instructor);
     }
 
     /**
@@ -56,13 +64,56 @@ class MpsCalculator
      *   $entry['section'] is null for a teacher's legacy grade+subject-only rows
      *   (no real section name on record), same as an imported blended value.
      */
-    public function saveSectionScores(string $schoolYear, int $term, array $entries): void
+    public function saveSectionScores(string $schoolYear, int $term, array $entries, ?string $instructor = null): void
     {
+        $touched = [];
         foreach ($entries as $entry) {
             $this->upsertScore($schoolYear, $term, $entry['grade'], $entry['subject'], $entry['section'], $entry['period'], $entry['mps']);
+            $touched[$entry['grade'] . '|' . $entry['subject']] = [$entry['grade'], $entry['subject']];
         }
 
         $this->recompute($schoolYear, $term);
+        $this->assignInstructor($schoolYear, $term, $touched, $instructor);
+    }
+
+    /**
+     * Records who handles each grade+subject the teacher just saved scores
+     * for. Several teachers can share one grade+subject (different sections),
+     * so a new name is appended ("A, B") rather than replacing the existing one;
+     * a placeholder is simply overwritten.
+     *
+     * @param array<string,array{0:string,1:string}> $touched [grade, subject] pairs
+     */
+    private function assignInstructor(string $schoolYear, int $term, array $touched, ?string $instructor): void
+    {
+        $instructor = trim((string) $instructor);
+        if ($instructor === '') {
+            return;
+        }
+
+        foreach ($touched as [$gradeLevel, $subject]) {
+            $row = $this->bySubject
+                ->where('school_year', $schoolYear)->where('term', $term)
+                ->where('subject', $subject)->where('grade_level', $gradeLevel)
+                ->first();
+            if ($row === null) {
+                continue;
+            }
+
+            $current = trim((string) $row['instructor']);
+            if (in_array($current, self::UNKNOWN_INSTRUCTORS, true)) {
+                $names = [$instructor];
+            } else {
+                $names = array_map('trim', explode(',', $current));
+                if (in_array($instructor, $names, true)) {
+                    continue;
+                }
+                $names[] = $instructor;
+            }
+
+            // Column is VARCHAR(100).
+            $this->bySubject->update($row['id'], ['instructor' => mb_substr(implode(', ', $names), 0, 100)]);
+        }
     }
 
     private function upsertScore(string $schoolYear, int $term, string $gradeLevel, string $subject, ?string $section, string $testPeriod, float $mps): void

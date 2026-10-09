@@ -63,6 +63,7 @@ class AnnouncementsController extends BaseApiController
         }
 
         (new AnnouncementModel())->delete($id);
+        (new \App\Models\NotificationModel())->deleteForRef('announcement', (int) $id);
 
         return $this->jsonResponse(['message' => 'Deleted.']);
     }

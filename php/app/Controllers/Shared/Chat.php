@@ -29,6 +29,14 @@ class Chat extends BaseController
             return $this->create();
         }
 
+        // chat?user=ID — jump straight into a direct chat with that person
+        // (e.g. the dashboard's teacher-details "Chat" button), starting one
+        // if none exists yet.
+        $withUserId = (int) ($this->request->getGet('user') ?? 0);
+        if ($withUserId && $withUserId !== (int) $user['id'] && (new UserModel())->find($withUserId)) {
+            return redirect()->to('/chat?open=' . $this->findOrCreateDirect((int) $user['id'], $withUserId));
+        }
+
         $conversationModel = new ConversationModel();
         $participantModel  = new ConversationParticipantModel();
         $messageModel      = new MessageModel();
@@ -102,6 +110,11 @@ class Chat extends BaseController
         ]);
     }
 
+    private function findOrCreateDirect(int $userId, int $otherId): int
+    {
+        return (new ConversationModel())->findOrCreateDirect($userId, $otherId);
+    }
+
     private function create()
     {
         $isAjax = $this->request->isAJAX();
@@ -122,19 +135,7 @@ class Chat extends BaseController
                 if (! $other) {
                     $error = 'Please choose a valid user.';
                 } else {
-                    $existing = $conversationModel->findDirectBetween((int) $user['id'], $otherId);
-
-                    if ($existing) {
-                        $convoId = (int) $existing['id'];
-                    } else {
-                        $convoId = $conversationModel->insert([
-                            'type'       => 'direct',
-                            'name'       => null,
-                            'created_by' => $user['id'],
-                        ]);
-                        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $user['id']]);
-                        $participantModel->insert(['conversation_id' => $convoId, 'user_id' => $otherId]);
-                    }
+                    $convoId = $this->findOrCreateDirect((int) $user['id'], $otherId);
                     $message = 'Chat started with ' . $other['name'] . '.';
                 }
             } elseif ($action === 'create_group') {
@@ -210,7 +211,11 @@ class Chat extends BaseController
         )));
         $replyPreviews = $messageModel->previewsFor($replyToIds);
 
-        $data = array_map(function (array $m) use ($user, $reactions, $replyPreviews): array {
+        // Shared announcements (rendered as cards), looked up in one query.
+        $sharedIds     = array_values(array_unique(array_filter(array_map(static fn (array $m) => (int) ($m['announcement_id'] ?? 0), $messages))));
+        $announcements = $sharedIds ? array_column((new \App\Models\AnnouncementModel())->whereIn('id', $sharedIds)->findAll(), null, 'id') : [];
+
+        $data = array_map(function (array $m) use ($user, $reactions, $replyPreviews, $announcements): array {
             $photo    = $this->existingPhoto($m['sender_photo'] ?? null);
             $mid      = (int) $m['id'];
             $isMe     = (int) $m['sender_id'] === (int) $user['id'];
@@ -242,6 +247,7 @@ class Chat extends BaseController
                 'deleted'             => $deleted,
                 'reactions'           => $deleted ? [] : ($reactions[$mid] ?? []),
                 'reply_to'            => (! $deleted && $m['reply_to_id'] !== null) ? ($replyPreviews[(int) $m['reply_to_id']] ?? null) : null,
+                'announcement'        => $deleted ? null : $this->sharedAnnouncementCard($m, $announcements),
             ];
         }, $messages);
 
@@ -596,6 +602,33 @@ class Chat extends BaseController
      * so a stale/orphaned DB reference (e.g. the upload was lost between
      * environments) degrades to the initials avatar instead of a broken image.
      */
+    /**
+     * Card data for a message that shares an announcement, or null. The
+     * sender's own note is whatever follows the "📢 Title" fallback line.
+     */
+    private function sharedAnnouncementCard(array $m, array $announcements): ?array
+    {
+        $a = $announcements[(int) ($m['announcement_id'] ?? 0)] ?? null;
+        if (! $a) {
+            return null;
+        }
+
+        $image = ! empty($a['image']) && is_file(Announcements::imageDir() . $a['image'])
+            ? base_url('uploads/announcements/' . $a['image']) : null;
+        $parts = preg_split('/\R\R/', (string) $m['body'], 2); // "📢 Title", blank line, note
+
+        return [
+            'id'      => (int) $a['id'],
+            'title'   => $a['title'],
+            'type'    => $a['type'],
+            'date'    => date('M d, Y', strtotime($a['date'])),
+            'excerpt' => mb_strimwidth(trim(str_replace(['**', '*'], '', (string) $a['content'])), 0, 110, '…'),
+            'image'   => $image,
+            'url'     => base_url('announcements?id=' . (int) $a['id']),
+            'note'    => trim($parts[1] ?? ''),
+        ];
+    }
+
     private function existingPhoto(?string $photo): ?string
     {
         if (! $photo) {

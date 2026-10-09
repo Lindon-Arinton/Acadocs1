@@ -30,12 +30,14 @@ class TeacherDashboard extends BaseController
         $attMonth           = $this->request->getGet('att_month') ?: 'all';
         $attendanceThisMonth = ['Present' => 0, 'Absent' => 0];
 
-        if (! empty($user['ac_no'])) {
+        // Attendance is read by account (time_records.user_id), so it survives
+        // a change of biometric number.
+        if (! empty($user['id'])) {
             $trModel = new TimeRecordModel();
 
             $myAttendanceMonths = array_column(
                 $trModel->select("DATE_FORMAT(date, '%Y-%m') as ym", false)
-                    ->where('employee_id', 'AC-' . $user['ac_no'])
+                    ->where('user_id', (int) $user['id'])
                     ->distinct()
                     ->orderBy('ym', 'DESC')
                     ->findAll(),
@@ -46,7 +48,7 @@ class TeacherDashboard extends BaseController
                 $attMonth = 'all';
             }
 
-            $query = $trModel->where('employee_id', 'AC-' . $user['ac_no']);
+            $query = $trModel->where('user_id', (int) $user['id']);
             if ($attMonth !== 'all') {
                 $query->where('date >=', $attMonth . '-01')
                     ->where('date <=', date('Y-m-t', strtotime($attMonth . '-01')));
@@ -62,7 +64,7 @@ class TeacherDashboard extends BaseController
             // always reads the current calendar month, regardless of what
             // month the teacher has picked in the dropdown.
             foreach ((new TimeRecordModel())
-                ->where('employee_id', 'AC-' . $user['ac_no'])
+                ->where('user_id', (int) $user['id'])
                 ->where('date >=', date('Y-m-01'))
                 ->where('date <=', date('Y-m-d'))
                 ->findAll() as $r) {
@@ -238,8 +240,9 @@ class TeacherDashboard extends BaseController
     private function recentFeedback(array $user): array
     {
         return (new TaskFeedbackModel())
-            ->select('task_feedback.*, tasks.title AS task_title')
+            ->select('task_feedback.*, tasks.title AS task_title, author.name AS author_name')
             ->join('task_submissions', 'task_submissions.id = task_feedback.task_submission_id')
+            ->join('users author', 'author.id = task_feedback.author_id', 'left')
             ->join('tasks', 'tasks.id = task_submissions.task_id')
             ->where('task_submissions.user_id', (int) $user['id'])
             ->where('task_feedback.date >=', date('Y-m-d', strtotime('-7 days')))
@@ -289,7 +292,8 @@ class TeacherDashboard extends BaseController
             $insights[] = [
                 'tone' => 'info',
                 'icon' => 'bi-chat-dots-fill',
-                'text' => 'New feedback from the principal on <strong>' . e($fb['task_title']) . '</strong>.',
+                // Credit whoever actually wrote it; older comments have no author on record.
+                'text' => 'New feedback' . (! empty($fb['author_name']) ? ' from <strong>' . e($fb['author_name']) . '</strong>' : '') . ' on <strong>' . e($fb['task_title']) . '</strong>.',
             ];
         }
 

@@ -31,6 +31,59 @@
   </div>
 </div>
 
+<!-- Person card: opened by any name rendered through personLink() -->
+<div class="modal fade" id="personInfoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-person-badge me-2"></i>Profile</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="personInfoLoading" class="text-center text-muted py-4 small">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading…
+        </div>
+        <div id="personInfoBody" class="d-none">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div id="personInfoAvatar" class="person-card-avatar"></div>
+            <div>
+              <div id="personInfoName" class="fw-bold"></div>
+              <div id="personInfoRole" class="small text-muted"></div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="small text-muted mb-1"><i class="bi bi-envelope me-1"></i>Email</div>
+            <a id="personInfoEmail" href="#" class="small"></a>
+          </div>
+          <div class="mb-3">
+            <div class="small text-muted mb-1"><i class="bi bi-fingerprint me-1"></i>Biometric No. (AC-No)</div>
+            <div id="personInfoAcNo" class="small"></div>
+          </div>
+          <div class="mb-3" id="personInfoAdvisoryWrap">
+            <div class="small text-muted mb-1"><i class="bi bi-house-door me-1"></i>Advisory</div>
+            <div id="personInfoAdvisory" class="small"></div>
+          </div>
+          <div id="personInfoTeaching">
+            <div class="mb-3">
+              <div class="small text-muted mb-1"><i class="bi bi-book me-1"></i>Subjects handled</div>
+              <div id="personInfoSubjects"></div>
+            </div>
+            <div>
+              <div class="small text-muted mb-1"><i class="bi bi-people me-1"></i>Sections handled</div>
+              <div id="personInfoSections"></div>
+            </div>
+          </div>
+        </div>
+        <div id="personInfoError" class="alert alert-danger small mb-0 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <a id="personInfoChat" href="#" class="btn btn-primary d-none"><i class="bi bi-chat-dots me-1"></i>Chat</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>window.Chart || document.write('<script src="<?= base_url('assets/js/chart.umd.min.js') ?>"><\/script>');</script>
@@ -382,6 +435,11 @@ document.addEventListener('submit', function (e) {
     const actionKey = form.dataset.confirmAction || form.querySelector('[name="action"]')?.value || 'default';
     const cfg = AJAX_ACTION_LABELS[actionKey] || AJAX_ACTION_LABELS.default;
 
+    if (form.dataset.syPrompt) {
+        promptSchoolYear(form, cfg);
+        return;
+    }
+
     Swal.fire({
         title: form.dataset.confirmTitle || cfg.title,
         text: form.dataset.confirmText || '',
@@ -395,6 +453,284 @@ document.addEventListener('submit', function (e) {
     }).then(result => {
         if (result.isConfirmed) ajaxFormSubmit(form);
     });
+});
+
+/* ── School-year prompt for forms marked [data-sy-prompt] ────
+   The confirm dialog doubles as the year question: two 4-digit boxes with a
+   fixed dash between them ([2025]–[2026]). Filling the first box pre-fills
+   the second with the next year and jumps to it. The chosen year is written
+   into the form's hidden input named by data-sy-prompt before submitting. */
+function promptSchoolYear(form, cfg) {
+    const target = form.querySelector('[name="' + form.dataset.syPrompt + '"]');
+
+    // A Bootstrap modal traps focus inside itself, which would pull every
+    // click/keystroke back out of the SweetAlert boxes — so step out of the
+    // modal while asking, and bring it back (file still chosen) on Cancel.
+    const modalEl = form.closest('.modal');
+    const modal   = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+    if (modal) modal.hide();
+
+    const box = 'class="swal2-input sy-box" inputmode="numeric" maxlength="4" placeholder="YYYY" autocomplete="off"'
+              + ' style="width:6.5rem;margin:0;text-align:center;font-size:1.25rem;letter-spacing:.1em;"';
+
+    Swal.fire({
+        title: form.dataset.syPromptTitle || 'What school year is this data for?',
+        html: '<div style="display:flex;align-items:center;justify-content:center;gap:.6rem;margin-top:.5rem;">'
+            + '<input id="syStart" ' + box + '>'
+            + '<span style="font-size:1.6rem;font-weight:600;">&ndash;</span>'
+            + '<input id="syEnd" ' + box + '>'
+            + '</div>'
+            + (form.dataset.confirmText ? '<p class="text-muted small mt-3 mb-0">' + form.dataset.confirmText + '</p>' : ''),
+        icon: form.dataset.confirmIcon || cfg.icon,
+        showCancelButton: true,
+        confirmButtonText: cfg.confirmText,
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusConfirm: false,
+        didOpen: () => {
+            const start = document.getElementById('syStart');
+            const end   = document.getElementById('syEnd');
+            [start, end].forEach(input => input.addEventListener('input', () => {
+                input.value = input.value.replace(/\D/g, '').slice(0, 4);
+            }));
+            start.addEventListener('input', () => {
+                if (start.value.length === 4) {
+                    end.value = String(parseInt(start.value, 10) + 1);
+                    end.focus();
+                    end.select();
+                }
+            });
+            end.addEventListener('keydown', e => {
+                if (e.key === 'Backspace' && end.value === '') start.focus();
+            });
+            start.focus();
+            // Bootstrap may hand focus back to the modal's trigger button once
+            // its hide transition ends — reclaim it for the year box.
+            if (modalEl) modalEl.addEventListener('hidden.bs.modal', () => {
+                if (Swal.isVisible() && !end.contains(document.activeElement)) start.focus();
+            }, { once: true });
+        },
+        preConfirm: () => {
+            const year = document.getElementById('syStart').value + '-' + document.getElementById('syEnd').value;
+            if (!isValidSchoolYear(year)) {
+                Swal.showValidationMessage('Enter consecutive years, e.g. 2025 – 2026.');
+                return false;
+            }
+            return year;
+        },
+    }).then(result => {
+        if (!result.isConfirmed) {
+            if (modal) modal.show();
+            return;
+        }
+        target.value = result.value;
+        ajaxFormSubmit(form);
+    });
+}
+
+/* ── Required / optional field markers ──────────────────────
+   Every .form-label gets a red * when its field is required, or a muted
+   "(optional)" when it isn't — derived from the field's own `required`
+   attribute, so forms never need hand-written markers. A select with no
+   blank option always has a value, so it counts as required. Re-run on
+   AJAX page swaps and whenever a modal opens (some forms toggle `required`
+   on the fly). A label can opt out with data-no-req-mark. */
+const REQ_MARK_SKIP_TYPES = ['hidden', 'checkbox', 'radio', 'button', 'submit', 'reset'];
+
+function reqMarkFields(label) {
+    if (label.htmlFor) {
+        const target = document.getElementById(label.htmlFor);
+        return target ? [target] : [];
+    }
+    return Array.from(label.parentElement.querySelectorAll('input, select, textarea')).filter(f =>
+        !REQ_MARK_SKIP_TYPES.includes((f.type || '').toLowerCase())
+        && !f.disabled
+        && !(f.readOnly && !f.required) // display-only value
+    );
+}
+
+function reqMarkIsRequired(field) {
+    if (field.required) return true;
+    if (field.tagName === 'SELECT' && !field.multiple) {
+        return field.options.length > 0 && !Array.from(field.options).some(o => o.value === '');
+    }
+    return false;
+}
+
+function applyRequiredMarkers(scope) {
+    (scope || document).querySelectorAll('label.form-label').forEach(label => {
+        if (label.hasAttribute('data-no-req-mark')) return;
+        label.querySelectorAll('.req-mark').forEach(el => el.remove());
+
+        const fields = reqMarkFields(label);
+        if (!fields.length) return;
+        if (/\(optional\)/i.test(label.textContent)) return; // already annotated by hand
+
+        const mark = document.createElement('span');
+        if (fields.some(reqMarkIsRequired)) {
+            mark.className = 'req-mark req-mark-required';
+            mark.textContent = ' *';
+            mark.title = 'Required';
+        } else {
+            mark.className = 'req-mark req-mark-optional';
+            mark.textContent = ' (optional)';
+        }
+        label.appendChild(mark);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => applyRequiredMarkers());
+document.addEventListener('show.bs.modal', e => applyRequiredMarkers(e.target));
+
+/* ── Safety net for stuck modal backdrops ────────────────────
+   If a modal ever ends up shown twice (a double click, a page script
+   re-running after AJAX navigation…), closing it can leave an orphan
+   .modal-backdrop behind that greys out and blocks the whole page. Once
+   the last open modal is gone, clear any leftover backdrop and body lock. */
+// A modal mid-opening (e.g. Tasks swaps one modal for another on close) has
+// no .show class yet — mark it so its fresh backdrop isn't swept away.
+document.addEventListener('show.bs.modal', e => { e.target.dataset.opening = '1'; });
+document.addEventListener('shown.bs.modal', e => { delete e.target.dataset.opening; });
+document.addEventListener('hidden.bs.modal', function (e) {
+    delete e.target.dataset.opening;
+    setTimeout(() => {
+        if (document.querySelector('.modal.show, .modal[data-opening]')) return;
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }, 50);
+});
+
+/* ── Person card (names rendered through personLink()) ──────
+   Delegated on document so names on AJAX-loaded pages and in JS-built
+   lists (e.g. the task detail modal) work too. Details are fetched on
+   click from /people/{id}. */
+const ROLE_LABELS = { admin: 'Admin', teacher: 'Teacher', adas: 'ADAS' };
+
+/** JS twin of the personLink() PHP helper, for lists built client-side. */
+function personLinkHtml(id, name) {
+    const a = document.createElement(id ? 'a' : 'span');
+    a.textContent = name || '';
+    if (id) {
+        a.href = '#';
+        a.className = 'person-link';
+        a.dataset.personId = id;
+    }
+    return a.outerHTML;
+}
+
+/** JS twin of submissionTimingBadge(): "On time" / "Late · 2d 3h" pill. */
+function timingBadgeHtml(late, lateBy) {
+    const span = document.createElement('span');
+    span.className = 'timing-badge ' + (late ? 'timing-late' : 'timing-ontime');
+    span.innerHTML = late ? '<i class="bi bi-alarm-fill me-1"></i>' : '<i class="bi bi-check-circle-fill me-1"></i>';
+    span.append(late ? 'Late · ' + (lateBy || '') : 'On time');
+    return span.outerHTML;
+}
+
+/** Annotate button (reviewers) + "Marked up" link for one submitted file in a JS-built list. */
+function submissionFileExtrasHtml(fileId, annotated, canAnnotate) {
+    const base = '<?= base_url('task-submissions/') ?>' + encodeURIComponent(fileId);
+    let html = '';
+    if (canAnnotate) {
+        html += '<a class="btn btn-sm btn-outline-maroon" href="' + base + '/annotate" target="_blank" rel="noopener" title="Annotate (draw / write notes)"><i class="bi bi-pencil-square"></i></a>';
+    }
+    if (annotated) {
+        html += '<a class="timing-badge annot-badge text-decoration-none align-self-center" href="' + base + '/annotated" target="_blank" rel="noopener" title="Open the marked-up copy"><i class="bi bi-pencil-fill me-1"></i>Marked up</a>';
+    }
+    return html;
+}
+
+function personCardChips(items, emptyText) {
+    if (!items.length) {
+        return '<span class="small text-muted">' + emptyText + '</span>';
+    }
+    return items.map(item => {
+        const chip = document.createElement('span');
+        chip.className = 'person-chip';
+        chip.textContent = item;
+        return chip.outerHTML;
+    }).join('');
+}
+
+function showPersonCard(id) {
+    const modalEl = document.getElementById('personInfoModal');
+    const $ = sel => modalEl.querySelector(sel);
+
+    $('#personInfoLoading').classList.remove('d-none');
+    $('#personInfoBody').classList.add('d-none');
+    $('#personInfoError').classList.add('d-none');
+    $('#personInfoChat').classList.add('d-none');
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+    fetch('<?= base_url('people') ?>/' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') throw new Error(data.message || 'Could not load this profile.');
+            const p = data.person;
+
+            const avatar = $('#personInfoAvatar');
+            avatar.innerHTML = '';
+            if (p.photo) {
+                const img = document.createElement('img');
+                img.src = p.photo;
+                img.alt = '';
+                avatar.appendChild(img);
+            } else {
+                avatar.textContent = (p.name || '?').charAt(0).toUpperCase();
+            }
+
+            $('#personInfoName').textContent = p.name;
+            $('#personInfoRole').textContent = [ROLE_LABELS[p.role] || p.role, p.position].filter(Boolean).join(' · ');
+
+            const email = $('#personInfoEmail');
+            email.textContent = p.email || 'No email on record';
+            email.href = p.email ? 'mailto:' + p.email : '#';
+
+            const acNo = $('#personInfoAcNo');
+            acNo.textContent = p.acNo ? 'AC-' + p.acNo : 'Not linked yet';
+            acNo.classList.toggle('text-muted', !p.acNo);
+
+            $('#personInfoAdvisoryWrap').classList.toggle('d-none', !p.advisory);
+            $('#personInfoAdvisory').textContent = p.advisory || '';
+
+            const isTeacher = p.role === 'teacher';
+            $('#personInfoTeaching').classList.toggle('d-none', !isTeacher);
+            if (isTeacher) {
+                $('#personInfoSubjects').innerHTML = personCardChips(p.subjects, 'No subject load on record.');
+                $('#personInfoSections').innerHTML = personCardChips(p.sections, 'No sections on record.');
+            }
+
+            const chat = $('#personInfoChat');
+            chat.href = p.chatUrl;
+            chat.classList.toggle('d-none', p.isSelf);
+
+            $('#personInfoLoading').classList.add('d-none');
+            $('#personInfoBody').classList.remove('d-none');
+        })
+        .catch(err => {
+            $('#personInfoLoading').classList.add('d-none');
+            const box = $('#personInfoError');
+            box.textContent = err.message || 'Could not load this profile.';
+            box.classList.remove('d-none');
+        });
+}
+
+document.addEventListener('click', function (e) {
+    const link = e.target.closest('.person-link[data-person-id]');
+    if (link) {
+        e.preventDefault(); // also tells the AJAX-nav click handler below to ignore it
+        showPersonCard(link.dataset.personId);
+        return;
+    }
+    // Leaving for the chat page: close the card first so its backdrop
+    // doesn't linger over the AJAX-swapped page.
+    if (e.target.closest('#personInfoChat')) {
+        bootstrap.Modal.getInstance(document.getElementById('personInfoModal'))?.hide();
+    }
 });
 
 /* ── Logout confirmation ─────────────────────────────────── */
@@ -700,6 +1036,7 @@ function reinitPageWidgets(scope) {
     scope.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
     scope.querySelectorAll('.maroon-select').forEach(initMaroonSelect);
     scope.querySelectorAll('[data-counter]').forEach(el => animateCounter(el, parseInt(el.dataset.counter, 10)));
+    applyRequiredMarkers(scope);
 }
 
 /*
@@ -746,7 +1083,8 @@ function isAjaxNavExempt(url) {
     // "template" (singular) covers file-download endpoints like
     // enrollment-kpis/template and performance/mps/template — not the
     // plural /templates list page, which is a normal AJAX-navigable view.
-    return /\/(download|logout|login|template)(\/|$|\?)/.test(url.pathname) || /\/(file|preview)(\/|$|\?)/.test(url.pathname);
+    // "annotate"/"annotated" are the full-screen annotator and its saved PDF.
+    return /\/(download|logout|login|template)(\/|$|\?)/.test(url.pathname) || /\/(file|preview|annotate|annotated)(\/|$|\?)/.test(url.pathname);
 }
 
 /*

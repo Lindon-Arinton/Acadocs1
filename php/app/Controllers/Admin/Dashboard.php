@@ -3,12 +3,14 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\MpsCalculator;
 use App\Models\DepedKpiReportModel;
 use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
 use App\Models\PerformanceByLevelModel;
 use App\Models\PerformanceBySubjectModel;
 use App\Models\TimeRecordModel;
+use App\Models\UserModel;
 
 class Dashboard extends BaseController
 {
@@ -27,14 +29,83 @@ class Dashboard extends BaseController
     // never goes stale the way a hardcoded year would.
     private const MPS_SOURCE_YEAR = '2024-2025';
 
+    /** Report sections (key => label), in report order — ticked in the dashboard's Generate Report modal. */
+    public const REPORT_SECTIONS = [
+        'summary'    => 'Key figures (enrollees, drop-out, average MPS, compliance)',
+        'insights'   => 'Insights',
+        'enrollment' => 'Enrollment by grade level',
+        'enrollees'  => 'Total enrollees by school year',
+        'dropout'    => 'Drop-out rate by school year',
+        'mps'        => 'Average MPS by term and grade level',
+        'subjects'   => 'Performance by learning area',
+        'deped'      => 'DepEd historical KPIs',
+    ];
+
     public function index()
+    {
+        // School-wide dashboard: the principal and ADAS (who also feed it
+        // enrollment / KPI data). Teachers have their own dashboard.
+        if (! hasRole('admin', 'adas')) {
+            return redirect()->to('/teacher-dashboard');
+        }
+
+        return view('pages/admin/dashboard', $this->dashboardData());
+    }
+
+    /**
+     * Printable report built from the same figures as the dashboard (same
+     * year / range / month filters), limited to the sections ticked in the
+     * dashboard's "Generate Report" modal.
+     */
+    public function report()
+    {
+        if (! hasRole('admin', 'adas')) {
+            return redirect()->to('/teacher-dashboard');
+        }
+
+        $requested = (array) ($this->request->getGet('sections') ?? []);
+        $data      = $this->dashboardData();
+
+        // Only sections that have data for the chosen year / range.
+        $range     = $data['range'];
+        $scopeKey  = $range !== null ? 'range:' . $range['start'] . '-' . $range['end'] : 'year:' . $data['currentYear'];
+        $available = $data['reportAvailability'][$scopeKey] ?? [];
+        $sections  = array_values(array_intersect(array_keys(self::REPORT_SECTIONS), $requested, $available))
+            ?: array_values(array_intersect(array_keys(self::REPORT_SECTIONS), $available));
+
+        return view('pages/admin/report', $data + [
+            'sections'       => $sections,
+            'sectionLabels'  => self::REPORT_SECTIONS,
+            'generatedBy'    => currentUser()['name'] ?? '',
+            'generatedRole'  => currentUser()['role'] ?? '',
+            // "Noted by" line on an ADAS-prepared report: the principal's account.
+            'principalName'  => (new UserModel())->select('name')->where('role', 'admin')->orderBy('id', 'ASC')->first()['name'] ?? '',
+        ]);
+    }
+
+    /**
+     * Everything the dashboard (and its report) shows, for the requested
+     * school year / year range / enrollment month.
+     */
+    private function dashboardData(): array
     {
         $documentModel = new DocumentModel();
 
         $years = $this->availableYears();
 
+        // Optional year range (?range=2014-2022, from the "Other…" year filter):
+        // multi-year views (trend chart, tile sparklines/deltas, DepEd history,
+        // insights) only cover school years inside it, and the single-year
+        // widgets show its newest school year that has data.
+        $range = $this->parseRange((string) $this->request->getGet('range'));
+
         $requestedYear = $this->request->getGet('year');
-        $currentYear   = in_array($requestedYear, $years, true) ? $requestedYear : ($years[0] ?? self::CURRENT_YEAR);
+        if ($range !== null) {
+            $inRange     = array_values(array_filter($years, fn (string $y) => $this->yearInRange($y, $range)));
+            $currentYear = $inRange[0] ?? (($range['end'] - 1) . '-' . $range['end']);
+        } else {
+            $currentYear = in_array($requestedYear, $years, true) ? $requestedYear : ($years[0] ?? self::CURRENT_YEAR);
+        }
 
         // Nothing in the app writes to kpi_snapshots, so the school-wide KPI
         // cards are sourced the same way the old Enrollment & KPIs page did:
@@ -54,7 +125,7 @@ class Dashboard extends BaseController
         $enrollmentMonth  = in_array($requestedMonth, $enrollmentMonths, true) ? $requestedMonth : (end($enrollmentMonths) ?: null);
         $enrollment       = $enrollmentModel->forYear($currentYear, $enrollmentMonth);
         $perfLevel  = (new PerformanceByLevelModel())->where('school_year', $currentYear)->where('term', $currentTerm)->findAll();
-        // Grade 7 → 10 in numeric order (a text sort puts "Grade 10" first).
+        // Grade 7 -> 10 in numeric order (a text sort puts "Grade 10" first).
         usort($perfLevel, static fn ($x, $y) => (int) filter_var($x['grade_level'], FILTER_SANITIZE_NUMBER_INT) <=> (int) filter_var($y['grade_level'], FILTER_SANITIZE_NUMBER_INT));
 
         $avgMps = $perfLevel !== [] ? round(array_sum(array_column($perfLevel, 'mps')) / count($perfLevel), 2) : null;
@@ -80,12 +151,21 @@ class Dashboard extends BaseController
         usort($avgPerf, static fn ($a, $b) => $b['mps'] <=> $a['mps']);
 
         $docSummary     = $documentModel->statusCounts();
-        $recentDocs     = $documentModel->allWithTeacher(null, 5);
         $complianceRate = $documentModel->submissionComplianceRate();
 
         // Enrollment KPIs section (merged from the old Admin\EnrollmentKpis::index()).
-        $latestMpsYear = (new PerformanceByLevelModel())->select('school_year')->orderBy('school_year', 'DESC')->first();
-        $mpsSourceYear = $latestMpsYear['school_year'] ?? self::MPS_SOURCE_YEAR;
+        $latestMpsYear = (new PerformanceByLevelModel())->select('school_year')->orderBy('school_year', 'DESC');
+        if ($range !== null) {
+            $latestMpsYear->where('school_year >=', $range['start'] . '-' . ($range['start'] + 1))
+                ->where('school_year <=', ($range['end'] - 1) . '-' . $range['end']);
+        }
+        $latestMpsYear = $latestMpsYear->first();
+        // A single selected year shows that year's terms only (no rows -> empty chart). In a
+        // range, its newest year with MPS — or the range's newest year when it has none, rather
+        // than falling back to a year outside the range.
+        $mpsSourceYear = $range === null
+            ? $currentYear
+            : ($latestMpsYear['school_year'] ?? ($range['end'] - 1) . '-' . $range['end']);
 
         $mpsByTerm = (new PerformanceByLevelModel())
             ->where('school_year', $mpsSourceYear)
@@ -121,6 +201,20 @@ class Dashboard extends BaseController
         // school-wide average, not last term's.
         $avgMpsByYear = $this->avgMpsByYear();
 
+        if ($range !== null) {
+            $keep             = fn (array $r) => $this->yearInRange($r['school_year'], $range);
+            $depedKpis        = array_values(array_filter($depedKpis, $keep));
+            $enrollmentTotals = array_values(array_filter($enrollmentTotals, $keep));
+            $avgMpsByYear     = array_values(array_filter($avgMpsByYear, $keep));
+        } else {
+            // A single selected year: history up to and including it — never later years —
+            // so its trends, deltas, and insights compare it with the years before it.
+            $keep             = static fn (array $r) => $r['school_year'] <= $currentYear;
+            $depedKpis        = array_values(array_filter($depedKpis, $keep));
+            $enrollmentTotals = array_values(array_filter($enrollmentTotals, $keep));
+            $avgMpsByYear     = array_values(array_filter($avgMpsByYear, $keep));
+        }
+
         $enrolleesSeries = array_map(
             static fn ($r) => ['label' => 'SY ' . $r['school_year'], 'value' => $r['total']],
             $enrollmentTotals
@@ -141,11 +235,10 @@ class Dashboard extends BaseController
         $dropoutDelta   = $this->seriesDelta($dropoutSeries, false);
         $mpsDelta       = $this->seriesDelta($mpsYearSeries, false);
 
-        $dtrToday = (new TimeRecordModel())->daySummary(date('Y-m-d'));
+        $insightTeachers = $this->teacherIdsByName((string) ($lowest['instructor'] ?? ''));
+        $insights        = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary, $insightTeachers);
 
-        $insights = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary);
-
-        return view('pages/admin/dashboard', [
+        return [
             'pageTitle'          => 'Admin Dashboard',
             'avgMps'             => $avgMps,
             'years'              => $years,
@@ -158,9 +251,11 @@ class Dashboard extends BaseController
             'perfLevel'          => $perfLevel,
             'lowest'             => $lowest,
             'allPerf'            => $allPerf,
+            // Teacher name => user id for every instructor in $allPerf, so the
+            // subject detail modal / View All table can link names to person cards.
+            'perfTeachers'       => $this->teacherIdsByName(implode(', ', array_column($allPerf, 'instructor'))),
             'avgPerf'            => $avgPerf,
             'docSummary'         => $docSummary,
-            'recentDocs'         => $recentDocs,
             'complianceRate'     => $complianceRate,
             'depedKpis'          => $depedKpis,
             'enrollmentTotals'   => $enrollmentTotals,
@@ -175,8 +270,65 @@ class Dashboard extends BaseController
             'dropoutDelta'       => $dropoutDelta,
             'mpsDelta'           => $mpsDelta,
             'insights'           => $insights,
-            'dtrToday'           => $dtrToday,
-        ]);
+            'dtrToday'           => (new TimeRecordModel())->daySummary(date('Y-m-d')),
+            'range'              => $range,
+            'currentSchoolYearStart' => self::currentSchoolYearStart(),
+            'reportSections'     => self::REPORT_SECTIONS,
+            'reportAvailability' => $this->reportAvailability($years, $range),
+        ];
+    }
+
+    /**
+     * Which report sections have data, per option of the Generate Report
+     * modal's "Report for" select ("year:2015-2016", "range:2014-2022"), so
+     * sections with nothing to show for that period can't be ticked.
+     *
+     * @param string[]                         $years
+     * @param array{start:int,end:int}|null    $range
+     * @return array<string,string[]> option value => available section keys
+     */
+    private function reportAvailability(array $years, ?array $range): array
+    {
+        $distinct = static fn ($model, ?string $notNull = null): array => array_column(
+            ($notNull ? $model->where($notNull . ' IS NOT NULL') : $model)->select('school_year')->distinct()->findAll(),
+            'school_year'
+        );
+
+        $byYear = [
+            'enrollment' => $distinct(new EnrollmentByLevelModel()),
+            'enrollees'  => array_column($this->enrollmentTotalsByYear(), 'school_year'),
+            'dropout'    => $distinct(new DepedKpiReportModel(), 'dropout_rate'),
+            'mps'        => $distinct(new PerformanceByLevelModel()),
+            'subjects'   => $distinct(new PerformanceBySubjectModel()),
+            'deped'      => $distinct(new DepedKpiReportModel()),
+        ];
+        $sectionsFor = function (callable $inPeriod) use ($byYear): array {
+            $available = [];
+            foreach ($byYear as $key => $schoolYears) {
+                foreach ($schoolYears as $sy) {
+                    if ($inPeriod((string) $sy)) {
+                        $available[] = $key;
+                        break;
+                    }
+                }
+            }
+            // Key figures and insights are drawn from the sections above.
+            if ($available !== []) {
+                array_unshift($available, 'summary', 'insights');
+            }
+
+            return $available;
+        };
+
+        $map = [];
+        foreach ($years as $y) {
+            $map['year:' . $y] = $sectionsFor(static fn (string $sy) => $sy === $y);
+        }
+        if ($range !== null) {
+            $map['range:' . $range['start'] . '-' . $range['end']] = $sectionsFor(fn (string $sy) => $this->yearInRange($sy, $range));
+        }
+
+        return $map;
     }
 
     /**
@@ -191,7 +343,8 @@ class Dashboard extends BaseController
      * @param array<string,mixed>|null                $lowest
      * @param array<int,array{subject:string,mps:float}> $avgPerf
      * @param array<string,int>                       $docSummary
-     * @return array<int,array{tone:string,icon:string,text:string}>
+     * @param array<string,int>                       $insightTeachers teacher name => user id (see teacherIdsByName())
+     * @return array<int,array{tone:string,icon:string,title:string,text:string}>
      */
     private function buildInsights(
         ?array $enrolleesDelta,
@@ -200,46 +353,67 @@ class Dashboard extends BaseController
         ?array $lowest,
         array $avgPerf,
         ?float $complianceRate,
-        array $docSummary
+        array $docSummary,
+        array $insightTeachers = []
     ): array {
         $insights = [];
 
         if ($lowest !== null && (float) $lowest['mps'] < 80) {
+            // Name the teacher only when one is actually on record — imported or
+            // seeded rows carry a placeholder, and "teacher —" says nothing.
+            // A name that matches a teacher account becomes a person-card link
+            // (personLink(), modal in layout/footer.php).
+            $instructor = trim((string) ($lowest['instructor'] ?? ''));
+            $names      = [];
+            if (! in_array($instructor, MpsCalculator::UNKNOWN_INSTRUCTORS, true)) {
+                foreach (array_filter(array_map('trim', explode(',', $instructor))) as $name) {
+                    $names[] = '<strong>' . personLink($insightTeachers[$name] ?? null, $name) . '</strong>';
+                }
+            }
+            $handledBy = $names === [] ? '' : ', handled by ' . implode(', ', $names);
+
             $insights[] = [
                 'tone'  => 'danger',
                 'icon'  => 'bi-exclamation-triangle-fill',
-                'title' => 'Focus area: ' . e($lowest['subject']),
-                'text'  => '<strong>' . e($lowest['subject']) . '</strong> (' . e($lowest['grade_level']) . ') has the lowest MPS at <strong>' . e($lowest['mps']) . '%</strong>' . (trim((string) $lowest['instructor'], " 	—-") !== '' ? ' — teacher ' . e($lowest['instructor']) : '') . '.',
+                'title' => 'Focus area: ' . e($lowest['grade_level'] . ' ' . $lowest['subject']),
+                'text'  => 'Learners in <strong>' . e($lowest['grade_level']) . ' ' . e($lowest['subject']) . '</strong> are struggling the most, with the lowest mean percentage score this term (<strong>' . e($lowest['mps']) . '%</strong>)' . $handledBy . '. This subject may need remediation or closer follow-up.',
             ];
         }
 
         if ($complianceRate !== null) {
+            $rate = '<strong>' . number_format($complianceRate, 1) . '%</strong>';
             if ($complianceRate < 60) {
-                $insights[] = ['tone' => 'danger', 'icon' => 'bi-clipboard-x-fill', 'title' => 'Submissions need attention', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — well below the 85% target.'];
+                $insights[] = ['tone' => 'danger', 'icon' => 'bi-clipboard-x-fill', 'title' => 'Submissions need attention', 'text' => 'Document submission is falling behind: only ' . $rate . ' of required submissions are in, well below the 85% target. Follow up with staff who have not submitted yet.'];
             } elseif ($complianceRate < 85) {
-                $insights[] = ['tone' => 'warning', 'icon' => 'bi-clipboard-check', 'title' => 'Submissions below target', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — below the 85% target.'];
+                $insights[] = ['tone' => 'warning', 'icon' => 'bi-clipboard-check', 'title' => 'Submissions below target', 'text' => 'Document submission is at ' . $rate . ', short of the 85% target. A reminder to staff may help close the gap.'];
             } else {
-                $insights[] = ['tone' => 'success', 'icon' => 'bi-clipboard-check-fill', 'title' => 'Submissions on track', 'text' => 'Submission compliance is <strong>' . number_format($complianceRate, 1) . '%</strong> — on track.'];
+                $insights[] = ['tone' => 'success', 'icon' => 'bi-clipboard-check-fill', 'title' => 'Submissions on track', 'text' => 'Staff are keeping up with document submissions: ' . $rate . ' are in, meeting the 85% target.'];
             }
         }
 
         if ($dropoutDelta !== null) {
             $improved   = $dropoutDelta['delta'] <= 0;
+            $points     = '<strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' percentage points</strong>';
             $insights[] = [
                 'tone' => $improved ? 'success' : 'warning',
                 'icon' => $improved ? 'bi-graph-down-arrow' : 'bi-graph-up-arrow',
                 'title' => $improved ? 'Drop-out rate improved' : 'Drop-out rate went up',
-                'text' => 'Drop-out rate ' . ($improved ? 'decreased by' : 'rose by') . ' <strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' pts</strong> vs ' . e($dropoutDelta['vsLabel']) . '.',
+                'text' => $improved
+                    ? 'Fewer learners are leaving school: the drop-out rate went down by ' . $points . ' compared with ' . e($dropoutDelta['vsLabel']) . '.'
+                    : 'More learners are leaving school: the drop-out rate went up by ' . $points . ' compared with ' . e($dropoutDelta['vsLabel']) . '. Consider identifying learners at risk of dropping out.',
             ];
         }
 
         if ($mpsDelta !== null) {
             $improved   = $mpsDelta['delta'] >= 0;
+            $points     = '<strong>' . number_format(abs($mpsDelta['delta']), 2) . ' points</strong>';
             $insights[] = [
                 'tone' => $improved ? 'success' : 'warning',
                 'icon' => $improved ? 'bi-arrow-up-circle-fill' : 'bi-arrow-down-circle-fill',
-                'title' => $improved ? 'MPS improved' : 'MPS declined',
-                'text' => 'Average MPS ' . ($improved ? 'improved by' : 'declined by') . ' <strong>' . number_format(abs($mpsDelta['delta']), 2) . ' pts</strong> vs ' . e($mpsDelta['vsLabel']) . '.',
+                'title' => $improved ? 'Learner performance improving' : 'Learner performance slipped',
+                'text' => $improved
+                    ? 'Overall learner performance is improving: the school-wide average MPS rose by ' . $points . ' compared with ' . e($mpsDelta['vsLabel']) . '.'
+                    : 'Overall learner performance has slipped: the school-wide average MPS fell by ' . $points . ' compared with ' . e($mpsDelta['vsLabel']) . '. Low-scoring subjects may need attention.',
             ];
         }
 
@@ -250,18 +424,21 @@ class Dashboard extends BaseController
                     'tone' => 'success',
                     'icon' => 'bi-star-fill',
                     'title' => 'Top subject: ' . e($top['subject']),
-                    'text' => '<strong>' . e($top['subject']) . '</strong> is the top-performing subject at <strong>' . e($top['mps']) . '%</strong>.',
+                    'text' => '<strong>' . e($top['subject']) . '</strong> is the school\'s strongest subject this term, with an average MPS of <strong>' . e($top['mps']) . '%</strong> across grade levels.',
                 ];
             }
         }
 
         if ($enrolleesDelta !== null) {
             $up         = $enrolleesDelta['delta'] >= 0;
+            $percent    = '<strong>' . number_format(abs($enrolleesDelta['delta']), 1) . '%</strong>';
             $insights[] = [
                 'tone' => 'info',
                 'icon' => $up ? 'bi-people-fill' : 'bi-person-dash-fill',
                 'title' => 'Enrollment ' . ($up ? 'increased' : 'decreased') . ' by ' . number_format(abs($enrolleesDelta['delta']), 1) . '%',
-                'text' => 'Enrollment ' . ($up ? 'rose' : 'fell') . ' <strong>' . number_format(abs($enrolleesDelta['delta']), 1) . '%</strong> vs ' . e($enrolleesDelta['vsLabel']) . '.',
+                'text' => $up
+                    ? 'The school is serving more learners: enrollment grew by ' . $percent . ' compared with ' . e($enrolleesDelta['vsLabel']) . '.'
+                    : 'Enrollment went down by ' . $percent . ' compared with ' . e($enrolleesDelta['vsLabel']) . '. Check for transfers or learners who did not return.',
             ];
         }
 
@@ -271,7 +448,7 @@ class Dashboard extends BaseController
                 'tone' => $pending >= 10 ? 'warning' : 'info',
                 'icon' => 'bi-hourglass-split',
                 'title' => 'Documents awaiting review',
-                'text' => '<strong>' . $pending . '</strong> document' . ($pending === 1 ? '' : 's') . ' awaiting review.',
+                'text' => '<strong>' . $pending . '</strong> submitted document' . ($pending === 1 ? ' is' : 's are') . ' still waiting for review.',
             ];
         }
 
@@ -279,6 +456,26 @@ class Dashboard extends BaseController
         usort($insights, static fn ($a, $b) => $order[$a['tone']] <=> $order[$b['tone']]);
 
         return array_slice($insights, 0, 5);
+    }
+
+    /**
+     * User-account ids of the teachers named in an instructor string ("A" or
+     * "A, B"), so the Insights panel can turn each name into a person-card
+     * link. A name with no matching teacher account is left out.
+     *
+     * @return array<string,int> name => user id
+     */
+    private function teacherIdsByName(string $instructor): array
+    {
+        $instructor = trim($instructor);
+        if (in_array($instructor, MpsCalculator::UNKNOWN_INSTRUCTORS, true)) {
+            return [];
+        }
+
+        $names = array_values(array_filter(array_map('trim', explode(',', $instructor))));
+        $users = (new UserModel())->select('id, name')->where('role', 'teacher')->whereIn('name', $names)->findAll();
+
+        return array_map('intval', array_column($users, 'id', 'name'));
     }
 
     /**
@@ -376,6 +573,46 @@ class Dashboard extends BaseController
             static fn ($r) => ['school_year' => $r['school_year'], 'avg_mps' => round((float) $r['avg_mps'], 2)],
             $rows
         );
+    }
+
+    /**
+     * "2014-2022" -> covers SY 2014-2015 through SY 2021-2022 (both calendar
+     * years of every school year fall inside the span). Null when absent or
+     * malformed; spans are capped at 30 years.
+     *
+     * @return array{start:int,end:int,label:string,count:int}|null
+     */
+    private function parseRange(string $raw): ?array
+    {
+        if (! preg_match('/^(\d{4})-(\d{4})$/', $raw, $m)) {
+            return null;
+        }
+
+        [$start, $end] = [(int) $m[1], (int) $m[2]];
+        if ($end <= $start || $end - $start > 30) {
+            return null;
+        }
+
+        return [
+            'start' => $start,
+            'end'   => $end,
+            'label' => $start . '–' . $end,
+            'count' => $end - $start,
+        ];
+    }
+
+    /** @param array{start:int,end:int} $range */
+    private function yearInRange(string $schoolYear, array $range): bool
+    {
+        $first = (int) substr($schoolYear, 0, 4);
+
+        return $first >= $range['start'] && $first + 1 <= $range['end'];
+    }
+
+    /** First calendar year of the school year in progress (a school year starts in June). */
+    private static function currentSchoolYearStart(): int
+    {
+        return (int) date('n') >= 6 ? (int) date('Y') : (int) date('Y') - 1;
     }
 
     /**

@@ -107,15 +107,14 @@ class SubmitDocuments extends BaseController
                 'user_id'      => $user['id'],
                 'notes'        => $this->request->getPost('notes') ?? '',
                 'status'       => 'Pending',
+                'reviewed_by'  => null, // a new upload needs a fresh review
+                'reviewed_at'  => null,
                 'submitted_at' => date('Y-m-d H:i:s'),
             ];
 
             if ($existing) {
                 foreach ($fileModel->forSubmission($existing['id']) as $oldFile) {
-                    if (is_file($oldFile['file_path'])) {
-                        unlink($oldFile['file_path']);
-                    }
-                    $fileModel->delete($oldFile['id']);
+                    $fileModel->deleteWithFiles($oldFile); // also drops any reviewer-annotated copy
                 }
                 $submissionModel->update($existing['id'], $data);
                 $submissionId = $existing['id'];
@@ -192,7 +191,7 @@ class SubmitDocuments extends BaseController
             $task['submission'] = $submission;
             $task['files']      = $submission ? $fileModel->forSubmission($submission['id']) : [];
             $task['feedback']   = $submission
-                ? $feedbackModel->where('task_submission_id', $submission['id'])->orderBy('date', 'DESC')->findAll()
+                ? $feedbackModel->forSubmission((int) $submission['id'])
                 : [];
         }
         unset($task);

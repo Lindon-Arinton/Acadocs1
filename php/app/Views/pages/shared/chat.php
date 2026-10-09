@@ -103,7 +103,7 @@ include APPPATH . 'Views/layout/header.php';
         <div id="allUsersList">
           <?php foreach ($users as $u): [$rbg, $rtc] = $roleCfg[$u['role']] ?? ['#f3f4f6', '#374151']; ?>
           <button type="button" class="chat-user-item w-100 text-start border-0 bg-transparent align-items-center"
-                  style="display:flex;gap:.5rem;padding:.6rem 1rem;border-bottom:1px solid #f3f4f6;cursor:pointer;"
+                  style="display:flex;gap:.5rem;padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;"
                   data-role="<?= e($u['role']) ?>" data-search="<?= e(mb_strtolower($u['name'])) ?>"
                   onclick="startDirectChat(<?= $u['id'] ?>, this)">
             <?php if (! empty($u['photo'])): ?>
@@ -362,6 +362,48 @@ function formatLastActive(timestamp) {
     return 'Active ' + diffDay + 'd ago';
 }
 
+/** Card for an announcement shared into the chat (see Chat::sharedAnnouncementCard()). */
+function buildAnnouncementCardEl(a) {
+    const card = document.createElement('a');
+    card.className = 'chat-ann-card';
+    card.href = a.url;
+
+    if (a.image) {
+        const img = document.createElement('img');
+        img.src = a.image;
+        img.alt = '';
+        card.appendChild(img);
+    } else {
+        const banner = document.createElement('div');
+        banner.className = 'chat-ann-banner';
+        banner.innerHTML = '<i class=\"bi bi-megaphone-fill\"></i>';
+        card.appendChild(banner);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'chat-ann-body';
+    const kicker = document.createElement('div');
+    kicker.className = 'chat-ann-kicker';
+    kicker.textContent = (a.type || 'Announcement') + ' · ' + a.date;
+    const title = document.createElement('div');
+    title.className = 'chat-ann-title';
+    title.textContent = a.title;
+    body.append(kicker, title);
+    if (a.excerpt) {
+        const ex = document.createElement('div');
+        ex.className = 'chat-ann-excerpt';
+        ex.textContent = a.excerpt;
+        body.appendChild(ex);
+    }
+    const cta = document.createElement('div');
+    cta.className = 'chat-ann-cta';
+    cta.textContent = 'View announcement →';
+    body.appendChild(cta);
+    card.appendChild(body);
+
+    return card;
+}
+
 function buildAttachmentEl(m) {
     if (m.attachment_is_image) {
         const link = document.createElement('a');
@@ -573,7 +615,18 @@ function renderMessages(messages, participants) {
         bubbleInner.style.cssText = m.is_me
             ? 'background:var(--primary);color:#fff;border-radius:14px 14px 2px 14px;padding:.55rem .85rem;font-size:.85rem;'
             : 'background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:14px 14px 14px 2px;padding:.55rem .85rem;font-size:.85rem;';
-        if (m.body) bubbleInner.textContent = m.body;
+        if (m.announcement) {
+            // Shared announcement: a card, plus the sender's own note (if any) under it.
+            bubbleInner.appendChild(buildAnnouncementCardEl(m.announcement));
+            if (m.announcement.note) {
+                const note = document.createElement('div');
+                note.style.cssText = 'margin-top:.45rem;white-space:pre-wrap;';
+                note.textContent = m.announcement.note;
+                bubbleInner.appendChild(note);
+            }
+        } else if (m.body) {
+            bubbleInner.textContent = m.body;
+        }
         if (m.attachment_url) bubbleInner.appendChild(buildAttachmentEl(m));
         bubble.appendChild(bubbleInner);
 
@@ -594,6 +647,8 @@ function renderMessages(messages, participants) {
             meta.id = 'msgMeta-' + m.id;
         } else {
             const nameSpan = document.createElement('span');
+            nameSpan.className = 'person-link';
+            nameSpan.dataset.personId = m.sender_id;
             if (m.sender_role === 'admin') {
                 nameSpan.style.color = '#800000';
                 nameSpan.style.fontWeight = '700';
@@ -665,7 +720,7 @@ function openConversation(id) {
     document.getElementById('chatShell')?.classList.add('chat-mobile-thread-active');
 
     document.querySelectorAll('.chat-convo-item').forEach(el => {
-        el.style.background = String(el.dataset.id) === String(id) ? '#fff0f0' : '';
+        el.classList.toggle('active', String(el.dataset.id) === String(id));
     });
 
     const item = document.querySelector('.chat-convo-item[data-id=\"' + id + '\"]');
@@ -701,6 +756,11 @@ function openConversation(id) {
 
     const nameCol = document.createElement('div');
     const nameSpan = document.createElement('div');
+    if (activeConversationType === 'direct' && activeConversationOtherId) {
+        nameSpan.className = 'person-link';
+        nameSpan.dataset.personId = activeConversationOtherId;
+        nameSpan.title = 'View profile';
+    }
     if (isAdmin) {
         nameSpan.style.color = '#800000';
         nameSpan.textContent = name + ' (Principal)';
@@ -908,7 +968,7 @@ function startEditMessage(messageId, currentBody) {
     textarea.className = 'form-control form-control-sm';
     textarea.value = currentBody;
     textarea.rows = 2;
-    textarea.style.cssText = 'font-size:.85rem;color:#111;';
+    textarea.style.cssText = 'font-size:.85rem;color:var(--text);background:var(--input-bg);';
     bubble.appendChild(textarea);
 
     const actions = document.createElement('div');
@@ -1071,6 +1131,11 @@ function openInfoPanel() {
     nameEl.className = 'fw-semibold';
     nameEl.style.fontSize = '.88rem';
     nameEl.textContent = name;
+    if (activeConversationType === 'direct' && activeConversationOtherId) {
+        nameEl.classList.add('person-link');
+        nameEl.dataset.personId = activeConversationOtherId;
+        nameEl.title = 'View profile';
+    }
     headerEl.appendChild(avatar);
     headerEl.appendChild(nameEl);
     if (activeConversationType === 'group') {
@@ -1137,7 +1202,8 @@ function renderMembersList(members) {
         info.className = 'flex-grow-1';
         info.style.minWidth = '0';
         const nameDiv = document.createElement('div');
-        nameDiv.className = 'fw-semibold text-truncate';
+        nameDiv.className = 'fw-semibold text-truncate person-link';
+        nameDiv.dataset.personId = m.user_id;
         nameDiv.style.fontSize = '.82rem';
         nameDiv.textContent = m.name + (m.is_me ? ' (You)' : '');
         const roleDiv = document.createElement('div');

@@ -23,8 +23,10 @@ $routes->get('api/auth/me', 'Api\AuthController::me');
 // ── Pages (session required) ────────────────────────────────
 $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $routes) {
     $routes->get('dashboard', 'Admin\Dashboard::index');
+    $routes->get('dashboard/report', 'Admin\Dashboard::report');
     $routes->get('teacher-dashboard', 'Teacher\TeacherDashboard::index');
-    $routes->get('adas-dashboard', 'Adas\AdasDashboard::index');
+    // ADAS now shares the school dashboard; old links/bookmarks still land there.
+    $routes->get('adas-dashboard', static fn () => redirect()->to('/dashboard'));
     $routes->match(['get', 'post'], 'submit-documents', 'Teacher\SubmitDocuments::index');
     $routes->match(['get', 'post'], 'documents', 'Admin\Documents::index');
     $routes->get('documents/(:num)/file', 'Shared\DocumentFile::show/$1');
@@ -40,6 +42,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->post('enrollment/import', 'Admin\Enrollment::import');
     $routes->get('enrollment/template', 'Admin\Enrollment::template');
     $routes->match(['get', 'post'], 'announcements', 'Shared\Announcements::index');
+    $routes->post('announcements/(:num)/share', 'Shared\Announcements::share/$1');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
@@ -47,7 +50,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'templates', 'Shared\Templates::index');
     $routes->get('templates/download/(:num)', 'Shared\Templates::download/$1');
     $routes->get('templates/preview/(:num)', 'Shared\Templates::preview/$1');
-    $routes->post('templates/certificates/generate', 'Shared\Templates::generateCertificates');
+    $routes->get('property-management/export', 'Admin\Properties::export');
     $routes->match(['get', 'post'], 'property-management', 'Admin\Properties::index');
     $routes->get('property-management/(:num)/history', 'Admin\Properties::history/$1');
     $routes->get('property-management/par/(:num)', 'Admin\Properties::par/$1');
@@ -58,7 +61,12 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->match(['get', 'post'], 'my-tasks', 'Shared\MyTasks::index');
     $routes->get('task-submissions/(:num)/download', 'Shared\TaskDownload::show/$1');
     $routes->get('task-submissions/(:num)/preview', 'Shared\TaskDownload::preview/$1');
+    $routes->get('task-submissions/(:num)/annotate', 'Shared\TaskDownload::annotate/$1');
+    $routes->post('task-submissions/(:num)/annotate', 'Shared\TaskDownload::saveAnnotation/$1');
+    $routes->get('task-submissions/(:num)/annotation-source', 'Shared\TaskDownload::annotationSource/$1');
+    $routes->get('task-submissions/(:num)/annotated', 'Shared\TaskDownload::annotated/$1');
     $routes->match(['get', 'post'], 'profile', 'Shared\Profile::index');
+    $routes->get('people/(:num)', 'Shared\People::show/$1');
     $routes->post('notifications/(:num)/read', 'Shared\Notifications::markRead/$1');
     $routes->match(['get', 'post'], 'chat', 'Shared\Chat::index');
     $routes->get('chat/(:num)/messages', 'Shared\Chat::messages/$1');

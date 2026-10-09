@@ -65,4 +65,33 @@ class NotificationModel extends Model
             'is_read'  => 0,
         ]);
     }
+    /**
+     * Removes every notification about the given record(s) — call this when
+     * the record itself is deleted, so nobody is left with a notification
+     * that opens nothing.
+     *
+     * @param int|int[] $refIds
+     */
+    public function deleteForRef(string $refType, int|array $refIds): void
+    {
+        $refIds = array_values(array_filter(array_map('intval', (array) $refIds)));
+        if ($refIds !== []) {
+            $this->where('ref_type', $refType)->whereIn('ref_id', $refIds)->delete();
+        }
+    }
+
+    /**
+     * Notifications about a task: its assignment/submission notices plus the
+     * feedback notices on its submissions. Call before deleting the task
+     * (the submissions cascade away with it, taking their ids along).
+     */
+    public function deleteForTask(int $taskId): void
+    {
+        $this->deleteForRef('task_assigned', $taskId);
+        $this->deleteForRef('task_submission', $taskId);
+        $this->deleteForRef('task_feedback', array_column(
+            $this->db->table('task_submissions')->select('id')->where('task_id', $taskId)->get()->getResultArray(),
+            'id'
+        ));
+    }
 }

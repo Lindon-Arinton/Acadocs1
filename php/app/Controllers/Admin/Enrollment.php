@@ -30,7 +30,7 @@ class Enrollment extends BaseController
 
     public function import()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 
@@ -142,7 +142,7 @@ class Enrollment extends BaseController
     /** Blank enrollment sheet in the school's layout, sections pre-filled from teachers' subject loads. */
     public function template()
     {
-        if (! hasRole('admin')) {
+        if (! hasRole('admin', 'adas')) {
             return redirect()->to('/dashboard');
         }
 

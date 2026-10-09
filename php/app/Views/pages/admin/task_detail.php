@@ -14,6 +14,11 @@
         · <span class="text-capitalize"><?= e($task['status']) ?></span>
       </p>
     </div>
+    <?php if (! empty($folderId)): ?>
+    <a href="<?= base_url('documents?folder=' . (int) $folderId) ?>" class="btn btn-sm btn-light fw-semibold" style="color:var(--primary);position:relative;z-index:1;">
+      <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
+    </a>
+    <?php endif; ?>
   </div>
 </div>
 
@@ -42,13 +47,19 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div>
-            <h6 class="fw-bold mb-1"><?= e($s['submitter_name']) ?></h6>
+            <h6 class="fw-bold mb-1"><?= personLink((int) $s['user_id'], $s['submitter_name']) ?></h6>
             <span class="text-muted small">
               <i class="bi bi-paperclip me-1"></i><?= count($s['files']) ?> file<?= count($s['files']) !== 1 ? 's' : '' ?>
               · Submitted <?= date('M d, Y h:i A', strtotime($s['submitted_at'])) ?>
             </span>
+            <div class="mt-1"><?= submissionTimingBadge($s['submitted_at'], $task['deadline']) ?></div>
           </div>
-          <span class="status-pill <?= submissionBadge($s['status']) ?>"><?= e($s['status']) ?></span>
+          <div class="text-end">
+            <span class="status-pill <?= submissionBadge($s['status']) ?>"><?= e($s['status']) ?></span>
+            <?php if ($s['status'] !== 'Pending' && ! empty($s['reviewer_name'])): ?>
+            <div class="small text-muted mt-1">by <?= e($s['reviewer_name']) ?><?= $s['reviewed_at'] ? ' · ' . date('M d, Y', strtotime($s['reviewed_at'])) : '' ?></div>
+            <?php endif; ?>
+          </div>
         </div>
 
         <?php if ($s['notes']): ?>
@@ -56,16 +67,21 @@
         <?php endif; ?>
 
         <button type="button" class="btn btn-sm btn-outline-maroon"
-                onclick='viewSubmission(<?= json_encode([
+                onclick='viewSubmission(<?= json_encode(submissionTiming($s['submitted_at'], $task['deadline']) + [
                     'id'            => (int) $s['id'],
                     'submitterName' => $s['submitter_name'],
+                    'submittedAt'   => date('M d, Y h:i A', strtotime($s['submitted_at'])),
                     'files'         => array_map(static fn ($f) => [
                         'id'   => (int) $f['id'],
                         'name' => $f['file_name'],
                         'ext'  => strtolower(pathinfo($f['file_name'], PATHINFO_EXTENSION)),
+                        'annotated' => \App\Models\TaskSubmissionFileModel::hasAnnotation($f),
                     ], $s['files']),
+                    'reviewerName'  => $s['reviewer_name'] ?? null,
+                    'reviewedAt'    => $s['reviewed_at'] ? date('M d, Y h:i A', strtotime($s['reviewed_at'])) : null,
                     'feedback'      => array_map(static fn ($fb) => [
                         'comment' => $fb['comment'],
+                        'author'  => $fb['author_name'] ?? null,
                         'date'    => date('M d, Y', strtotime($fb['date'])),
                     ], $s['feedback']),
                 ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
@@ -94,7 +110,7 @@
           <div style="width:26px;height:26px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <?= strtoupper(substr($u['name'], 0, 1)) ?>
           </div>
-          <span class="small"><?= e($u['name']) ?></span>
+          <span class="small"><?= personLink((int) $u['id'], $u['name']) ?></span>
         </li>
         <?php endforeach; ?>
         <?php if (empty($pendingUsers)): ?>
@@ -114,6 +130,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div id="viewSubmittedMeta" class="small text-muted mb-3 d-flex flex-wrap align-items-center gap-2"></div>
         <p class="text-muted small fw-semibold mb-2">Files</p>
         <div id="viewFilesList" class="mb-3"></div>
 
@@ -128,6 +145,7 @@
         <div id="viewFeedbackThread"></div>
 
         <hr>
+        <?php if (hasRole('admin')): ?>
         <form method="POST" action="<?= base_url('tasks/' . $task['id']) ?>" class="ajax-form"
               data-confirm-action="update" data-confirm-title="Send this feedback?"
               data-confirm-text="Only the submitter will be able to see it.">
@@ -136,6 +154,9 @@
           <textarea name="comment" class="form-control mb-2" rows="3" required placeholder="Only this person will see your feedback..."></textarea>
           <button type="submit" class="btn btn-maroon btn-sm"><i class="bi bi-send me-2"></i>Send Feedback</button>
         </form>
+        <?php else: ?>
+        <p class="small text-muted mb-0"><i class="bi bi-lock me-1"></i>Only the principal can review submissions and give feedback.</p>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -145,6 +166,7 @@
 $extraScript = '<script>
 const PREVIEWABLE_EXT = ["doc","docx","xls","xlsx","ppt","pptx","pdf","jpg","jpeg","png"];
 const TASK_FILE_BASE = "' . base_url('task-submissions/') . '";
+const CAN_REVIEW = ' . json_encode(hasRole('admin')) . '; // principal only: review, feedback, annotate
 
 function escapeHtml(s) {
     const d = document.createElement("div");
@@ -154,7 +176,10 @@ function escapeHtml(s) {
 
 function viewSubmission(data) {
     document.getElementById("viewSubmitterName").textContent = data.submitterName;
-    document.getElementById("viewSubmissionId").value = data.id;
+    const submissionIdEl = document.getElementById("viewSubmissionId"); // absent for ADAS (no feedback form)
+    if (submissionIdEl) submissionIdEl.value = data.id;
+    document.getElementById("viewSubmittedMeta").innerHTML = \'<span><i class="bi bi-clock me-1"></i>Submitted \' + escapeHtml(data.submittedAt) + "</span>" + timingBadgeHtml(data.late, data.lateBy)
+        + (data.reviewerName ? \'<span><i class="bi bi-person-check me-1"></i>Reviewed by \' + escapeHtml(data.reviewerName) + (data.reviewedAt ? " · " + escapeHtml(data.reviewedAt) : "") + "</span>" : "");
 
     document.getElementById("viewFilesList").innerHTML = data.files.map(function (f) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)
@@ -164,6 +189,7 @@ function viewSubmission(data) {
             + \'<span class="small text-truncate me-2"><i class="bi bi-file-earmark me-1"></i>\' + escapeHtml(f.name) + "</span>"
             + \'<div class="d-flex gap-1 flex-shrink-0">\' + previewBtn
             + \'<a class="btn btn-sm btn-outline-secondary" href="\' + TASK_FILE_BASE + f.id + \'/download"><i class="bi bi-download"></i></a>\'
+            + submissionFileExtrasHtml(f.id, f.annotated, CAN_REVIEW)
             + "</div></div>";
     }).join("");
 
@@ -176,15 +202,15 @@ function viewSubmission(data) {
     const thread = document.getElementById("viewFeedbackThread");
     thread.innerHTML = data.feedback.length
         ? \'<div class="p-3 rounded-3" style="background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);">\'
-            + \'<p class="small fw-semibold mb-2 text-muted"><i class="bi bi-chat-dots me-1"></i>Your Private Feedback</p>\'
+            + \'<p class="small fw-semibold mb-2 text-muted"><i class="bi bi-chat-dots me-1"></i>Private Feedback</p>\'
             + data.feedback.map(function (fb) {
-                return \'<p class="small mb-1">\' + escapeHtml(fb.comment) + \' <span class="text-muted">— \' + escapeHtml(fb.date) + "</span></p>";
+                return \'<p class="small mb-1">\' + escapeHtml(fb.comment) + \' <span class="text-muted">— \' + (fb.author ? escapeHtml(fb.author) + ", " : "") + escapeHtml(fb.date) + "</span></p>";
             }).join("")
             + "</div>"
         : "";
 
     closeSubmissionPreview();
-    new bootstrap.Modal(document.getElementById("viewSubmissionModal")).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("viewSubmissionModal")).show();
 }
 
 function previewSubmissionFile(fileId, name) {

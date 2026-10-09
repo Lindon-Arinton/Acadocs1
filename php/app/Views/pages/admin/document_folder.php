@@ -16,7 +16,8 @@
 <?php endif; ?>
 
 <?php
-$canReview = hasRole('admin', 'adas');
+// Only the principal approves (Reviewed/Returned) and annotates; ADAS can view.
+$canReview = hasRole('admin');
 ?>
 
 <?php
@@ -59,10 +60,16 @@ $statusCounts = array_count_values(array_column($submissions, 'status'));
           </div>
           <div class="flex-grow-1" style="min-width:240px;">
             <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-              <h6 class="fw-bold mb-0" style="font-size:.9rem;"><?= e($submission['submitter_name']) ?></h6>
+              <h6 class="fw-bold mb-0" style="font-size:.9rem;"><?= personLink((int) $submission['user_id'], $submission['submitter_name']) ?></h6>
               <span class="status-pill <?= submissionBadge($submission['status']) ?>"><?= e($submission['status']) ?></span>
               <span class="text-muted" style="font-size:.72rem;"><i class="bi bi-clock me-1"></i><?= date('M d, Y h:i A', strtotime($submission['submitted_at'])) ?></span>
+              <?= submissionTimingBadge($submission['submitted_at'], $task['deadline']) ?>
             </div>
+            <?php if ($submission['status'] !== 'Pending' && ! empty($submission['reviewer_name'])): ?>
+            <div class="small text-muted">
+              <?= e($submission['status']) ?> by <?= e($submission['reviewer_name']) ?><?= $submission['reviewed_at'] ? ' · ' . date('M d, Y', strtotime($submission['reviewed_at'])) : '' ?>
+            </div>
+            <?php endif; ?>
 
             <?php foreach ($submission['files'] as $file):
               $ext = strtolower(pathinfo($file['file_name'], PATHINFO_EXTENSION));
@@ -76,9 +83,15 @@ $statusCounts = array_count_values(array_column($submissions, 'status'));
               <?php if ($ext): ?>
               <span class="badge" style="background:<?= $bg ?>;color:<?= $tc ?>;border:1px solid <?= $tc ?>22;font-size:.62rem;"><?= strtoupper(e($ext)) ?></span>
               <?php endif; ?>
-              <a href="<?= base_url('task-submissions/' . $file['id'] . '/preview') ?>" target="_blank" rel="noopener"
-                 class="btn btn-sm py-0 px-2" style="border:1.5px solid <?= $tc ?>;color:var(--text);" title="Preview"><i class="bi bi-eye me-1"></i>Preview</a>
+              <button type="button" class="btn btn-sm py-0 px-2" style="border:1.5px solid <?= $tc ?>;color:var(--text);" title="Preview"
+                      onclick="previewFolderFile(<?= (int) $file['id'] ?>, <?= e(json_encode($file['file_name'])) ?>)"><i class="bi bi-eye me-1"></i>Preview</button>
               <a href="<?= base_url('task-submissions/' . $file['id'] . '/download') ?>" class="btn btn-sm py-0 px-2" style="background:<?= $tc ?>;color:#fff;" title="Download"><i class="bi bi-download me-1"></i>Download</a>
+              <?php if ($canReview): ?>
+              <a href="<?= base_url('task-submissions/' . $file['id'] . '/annotate') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-maroon py-0 px-2" title="Annotate (draw / write notes)"><i class="bi bi-pencil-square me-1"></i>Annotate</a>
+              <?php endif; ?>
+              <?php if (\App\Models\TaskSubmissionFileModel::hasAnnotation($file)): ?>
+              <a href="<?= base_url('task-submissions/' . $file['id'] . '/annotated') ?>" target="_blank" rel="noopener" class="timing-badge annot-badge text-decoration-none" title="Open the marked-up copy"><i class="bi bi-pencil-fill me-1"></i>Marked up</a>
+              <?php endif; ?>
             </div>
             <?php endforeach; ?>
             <?php if (empty($submission['files'])): ?>
@@ -87,20 +100,34 @@ $statusCounts = array_count_values(array_column($submissions, 'status'));
 
             <?php if (! empty($submission['feedback'])): ?>
             <div class="small text-muted mt-2 p-2 rounded-3" style="background:var(--surface-hover);" title="Latest comment">
-              <i class="bi bi-chat-left-text me-1"></i><?= e(mb_strimwidth($submission['feedback'][0]['comment'], 0, 140, '…')) ?>
+              <i class="bi bi-chat-left-text me-1"></i><?= e(mb_strimwidth($submission['feedback'][0]['comment'], 0, 140, '…')) ?><?= ! empty($submission['feedback'][0]['author_name']) ? ' <span class="fst-italic">— ' . e($submission['feedback'][0]['author_name']) . '</span>' : '' ?>
             </div>
             <?php endif; ?>
           </div>
-          <?php if ($canReview): ?>
-          <div class="d-flex gap-2 flex-shrink-0">
-            <button type="button" class="btn btn-sm btn-outline-success" title="Mark as Reviewed"
-                    onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Reviewed', '<?= e(addslashes($submission['submitter_name'])) ?>')">
-              <i class="bi bi-check-circle me-1"></i>Reviewed
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-danger" title="Return for revision"
-                    onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Returned', '<?= e(addslashes($submission['submitter_name'])) ?>')">
-              <i class="bi bi-arrow-return-left me-1"></i>Return
-            </button>
+          <?php if ($canReview):
+            // Only the decisions that would change something: a Pending upload can be
+            // approved or returned; a decided one can only be switched to the other.
+            $status    = $submission['status'];
+            $submitter = e(addslashes($submission['submitter_name']));
+          ?>
+          <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+            <div class="d-flex gap-2">
+              <?php if ($status !== 'Reviewed'): ?>
+              <button type="button" class="btn btn-sm btn-outline-success" title="Approve this upload"
+                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Reviewed', '<?= $submitter ?>')">
+                <i class="bi bi-check-circle me-1"></i><?= $status === 'Returned' ? 'Mark Reviewed instead' : 'Mark Reviewed' ?>
+              </button>
+              <?php endif; ?>
+              <?php if ($status !== 'Returned'): ?>
+              <button type="button" class="btn btn-sm btn-outline-danger" title="Send back to the uploader for revision"
+                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Returned', '<?= $submitter ?>')">
+                <i class="bi bi-arrow-return-left me-1"></i><?= $status === 'Reviewed' ? 'Return instead' : 'Return' ?>
+              </button>
+              <?php endif; ?>
+            </div>
+            <?php if ($status === 'Returned'): ?>
+            <div class="small text-muted">Waiting for the uploader to resubmit</div>
+            <?php endif; ?>
           </div>
           <?php endif; ?>
         </div>
@@ -109,6 +136,28 @@ $statusCounts = array_count_values(array_column($submissions, 'status'));
       <p class="text-muted mb-0 text-center py-4 d-none" id="uploadNoMatch"><i class="bi bi-funnel fs-5 d-block mb-1"></i>No uploads match.</p>
     </div>
     <?php endif; ?>
+  </div>
+</div>
+
+<!-- File preview (eye button) — same in-page preview as the task pages -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--maroon);color:#fff;">
+        <h6 class="modal-title fw-bold text-truncate"><i class="bi bi-eye me-2"></i><span id="filePreviewName"></span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" style="height:75vh;">
+        <iframe id="filePreviewFrame" title="File preview" style="width:100%;height:100%;border:0;"></iframe>
+      </div>
+      <div class="modal-footer">
+        <a id="filePreviewDownload" href="#" class="btn btn-outline-secondary"><i class="bi bi-download me-1"></i>Download</a>
+        <?php if ($canReview): ?>
+        <a id="filePreviewAnnotate" href="#" target="_blank" rel="noopener" class="btn btn-outline-maroon"><i class="bi bi-pencil-square me-1"></i>Annotate</a>
+        <?php endif; ?>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -141,6 +190,22 @@ $statusCounts = array_count_values(array_column($submissions, 'status'));
 
 <?php
 $extraScript = "<script>
+const FOLDER_FILE_BASE = " . json_encode(base_url('task-submissions/')) . ";
+
+function previewFolderFile(fileId, name) {
+    document.getElementById('filePreviewName').textContent = name;
+    document.getElementById('filePreviewFrame').src = FOLDER_FILE_BASE + fileId + '/preview';
+    document.getElementById('filePreviewDownload').href = FOLDER_FILE_BASE + fileId + '/download';
+    const annotate = document.getElementById('filePreviewAnnotate');
+    if (annotate) annotate.href = FOLDER_FILE_BASE + fileId + '/annotate';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('filePreviewModal')).show();
+}
+
+// Stop loading / free the preview when the modal closes.
+document.getElementById('filePreviewModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('filePreviewFrame').src = 'about:blank';
+});
+
 function reviewUpload(id, status, submitter) {
     const copy = {
         Reviewed: { title: 'Mark as Reviewed', label: 'Comment (optional)', placeholder: 'Any notes for the uploader...', btn: 'Mark Reviewed', confirm: 'The uploader will be told their upload was reviewed.' },
@@ -159,7 +224,7 @@ function reviewUpload(id, status, submitter) {
     comment.value = '';
     form.dataset.confirmTitle = copy.title + '?';
     form.dataset.confirmText = copy.confirm;
-    new bootstrap.Modal(document.getElementById('reviewModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('reviewModal')).show();
 }
 </script>";
 $extraScript .= <<<'HTML'

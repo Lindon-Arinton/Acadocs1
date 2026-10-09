@@ -246,7 +246,12 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted small mb-3" id="taskDetailMeta"></p>
+        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-3">
+          <p class="text-muted small mb-0" id="taskDetailMeta"></p>
+          <a href="#" id="taskDetailDocsLink" class="btn btn-sm btn-outline-maroon d-none">
+            <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
+          </a>
+        </div>
         <div id="taskDetailDescriptionWrap" class="mb-4" style="display:none;">
           <p class="text-muted small mb-1 fw-semibold">Instructions</p>
           <p class="mb-0" id="taskDetailDescription"></p>
@@ -286,6 +291,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div id="viewSubmittedMeta" class="small text-muted mb-3 d-flex flex-wrap align-items-center gap-2"></div>
         <p class="text-muted small fw-semibold mb-2">Files</p>
         <div id="viewFilesList" class="mb-3"></div>
 
@@ -300,6 +306,7 @@
         <div id="viewFeedbackThread"></div>
 
         <hr>
+        <?php if (hasRole('admin')): ?>
         <form method="POST" action="" id="taskFeedbackForm" class="ajax-form"
               data-confirm-action="update" data-confirm-title="Send this feedback?"
               data-confirm-text="Only the submitter will be able to see it.">
@@ -308,6 +315,9 @@
           <textarea name="comment" class="form-control mb-2" rows="3" required placeholder="Only this person will see your feedback..."></textarea>
           <button type="submit" class="btn btn-maroon btn-sm"><i class="bi bi-send me-2"></i>Send Feedback</button>
         </form>
+        <?php else: ?>
+        <p class="small text-muted mb-0"><i class="bi bi-lock me-1"></i>Only the principal can review submissions and give feedback.</p>
+        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -337,7 +347,7 @@ function openNewTaskModal() {
     const todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     document.getElementById('taskDeadlineDp')?.maroonDpSetValue(todayIso);
     document.querySelector('#addTaskModal input[name=deadline_time]').value = '23:59';
-    new bootstrap.Modal(document.getElementById('addTaskModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addTaskModal')).show();
 }
 
 function onAssignedRoleChange() {
@@ -351,7 +361,7 @@ function switchTaskModal(fromId, toId) {
     const fromModal = bootstrap.Modal.getInstance(fromEl);
     fromEl.addEventListener('hidden.bs.modal', function handler() {
         fromEl.removeEventListener('hidden.bs.modal', handler);
-        new bootstrap.Modal(toEl).show();
+        bootstrap.Modal.getOrCreateInstance(toEl).show();
     });
     fromModal?.hide();
 }
@@ -444,17 +454,20 @@ const TASKS_BASE = '" . base_url('tasks/') . "';
 const TASK_FILE_BASE = '" . base_url('task-submissions/') . "';
 const PREVIEWABLE_EXT = ['doc','docx','xls','xlsx','ppt','pptx','pdf','jpg','jpeg','png'];
 let currentTaskDetailSubmissions = [];
+let currentTaskCanReview = false; // principal only: review, feedback, annotate
 
 function openTaskDetailModal(taskId) {
     document.getElementById('taskDetailTitle').innerHTML = '<i class=\"bi bi-list-task me-2\"></i>Task';
     document.getElementById('taskDetailMeta').innerHTML = '';
     document.getElementById('taskDetailDescriptionWrap').style.display = 'none';
+    document.getElementById('taskDetailDocsLink').classList.add('d-none');
     document.getElementById('taskDetailContent').style.display = 'none';
     document.getElementById('taskDetailLoading').style.display = 'block';
     document.getElementById('taskDetailLoading').innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>Loading task details\\u2026';
-    document.getElementById('taskFeedbackForm').action = TASKS_BASE + taskId;
+    const feedbackForm = document.getElementById('taskFeedbackForm'); // principal only
+    if (feedbackForm) feedbackForm.action = TASKS_BASE + taskId;
 
-    new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('taskDetailModal')).show();
 
     fetch(TASKS_BASE + taskId + '/data', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => res.json())
@@ -467,6 +480,12 @@ function openTaskDetailModal(taskId) {
 
             document.getElementById('taskDetailTitle').innerHTML = '<i class=\"bi bi-list-task me-2\"></i>' + taskEscapeHtml(data.task.title);
             renderTaskDetailMeta(data.task);
+            // Shortcut to this task's folder in Manage Documents (exists once someone has uploaded).
+            const docsLink = document.getElementById('taskDetailDocsLink');
+            if (data.task.folderUrl) {
+                docsLink.href = data.task.folderUrl;
+                docsLink.classList.remove('d-none');
+            }
 
             if (data.task.description) {
                 document.getElementById('taskDetailDescription').innerHTML = taskEscapeHtml(data.task.description).replace(/\\n/g, '<br>');
@@ -474,6 +493,7 @@ function openTaskDetailModal(taskId) {
             }
 
             currentTaskDetailSubmissions = data.submissions;
+            currentTaskCanReview = !!data.canReview;
             renderTaskDetailSubmissions(data.submissions);
             renderTaskDetailPending(data.pendingUsers);
 
@@ -515,9 +535,10 @@ function renderTaskDetailSubmissions(submissions) {
             : '';
         return '<div class=\"card mb-3\"><div class=\"card-body\">'
             + '<div class=\"d-flex justify-content-between align-items-start mb-2\">'
-            + '<div><h6 class=\"fw-bold mb-1\">' + taskEscapeHtml(s.submitterName) + '</h6>'
+            + '<div><h6 class=\"fw-bold mb-1\">' + personLinkHtml(s.userId, s.submitterName) + '</h6>'
             + '<span class=\"text-muted small\"><i class=\"bi bi-paperclip me-1\"></i>' + s.files.length + ' file' + (s.files.length !== 1 ? 's' : '')
-            + ' &middot; Submitted ' + taskEscapeHtml(s.submittedAt) + '</span></div>'
+            + ' &middot; Submitted ' + taskEscapeHtml(s.submittedAt) + '</span>'
+            + '<div class=\"mt-1\">' + timingBadgeHtml(s.late, s.lateBy) + '</div></div>'
             + '<span class=\"status-pill ' + statusClass + '\">' + taskEscapeHtml(s.status) + '</span>'
             + '</div>'
             + notesHtml
@@ -537,7 +558,7 @@ function renderTaskDetailPending(pendingUsers) {
         const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
         return '<li class=\"list-group-item py-2 px-3 d-flex align-items-center gap-2\">'
             + '<div style=\"width:26px;height:26px;border-radius:50%;background:var(--surface-hover);color:var(--text-secondary);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">' + taskEscapeHtml(initial) + '</div>'
-            + '<span class=\"small\">' + taskEscapeHtml(u.name) + '</span></li>';
+            + '<span class=\"small\">' + personLinkHtml(u.id, u.name) + '</span></li>';
     }).join('');
 }
 
@@ -546,7 +567,10 @@ function viewSubmission(index) {
     if (!data) return;
 
     document.getElementById('viewSubmitterName').textContent = data.submitterName;
-    document.getElementById('viewSubmissionId').value = data.id;
+    const submissionIdEl = document.getElementById('viewSubmissionId'); // absent for ADAS (no feedback form)
+    if (submissionIdEl) submissionIdEl.value = data.id;
+    document.getElementById('viewSubmittedMeta').innerHTML = '<span><i class=\"bi bi-clock me-1\"></i>Submitted ' + taskEscapeHtml(data.submittedAt) + '</span>' + timingBadgeHtml(data.late, data.lateBy)
+        + (data.reviewerName ? '<span><i class=\"bi bi-person-check me-1\"></i>Reviewed by ' + taskEscapeHtml(data.reviewerName) + (data.reviewedAt ? ' · ' + taskEscapeHtml(data.reviewedAt) : '') + '</span>' : '');
 
     document.getElementById('viewFilesList').innerHTML = data.files.map(function (f) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)
@@ -556,6 +580,7 @@ function viewSubmission(index) {
             + '<span class=\"small text-truncate me-2\"><i class=\"bi bi-file-earmark me-1\"></i>' + taskEscapeHtml(f.name) + '</span>'
             + '<div class=\"d-flex gap-1 flex-shrink-0\">' + previewBtn
             + '<a class=\"btn btn-sm btn-outline-secondary\" href=\"' + TASK_FILE_BASE + f.id + '/download\"><i class=\"bi bi-download\"></i></a>'
+            + submissionFileExtrasHtml(f.id, f.annotated, currentTaskCanReview)
             + '</div></div>';
     }).join('');
 
@@ -568,9 +593,9 @@ function viewSubmission(index) {
     const thread = document.getElementById('viewFeedbackThread');
     thread.innerHTML = data.feedback.length
         ? '<div class=\"p-3 rounded-3\" style=\"background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);\">'
-            + '<p class=\"small fw-semibold mb-2 text-muted\"><i class=\"bi bi-chat-dots me-1\"></i>Your Private Feedback</p>'
+            + '<p class=\"small fw-semibold mb-2 text-muted\"><i class=\"bi bi-chat-dots me-1\"></i>Private Feedback</p>'
             + data.feedback.map(function (fb) {
-                return '<p class=\"small mb-1\">' + taskEscapeHtml(fb.comment) + ' <span class=\"text-muted\">— ' + taskEscapeHtml(fb.date) + '</span></p>';
+                return '<p class=\"small mb-1\">' + taskEscapeHtml(fb.comment) + ' <span class=\"text-muted\">— ' + (fb.author ? taskEscapeHtml(fb.author) + ', ' : '') + taskEscapeHtml(fb.date) + '</span></p>';
             }).join('')
             + '</div>'
         : '';
@@ -595,7 +620,7 @@ function closeSubmissionPreview() {
 // event) always means \"go back to the task\", since it's only ever reached
 // from within the task detail modal's own View Files button.
 document.getElementById('viewSubmissionModal').addEventListener('hidden.bs.modal', function () {
-    new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('taskDetailModal')).show();
 });
 </script>";
 include APPPATH . 'Views/layout/footer.php';

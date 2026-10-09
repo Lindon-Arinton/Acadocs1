@@ -72,6 +72,9 @@ $monthEnd   = date('Y-m-t');
       <span class="status-pill <?= submissionBadge($submission['status']) ?>">
         <?= e($submission['status'] === 'Returned' ? 'Returned - please revise' : $submission['status']) ?>
       </span>
+      <?php if ($submission['status'] !== 'Pending' && ! empty($submission['reviewer_name'])): ?>
+      <span class="small text-muted">by <?= e($submission['reviewer_name']) ?></span>
+      <?php endif; ?>
       <?php elseif ($t['status'] === 'Closed'): ?>
       <span class="status-pill badge-returned">Missed</span>
       <?php else: ?>
@@ -107,22 +110,35 @@ $monthEnd   = date('Y-m-t');
       <?php foreach ($t['files'] as $f): ?>
       <div class="d-flex justify-content-between align-items-center mb-1">
         <span class="small text-truncate me-2"><?= e($f['file_name']) ?></span>
-        <a href="<?= base_url('task-submissions/' . $f['id'] . '/download') ?>" class="btn btn-sm btn-outline-secondary flex-shrink-0">
-          <i class="bi bi-download"></i>
-        </a>
+        <div class="d-flex gap-1 flex-shrink-0">
+          <?php if (\App\Models\TaskSubmissionFileModel::hasAnnotation($f)): ?>
+          <a href="<?= base_url('task-submissions/' . $f['id'] . '/annotated') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-maroon" title="View the principal's marked-up copy">
+            <i class="bi bi-pencil-fill me-1"></i>Marked up
+          </a>
+          <a href="<?= base_url('task-submissions/' . $f['id'] . '/annotated?download=1') ?>" class="btn btn-sm btn-outline-secondary" title="Download the marked-up copy">
+            <i class="bi bi-file-earmark-arrow-down"></i>
+          </a>
+          <?php endif; ?>
+          <a href="<?= base_url('task-submissions/' . $f['id'] . '/download') ?>" class="btn btn-sm btn-outline-secondary" title="Download your file">
+            <i class="bi bi-download"></i>
+          </a>
+        </div>
       </div>
       <?php endforeach; ?>
-      <div class="text-muted small mt-2">Submitted <?= date('M d, Y h:i A', strtotime($submission['submitted_at'])) ?></div>
+      <div class="text-muted small mt-2 d-flex flex-wrap align-items-center gap-2">
+        <span>Submitted <?= date('M d, Y h:i A', strtotime($submission['submitted_at'])) ?></span>
+        <?= submissionTimingBadge($submission['submitted_at'], $t['deadline']) ?>
+      </div>
     </div>
     <?php endif; ?>
 
     <?php if (! empty($t['feedback'])): ?>
     <div class="p-3 rounded-3 mb-3 task-section" style="background:rgba(128,0,0,.08);border-left:3px solid var(--maroon);">
       <div class="task-kicker mb-2" style="color:var(--maroon);">
-        <i class="bi bi-chat-dots me-1"></i>Principal Feedback (private)
+        <i class="bi bi-chat-dots me-1"></i>Feedback (private)
       </div>
       <?php foreach ($t['feedback'] as $fb): ?>
-      <p class="small mb-1"><?= e($fb['comment']) ?> <span class="text-muted">— <?= date('M d, Y', strtotime($fb['date'])) ?></span></p>
+      <p class="small mb-1"><?= e($fb['comment']) ?> <span class="text-muted">— <?= ! empty($fb['author_name']) ? e($fb['author_name']) . ', ' : '' ?><?= date('M d, Y', strtotime($fb['date'])) ?></span></p>
       <?php endforeach; ?>
     </div>
     <?php endif; ?>
