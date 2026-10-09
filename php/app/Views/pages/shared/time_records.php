@@ -295,7 +295,8 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             For each employee and day, the earliest <strong>C/In</strong> becomes Time In and the latest <strong>C/Out</strong> becomes Time Out.
             A Time In after 7:30 AM is marked <strong>Late</strong>, and a missing In or Out is marked <strong>Present (incomplete)</strong>.
             A school day with no punch, within that employee's range in the file, is marked <strong>Absent</strong> unless a record already exists.
-            Weekends and dates listed under Manage Holidays are never counted as absences, and school days
+            On Saturdays and Sundays only people who punched in get a record, always <strong>Present</strong> (never Late or Absent).
+            Dates listed under Manage Holidays are never counted as absences, and school days
             inside an <strong>Academic Break</strong> are recorded as Academic Break instead.
           </p>
           <p class="text-muted mb-3" style="font-size:.75rem;">

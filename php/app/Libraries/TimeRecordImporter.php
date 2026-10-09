@@ -159,7 +159,7 @@ class TimeRecordImporter
             } else {
                 $timeIn  = $times[0];
                 $timeOut = $times[count($times) - 1];
-                $status  = $timeIn > self::LATE_THRESHOLD ? 'Late' : 'Present';
+                $status  = $this->statusForTimeIn($date, $timeIn);
                 $remarks = count($times) > 2 ? 'Multiple punches collapsed to earliest/latest (import)' : '';
                 $summary[$status === 'Late' ? 'late' : 'present']++;
             }
@@ -370,7 +370,7 @@ class TimeRecordImporter
             foreach ($info['days'] as $date => $punches) {
                 [$timeIn, $timeOut, $remarks] = $this->resolveInOut($punches);
 
-                $status = ($timeIn !== null && $timeIn > self::LATE_THRESHOLD) ? 'Late' : 'Present';
+                $status = $timeIn !== null ? $this->statusForTimeIn($date, $timeIn) : 'Present';
                 $summary[$status === 'Late' ? 'late' : 'present']++;
                 if ($timeIn === null || $timeOut === null) {
                     $summary['incomplete']++;
@@ -663,11 +663,23 @@ class TimeRecordImporter
 
     private function isWeekendOrHoliday(string $date): bool
     {
-        if (isset($this->holidayDates[$date])) {
-            return true;
-        }
+        return isset($this->holidayDates[$date]) || $this->isWeekend($date);
+    }
 
+    /** Saturday or Sunday. */
+    private function isWeekend(string $date): bool
+    {
         return (int) date('N', strtotime($date)) >= 6;
+    }
+
+    /**
+     * Present or Late for a day someone punched in. Weekends are never Late:
+     * whoever comes in on a Saturday or Sunday is simply recorded as Present
+     * (and nobody is marked Absent on one — see isWeekendOrHoliday()).
+     */
+    private function statusForTimeIn(string $date, string $timeIn): string
+    {
+        return ! $this->isWeekend($date) && $timeIn > self::LATE_THRESHOLD ? 'Late' : 'Present';
     }
 
     private function upsertTimeRecord(

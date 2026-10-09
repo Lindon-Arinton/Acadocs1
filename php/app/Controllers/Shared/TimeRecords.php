@@ -217,7 +217,7 @@ class TimeRecords extends BaseController
         }
 
         if ($summary['skipped_non_school_day'] > 0) {
-            $message .= ' ' . $summary['skipped_non_school_day'] . ' row(s) skipped (non-school day).';
+            $message .= ' ' . $summary['skipped_non_school_day'] . ' weekend/holiday entr' . ($summary['skipped_non_school_day'] === 1 ? 'y' : 'ies') . ' skipped.';
         }
 
         if ($summary['placeholders_created'] !== []) {

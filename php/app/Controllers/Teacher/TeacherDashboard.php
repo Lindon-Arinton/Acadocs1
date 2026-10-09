@@ -31,7 +31,9 @@ class TeacherDashboard extends BaseController
         $attendanceThisMonth = ['Present' => 0, 'Absent' => 0];
 
         // Attendance is read by account (time_records.user_id), so it survives
-        // a change of biometric number.
+        // a change of biometric number. Weekend records only exist for people
+        // who punched in, always as Present (the importer never marks a weekend
+        // Late or Absent), so they count as attendance like any other day.
         if (! empty($user['id'])) {
             $trModel = new TimeRecordModel();
 
