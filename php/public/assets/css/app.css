@@ -2694,3 +2694,14 @@ a.td-list-item:hover { color: inherit; border-color: color-mix(in srgb, var(--pr
 /* Bubble jumped to from a search result */
 @keyframes chatMsgFlash { 0%, 60% { box-shadow: 0 0 0 3px #f59e0b; } 100% { box-shadow: 0 0 0 3px transparent; } }
 .chat-msg-flash { animation: chatMsgFlash 1.8s ease-out; }
+
+/* ── Tab switching (dashboard switchTab / View All): mild fade + slide-up ── */
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.tab-fade-in { animation: tabFadeIn .22s ease-out; }
+.dash-tabs button { transition: color .2s ease, border-color .2s ease, background-color .2s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .tab-fade-in { animation: none; }
+}

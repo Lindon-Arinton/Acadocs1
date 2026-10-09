@@ -781,6 +781,13 @@ function applyYearRange() {
 const maroon = chartColor(), maroonLight = chartColorAlt(), maroonDark = "#560000", crimson = "#dc143c";
 const chartSoft = getComputedStyle(document.documentElement).getPropertyValue("--chart-soft").trim();
 
+// Mild fade + slide-up for a panel that just appeared (restarts on every switch).
+function fadeInPanel(el) {
+  el.classList.remove("tab-fade-in");
+  void el.offsetWidth;
+  el.classList.add("tab-fade-in");
+}
+
 function togglePerfBreakdown() {
   const summary = document.getElementById("perfSummaryTable");
   const full = document.getElementById("perfFullTable");
@@ -788,6 +795,7 @@ function togglePerfBreakdown() {
   const showingFull = !full.classList.contains("d-none");
   full.classList.toggle("d-none", showingFull);
   summary.classList.toggle("d-none", !showingFull);
+  fadeInPanel(showingFull ? summary : full);
   btn.innerHTML = showingFull
     ? "<i class=\\"bi bi-list-ul me-1\\"></i>View All"
     : "<i class=\\"bi bi-collection me-1\\"></i>Collapse";
@@ -800,7 +808,10 @@ function switchTab(group, key) {
     el.classList.toggle("active", el.dataset.tabKey === key);
   });
   document.querySelectorAll(\'[data-tab-panel^="\' + group + \':"]\').forEach(el => {
-    el.classList.toggle("d-none", el.dataset.tabPanel !== group + ":" + key);
+    const show = el.dataset.tabPanel === group + ":" + key;
+    const wasHidden = el.classList.contains("d-none");
+    el.classList.toggle("d-none", !show);
+    if (show && wasHidden) fadeInPanel(el); // the panel (and its card title) that just appeared
   });
 }
 
