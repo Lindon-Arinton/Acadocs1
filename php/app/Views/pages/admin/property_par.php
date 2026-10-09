@@ -89,7 +89,7 @@ $minRows = 12;
 <div class="sheet">
   <div class="appendix">Appendix 71</div>
   <div class="head">
-    <img src="<?= base_url('assets/img/logo-icon.png') ?>" alt="">
+    <img src="<?= base_url('assets/img/deped-seal.png') ?>" alt="DepEd seal">
     <div class="rep">Republic of the Philippines<br>Department of Education</div>
     <h1>PROPERTY ACKNOWLEDGMENT RECEIPT</h1>
   </div>
