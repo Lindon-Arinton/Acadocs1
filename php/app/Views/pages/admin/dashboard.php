@@ -39,7 +39,7 @@ $insightTone = [
     'danger'  => ['#fee2e2', '#b91c1c'],
     'warning' => ['#fef3c7', '#b45309'],
     'success' => ['#d1fae5', '#059669'],
-    'info'    => ['#f3e8e8', '#800000'],
+    'info'    => ['rgba(var(--chart-rgb), .1)', 'rgb(var(--chart-rgb))'], // maroon in light, gold in dark
 ];
 ?>
 
@@ -187,7 +187,7 @@ $insightTone = [
       <?php if (empty($enrollment)): ?>
       <p class="text-muted text-center py-4 mb-0 small"><i class="bi bi-bar-chart fs-4 d-block mb-2"></i>No enrolment data for SY <?= e($currentYear) ?>.</p>
       <?php else: ?>
-      <div class="dash-legend"><span><i style="background:#6e1020"></i>Male</span><span><i style="background:#e3b6bd"></i>Female</span></div>
+      <div class="dash-legend"><span><i style="background:rgb(var(--chart-rgb))"></i>Male</span><span><i style="background:var(--chart-soft)"></i>Female</span></div>
       <div class="dash-chart"><canvas id="enrollChart" data-label-header="Grade Level" data-table-total="1" data-source="<?= e('Enrollment sheet uploaded with Add Enrollment — the ' . ($enrollmentMonth ? date('F Y', strtotime($enrollmentMonth . '-01')) . ' ' : '') . 'count for SY ' . $currentYear . ', with each grade level’s sections added up.') ?>"></canvas></div>
       <?php endif; ?>
     </div>
@@ -210,7 +210,7 @@ $insightTone = [
       <div class="flex-grow-1" style="min-width:120px;">
         <?php foreach (['Submitted' => 1, 'Reviewed' => .7, 'Pending' => .45, 'Returned' => .25] as $status => $alpha): ?>
         <div class="d-flex justify-content-between align-items-center small mb-2">
-          <span><span class="d-inline-block rounded-circle me-2" style="width:9px;height:9px;background:rgba(110,16,32,<?= $alpha ?>);"></span><?= $status ?></span>
+          <span><span class="d-inline-block rounded-circle me-2" style="width:9px;height:9px;background:rgba(var(--chart-rgb),<?= $alpha ?>);"></span><?= $status ?></span>
           <strong><?= $docPct($status) ?>%</strong>
         </div>
         <?php endforeach; ?>
@@ -247,7 +247,7 @@ $insightTone = [
   <div class="card dash-card dash-area-perf">
     <div class="dash-card-head">
       <span><i class="bi bi-graph-up"></i>Performance by Level</span>
-      <div class="dash-legend m-0"><span><i style="background:#6e1020"></i>Average MPS</span></div>
+      <div class="dash-legend m-0"><span><i style="background:rgb(var(--chart-rgb))"></i>Average MPS</span></div>
     </div>
     <div class="dash-card-body">
       <?php if (empty($perfLevel)): ?>
@@ -261,7 +261,12 @@ $insightTone = [
   <!-- Enrollment breakdown / learning area / historical KPIs -->
   <div class="card dash-card dash-area-breakdown" id="dash-breakdown">
     <div class="dash-card-head flex-wrap gap-2">
-      <span><i class="bi bi-building"></i>Enrollment Breakdown<?php if (! empty($enrollmentMonth)): ?> <small class="text-muted fw-normal">(<?= e(date('F Y', strtotime($enrollmentMonth . '-01'))) ?>)</small><?php endif; ?></span>
+      <?php /* One title per tab — switchTab() shows the one matching the active tab like it does the panels. */ ?>
+      <span data-tab-panel="data:breakdown"><i class="bi bi-building"></i>Enrollment Breakdown<?php if (! empty($enrollmentMonth)): ?> <small class="text-muted fw-normal">(<?= e(date('F Y', strtotime($enrollmentMonth . '-01'))) ?>)</small><?php endif; ?></span>
+      <span data-tab-panel="data:subject" class="d-none"><i class="bi bi-mortarboard"></i>Performance by Learning Area <small class="text-muted fw-normal">(SY <?= e(str_replace('-', '–', $currentYear)) ?>, Term <?= e($currentTerm) ?>)</small></span>
+      <?php if (! empty($depedKpis)): ?>
+      <span data-tab-panel="data:deped" class="d-none"><i class="bi bi-clipboard-data"></i>DepEd Historical KPIs</span>
+      <?php endif; ?>
       <div class="dash-tabs" data-tab-group="data">
         <button type="button" class="active" data-tab-key="breakdown" onclick="switchTab('data','breakdown')">By Grade &amp; Section</button>
         <button type="button" data-tab-key="subject" onclick="switchTab('data','subject')">Learning Area</button>
@@ -768,6 +773,7 @@ function applyYearRange() {
 }
 
 const maroon = chartColor(), maroonLight = chartColorAlt(), maroonDark = "#560000", crimson = "#dc143c";
+const chartSoft = getComputedStyle(document.documentElement).getPropertyValue("--chart-soft").trim();
 
 function togglePerfBreakdown() {
   const summary = document.getElementById("perfSummaryTable");
@@ -791,6 +797,24 @@ function switchTab(group, key) {
     el.classList.toggle("d-none", el.dataset.tabPanel !== group + ":" + key);
   });
 }
+
+// Enrollment Breakdown keeps the By Grade & Section size on every tab: measure
+// that panel once (and on resize) and the other tabs scroll inside the same height.
+function lockBreakdownHeight() {
+  const card = document.getElementById("dash-breakdown");
+  const base = card && card.querySelector(".dash-card-body[data-tab-panel=\"data:breakdown\"]");
+  if (!base) return;
+  const wasHidden = base.classList.contains("d-none");
+  card.style.removeProperty("--breakdown-h");
+  base.classList.remove("d-none");
+  card.style.setProperty("--breakdown-h", base.offsetHeight + "px");
+  if (wasHidden) base.classList.add("d-none");
+}
+lockBreakdownHeight();
+if (document.fonts) document.fonts.ready.then(lockBreakdownHeight); // row heights settle once web fonts load
+window.removeEventListener("resize", window.__lockBreakdownOnResize || lockBreakdownHeight);
+window.__lockBreakdownOnResize = lockBreakdownHeight;
+window.addEventListener("resize", lockBreakdownHeight);
 
 // Enrollment Chart — a paler tint (context/volume metric); thin, capped
 // bars with air between them, not a wall-to-wall saturated block. Performance
@@ -816,8 +840,8 @@ if (enrollChartEl) {
     data: {
       labels: ' . json_encode(array_column($enrollment, 'grade_level')) . ',
       datasets: enrollHasSplit ? [
-        { label: "Male",   data: ' . json_encode(array_map(static fn ($r) => (int) $r['male'], $enrollment)) . ',   backgroundColor: "#6e1020", borderRadius: 4, maxBarThickness: 22 },
-        { label: "Female", data: ' . json_encode(array_map(static fn ($r) => (int) $r['female'], $enrollment)) . ', backgroundColor: "#e3b6bd", borderRadius: 4, maxBarThickness: 22 }
+        { label: "Male",   data: ' . json_encode(array_map(static fn ($r) => (int) $r['male'], $enrollment)) . ',   backgroundColor: maroon, borderRadius: 4, maxBarThickness: 22 },
+        { label: "Female", data: ' . json_encode(array_map(static fn ($r) => (int) $r['female'], $enrollment)) . ', backgroundColor: chartSoft, borderRadius: 4, maxBarThickness: 22 }
       ] : [
         { label: "Students", data: enrollTotals, backgroundColor: chartColor(.25), borderColor: maroon, borderWidth: 1, borderRadius: 4, maxBarThickness: 28 }
       ]
@@ -841,7 +865,7 @@ if (perfChartEl) {
     data: {
       labels: ' . json_encode(array_column($perfLevel, 'grade_level')) . ',
       datasets: [
-        { label:"Average MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:"#6e1020", borderRadius:4, maxBarThickness:26 }
+        { label:"Average MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:4, maxBarThickness:26 }
       ]
     },
     // Axis starts 10 points below the lowest grade level (rounded down to a
@@ -866,7 +890,7 @@ new Chart(document.getElementById("docChart"), {
     datasets: [{
       data: docHasAny ? docCounts : [1],
       backgroundColor: docHasAny
-        ? ["rgba(110,16,32,1)","rgba(110,16,32,.7)","rgba(110,16,32,.45)","rgba(110,16,32,.25)"]
+        ? [chartColor(1), chartColor(.7), chartColor(.45), chartColor(.25)]
         : [getComputedStyle(document.documentElement).getPropertyValue("--border").trim() || "#e5e7eb"],
       borderWidth: 0,
     }]

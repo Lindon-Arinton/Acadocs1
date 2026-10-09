@@ -8,7 +8,7 @@ use App\Models\UserModel;
 
 /**
  * "Forgot password": the user enters their email, gets a 6-digit code by
- * email, then enters that code with a new password.
+ * email, verifies that code, and only then picks a new password (in a modal).
  */
 class PasswordReset extends BaseController
 {
@@ -16,6 +16,7 @@ class PasswordReset extends BaseController
     private const MAX_ATTEMPTS     = 5;
     private const RESEND_COOLDOWN  = 60; // seconds between codes for one account
     private const SESSION_EMAIL    = 'password_reset_email';
+    private const SESSION_VERIFIED = 'password_reset_verified'; // ['email' => …, 'reset_id' => …] once the code checks out
 
     /** Step 1: ask for the account email and send a code. */
     public function forgot()
@@ -37,6 +38,7 @@ class PasswordReset extends BaseController
 
                 if ($error === '') {
                     session()->set(self::SESSION_EMAIL, $email);
+                    session()->remove(self::SESSION_VERIFIED); // a new code must be verified afresh
 
                     return redirect()->to('/reset-password')->with('info',
                         'If an account exists for ' . $email . ', a 6-digit reset code has been sent to it. '
@@ -48,7 +50,11 @@ class PasswordReset extends BaseController
         return view('auth/forgot_password', ['error' => $error, 'email' => $email]);
     }
 
-    /** Step 2: check the code and set the new password. */
+    /**
+     * Step 2 (step=verify): check the code. Step 3 (step=password): only once
+     * the code is verified, set the new password — the page shows that step
+     * in a modal.
+     */
     public function reset()
     {
         if (currentUser()) {
@@ -60,35 +66,78 @@ class PasswordReset extends BaseController
             return redirect()->to('/forgot-password');
         }
 
-        $error = '';
+        $error         = '';
+        $passwordError = '';
 
         if ($this->request->getMethod() === 'POST') {
-            $code     = preg_replace('/\D/', '', (string) $this->request->getPost('code'));
-            $password = (string) $this->request->getPost('password');
-            $confirm  = (string) $this->request->getPost('confirm_password');
+            $step = (string) $this->request->getPost('step');
 
-            if (strlen($code) !== 6) {
-                $error = 'Enter the 6-digit code from the email.';
-            } elseif (strlen($password) < 6) {
-                $error = 'New password must be at least 6 characters.';
-            } elseif ($password !== $confirm) {
-                $error = 'New password and confirmation do not match.';
-            } else {
-                $error = $this->consumeCode($email, $code, $password);
+            if ($step === 'verify') {
+                $code = preg_replace('/\D/', '', (string) $this->request->getPost('code'));
 
-                if ($error === '') {
-                    session()->remove(self::SESSION_EMAIL);
+                if (strlen($code) !== 6) {
+                    $error = 'Enter the 6-digit code from the email.';
+                } else {
+                    [$error, $resetId] = $this->verifyCode($email, $code);
+
+                    if ($error === '') {
+                        session()->set(self::SESSION_VERIFIED, ['email' => $email, 'reset_id' => $resetId]);
+
+                        return redirect()->to('/reset-password');
+                    }
+                }
+            } elseif ($step === 'password') {
+                $user    = (new UserModel())->findByEmail($email);
+                $resetId = $user && (int) $user['is_active'] ? $this->verifiedResetId($email, (int) $user['id']) : null;
+                $password = (string) $this->request->getPost('password');
+                $confirm  = (string) $this->request->getPost('confirm_password');
+
+                if ($resetId === null) {
+                    session()->remove(self::SESSION_VERIFIED);
+                    $error = 'Your verified code has expired. Request a new one.';
+                } elseif (strlen($password) < 6) {
+                    $passwordError = 'New password must be at least 6 characters.';
+                } elseif ($password !== $confirm) {
+                    $passwordError = 'New password and confirmation do not match.';
+                } else {
+                    (new UserModel())->update($user['id'], ['password' => password_hash($password, PASSWORD_BCRYPT)]);
+                    (new PasswordResetModel())->closeAllForUser((int) $user['id']);
+                    session()->remove([self::SESSION_EMAIL, self::SESSION_VERIFIED]);
 
                     return redirect()->to('/login')->with('success', 'Your password has been reset. You can now sign in.');
                 }
             }
         }
 
+        $user     = (new UserModel())->findByEmail($email);
+        $verified = $user && $this->verifiedResetId($email, (int) $user['id']) !== null;
+
         return view('auth/reset_password', [
-            'error' => $error,
-            'email' => $email,
-            'info'  => session()->getFlashdata('info'),
+            'error'         => $error,
+            'passwordError' => $passwordError,
+            'verified'      => $verified,
+            'email'         => $email,
+            'info'          => session()->getFlashdata('info'),
         ]);
+    }
+
+    /**
+     * The reset row this session verified, if that code is still the user's
+     * newest open one and hasn't expired — otherwise null.
+     */
+    private function verifiedResetId(string $email, int $userId): ?int
+    {
+        $verified = session()->get(self::SESSION_VERIFIED);
+        if (! is_array($verified) || ($verified['email'] ?? '') !== $email) {
+            return null;
+        }
+
+        $reset = (new PasswordResetModel())->latestOpenForUser($userId);
+        if (! $reset || (int) $reset['id'] !== (int) ($verified['reset_id'] ?? 0) || strtotime($reset['expires_at']) < time()) {
+            return null;
+        }
+
+        return (int) $reset['id'];
     }
 
     /**
@@ -136,22 +185,25 @@ class PasswordReset extends BaseController
         return 'We could not send the reset email right now. Please try again later or contact the administrator.';
     }
 
-    /** @return string error message, or '' on success */
-    private function consumeCode(string $email, string $code, string $password): string
+    /**
+     * Checks the code without using it up (that happens when the password is set).
+     *
+     * @return array{0: string, 1: int|null} [error message or '', verified reset id]
+     */
+    private function verifyCode(string $email, string $code): array
     {
         $invalid = 'That code is invalid or has expired. Request a new one.';
 
-        $users = new UserModel();
-        $user  = $users->findByEmail($email);
+        $user = (new UserModel())->findByEmail($email);
         if (! $user || ! (int) $user['is_active']) {
-            return $invalid;
+            return [$invalid, null];
         }
 
         $resets = new PasswordResetModel();
         $reset  = $resets->latestOpenForUser((int) $user['id']);
 
         if (! $reset || strtotime($reset['expires_at']) < time() || (int) $reset['attempts'] >= self::MAX_ATTEMPTS) {
-            return $invalid;
+            return [$invalid, null];
         }
 
         if (! password_verify($code, $reset['code_hash'])) {
@@ -160,15 +212,12 @@ class PasswordReset extends BaseController
 
             $left = self::MAX_ATTEMPTS - $attempts;
 
-            return $left > 0
+            return [$left > 0
                 ? 'Incorrect code. ' . $left . ' attempt' . ($left === 1 ? '' : 's') . ' left.'
-                : 'Too many incorrect attempts. Request a new code.';
+                : 'Too many incorrect attempts. Request a new code.', null];
         }
 
-        $users->update($user['id'], ['password' => password_hash($password, PASSWORD_BCRYPT)]);
-        $resets->closeAllForUser((int) $user['id']);
-
-        return '';
+        return ['', (int) $reset['id']];
     }
 
     private function sendCodeEmail(array $user, string $code): bool

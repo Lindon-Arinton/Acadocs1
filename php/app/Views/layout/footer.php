@@ -738,14 +738,24 @@ function confirmLogout(e, link) {
     e.preventDefault();
     Swal.fire({
         title: 'Log out?',
-        text: 'You will need to sign in again to continue.',
+        text: 'You’ll need to sign in again to continue.',
         icon: 'question',
+        iconHtml: '<i class="bi bi-box-arrow-right"></i>',
         showCancelButton: true,
         confirmButtonText: 'Yes, log out',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#800000',
-        cancelButtonColor: '#6b7280',
         reverseButtons: true,
+        buttonsStyling: false,
+        // Styled in app.css (.logout-swal*)
+        customClass: {
+            popup: 'logout-swal',
+            icon: 'logout-swal-icon',
+            title: 'logout-swal-title',
+            htmlContainer: 'logout-swal-text',
+            actions: 'logout-swal-actions',
+            confirmButton: 'logout-swal-confirm',
+            cancelButton: 'logout-swal-cancel',
+        },
     }).then(result => {
         if (result.isConfirmed) window.location.href = link.href;
     });
@@ -760,7 +770,24 @@ function initLiveSearch(inputId, formId, delay = 500) {
     let timer;
     input.addEventListener('input', () => {
         clearTimeout(timer);
-        timer = setTimeout(() => form.requestSubmit(), delay);
+        timer = setTimeout(() => {
+            const query = new URLSearchParams(new FormData(form)).toString();
+            loadPage(form.getAttribute('action') + (query ? '?' + query : ''), {
+                quiet: true,
+                // The swap replaces this input with a fresh copy: hand it back
+                // the focus, the caret, and anything typed while the request
+                // was in flight (which then schedules its own search).
+                afterSwap() {
+                    const fresh = document.getElementById(inputId);
+                    if (!fresh || fresh === input) return;
+                    const typedMeanwhile = fresh.value !== input.value;
+                    fresh.value = input.value;
+                    fresh.focus();
+                    fresh.setSelectionRange(input.selectionStart, input.selectionEnd);
+                    if (typedMeanwhile) fresh.dispatchEvent(new Event('input'));
+                },
+            });
+        }, delay);
     });
 }
 
@@ -1122,7 +1149,10 @@ function removeOrphanedMaroonSelectPanels() {
     });
 }
 
-function loadPage(url, { push = true, scroll = true } = {}) {
+// quiet: an in-place refresh (live search) — no overlay, no entry animation,
+// no scroll jump, and the URL is replaced instead of pushed. afterSwap runs
+// once the new content and its page script are in place.
+function loadPage(url, { push = true, scroll = true, quiet = false, afterSwap = null } = {}) {
     const target = new URL(url, window.location.href);
     if (target.origin !== window.location.origin || isAjaxNavExempt(target)) {
         window.location.href = target.href;
@@ -1132,7 +1162,7 @@ function loadPage(url, { push = true, scroll = true } = {}) {
     const token = ++ajaxNavToken;
     const main = document.getElementById('main-content');
     startAjaxProgress();
-    showPageLoadingOverlay();
+    if (!quiet) showPageLoadingOverlay();
 
     fetch(target.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => {
@@ -1162,9 +1192,11 @@ function loadPage(url, { push = true, scroll = true } = {}) {
             // wrappers from the document, which is what tells the cleanup
             // which body-level panels are truly orphaned vs. still in use.
             removeOrphanedMaroonSelectPanels();
-            main.classList.remove('animate-in');
-            void main.offsetWidth;
-            main.classList.add('animate-in');
+            if (!quiet) {
+                main.classList.remove('animate-in');
+                void main.offsetWidth;
+                main.classList.add('animate-in');
+            }
 
             if (doc.title) document.title = doc.title;
 
@@ -1174,16 +1206,18 @@ function loadPage(url, { push = true, scroll = true } = {}) {
             runPageScript(pageExtraScriptCode(doc));
             reinitPageWidgets(main);
 
-            if (push) history.pushState({ ajaxNav: true }, '', finalUrl);
+            if (quiet) history.replaceState({ ajaxNav: true }, '', finalUrl);
+            else if (push) history.pushState({ ajaxNav: true }, '', finalUrl);
             if (target.hash) {
                 const hashTarget = document.getElementById(target.hash.slice(1));
                 if (hashTarget) hashTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else if (scroll) {
+            } else if (scroll && !quiet) {
                 window.scrollTo({ top: 0, behavior: 'auto' });
             }
             closeSidebar();
             finishAjaxProgress();
             hidePageLoadingOverlay();
+            if (afterSwap) afterSwap();
         })
         .catch(err => {
             console.error('AJAX navigation failed, falling back to a full page load:', err);
