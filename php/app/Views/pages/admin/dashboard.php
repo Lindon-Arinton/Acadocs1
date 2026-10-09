@@ -78,6 +78,10 @@ $insightTone = [
     <button type="button" class="btn dash-btn" onclick="openReportModal()">
       <i class="bi bi-file-earmark-bar-graph me-2"></i>Generate Report
     </button>
+    <!-- Enrollment, attendance, MPS by learning area and task compliance for a term / the school year -->
+    <a href="<?= base_url('reports/term-pack') ?>" target="_blank" rel="noopener" class="btn dash-btn">
+      <i class="bi bi-journal-text me-2"></i>Term Pack
+    </a>
     <button type="button" class="btn dash-btn" onclick="document.getElementById('dash-breakdown').scrollIntoView({ behavior: 'smooth', block: 'start' })">
       <i class="bi bi-bar-chart-line me-2"></i>View Data
     </button>

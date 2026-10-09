@@ -16,6 +16,10 @@ $notifTypeIcons = [
     'document_feedback' => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
     'parent_meeting'    => ['bi-people-fill', '#fff7ed', '#9a3412'],
     'property_par'      => ['bi-clipboard-check-fill', '#fff0f0', '#800000'],
+    // Automations (App\Libraries\Automation, MpsAlerts)
+    'mps_alert'         => ['bi-graph-down-arrow', '#fee2e2', '#b91c1c'],
+    'term_reminder'     => ['bi-calendar-event-fill', '#fef3c7', '#92400e'],
+    'report_pack'       => ['bi-file-earmark-bar-graph-fill', '#fff0f0', '#800000'],
 ];
 
 // Safety net for a notification stored (past bug, or old data) without a
@@ -28,6 +32,8 @@ $notifTypeFallbackUrl = static function (string $type) use ($role): string {
         'task_submission'                 => base_url('tasks'),
         'document_feedback'               => base_url('teacher-dashboard') . '#document-feedback',
         'property_par'                    => base_url('property-management?tab=par'),
+        'mps_alert', 'term_reminder'      => base_url($role === 'teacher' ? 'performance/mps' : 'dashboard'),
+        'report_pack'                     => base_url('reports/term-pack'),
         default                           => base_url('announcements'),
     };
 };
@@ -96,9 +102,10 @@ try {
     if ($user) {
         $freshUserRow = (new \App\Models\UserModel())->select('last_viewed_announcements_at')->find((int) $user['id']);
         $lastViewedAt = $freshUserRow['last_viewed_announcements_at'] ?? null;
-        $annCountQuery = (new \App\Models\AnnouncementModel())->where('status', 'active');
+        $annCountQuery = (new \App\Models\AnnouncementModel())->live();
         if ($lastViewedAt !== null) {
-            $annCountQuery->where('created_at >', $lastViewedAt);
+            // A scheduled post counts as new from when it went live, not when it was written.
+            $annCountQuery->where('COALESCE(announcements.publish_at, announcements.created_at) >', $lastViewedAt);
         }
         $unreadAnnouncementsCount = $annCountQuery->countAllResults();
     }

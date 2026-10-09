@@ -1,5 +1,5 @@
 -- ============================================================================
---  ACADOCS — mock data for every table (38 tables)
+--  ACADOCS — mock data for every table (39 tables; automation_log starts empty)
 --  Import AFTER acadocs_schema_cleaned.sql, into the empty `acadocs` database.
 --
 --  Logins (password for every account: Password123!)
@@ -2878,18 +2878,24 @@ INSERT INTO `mps_test_scores` (`school_year`, `term`, `grade_level`, `subject`, 
 ('2026-2027', 1, 'Grade 10', 'ESP', 'Acacia', 'Summative Test 2', 91.1, '2026-09-25 15:00:00'),
 ('2026-2027', 1, 'Grade 10', 'ESP', 'Acacia', 'Term Examination', 89.17, '2026-09-25 15:00:00');
 
--- holidays (10 rows)
-INSERT INTO `holidays` (`date`, `label`, `created_at`) VALUES
-('2026-06-12', 'Independence Day', '2026-06-01 08:00:00'),
-('2026-06-19', 'José Rizal\'s Birthday (local)', '2026-06-01 08:00:00'),
-('2026-08-21', 'Ninoy Aquino Day', '2026-06-01 08:00:00'),
-('2026-08-31', 'National Heroes Day', '2026-06-01 08:00:00'),
-('2026-09-08', 'Feast of the Nativity of Mary (Lian)', '2026-06-01 08:00:00'),
-('2026-11-01', 'All Saints\' Day', '2026-06-01 08:00:00'),
-('2026-11-30', 'Bonifacio Day', '2026-06-01 08:00:00'),
-('2026-12-08', 'Feast of the Immaculate Conception', '2026-06-01 08:00:00'),
-('2026-12-25', 'Christmas Day', '2026-06-01 08:00:00'),
-('2026-12-30', 'Rizal Day', '2026-06-01 08:00:00');
+-- holidays (16 rows; recurring = every year. Holy Week and National Heroes Day are computed, not stored)
+INSERT INTO `holidays` (`date`, `label`, `recurring`, `created_at`) VALUES
+('2026-06-12', 'Independence Day', 1, '2026-06-01 08:00:00'),
+('2026-01-01', 'New Year\'s Day', 1, '2026-06-01 08:00:00'),
+('2026-04-09', 'Day of Valor (Araw ng Kagitingan)', 1, '2026-06-01 08:00:00'),
+('2026-05-01', 'Labor Day', 1, '2026-06-01 08:00:00'),
+('2026-08-21', 'Ninoy Aquino Day', 1, '2026-06-01 08:00:00'),
+('2026-11-01', 'All Saints\' Day', 1, '2026-06-01 08:00:00'),
+('2026-11-02', 'All Souls\' Day', 1, '2026-06-01 08:00:00'),
+('2026-11-30', 'Bonifacio Day', 1, '2026-06-01 08:00:00'),
+('2026-12-08', 'Feast of the Immaculate Conception of Mary', 1, '2026-06-01 08:00:00'),
+('2026-12-24', 'Christmas Eve', 1, '2026-06-01 08:00:00'),
+('2026-12-25', 'Christmas Day', 1, '2026-06-01 08:00:00'),
+('2026-12-30', 'Rizal Day', 1, '2026-06-01 08:00:00'),
+('2026-12-31', 'Last Day of the Year (New Year\'s Eve)', 1, '2026-06-01 08:00:00'),
+('2026-02-17', 'Chinese New Year', 0, '2026-06-01 08:00:00'),
+('2026-06-19', 'José Rizal\'s Birthday (local)', 0, '2026-06-01 08:00:00'),
+('2026-09-08', 'Feast of the Nativity of Mary (Lian)', 0, '2026-06-01 08:00:00');
 
 -- academic_breaks (2 rows)
 INSERT INTO `academic_breaks` (`label`, `start_date`, `end_date`, `created_at`) VALUES
@@ -4304,8 +4310,10 @@ INSERT INTO `password_resets` (`user_id`, `code_hash`, `attempts`, `expires_at`,
 INSERT INTO `api_tokens` (`user_id`, `token_hash`, `device_info`, `last_used_at`, `expires_at`, `created_at`) VALUES
 (1, 'b01933c773b0a04c4a0ac05cb52bc1d997970b46e411130c380be0f1aec4c531', 'ACADOCS Mobile (Android 14)', '2026-09-30 18:22:00', '2026-12-31 23:59:59', '2026-09-01 08:00:00');
 
--- migrations (52 rows)
+-- migrations (54 rows)
 INSERT INTO `migrations` (`version`, `class`, `group`, `namespace`, `time`, `batch`) VALUES
+('2026-10-09-000003', 'App\\Database\\Migrations\\AddAutomation', 'default', 'App', 1791561600, 1),
+('2026-10-09-000002', 'App\\Database\\Migrations\\AddRecurringToHolidays', 'default', 'App', 1791561600, 1),
 ('2026-10-09-000001', 'App\\Database\\Migrations\\AddAcademicBreaks', 'default', 'App', 1791561600, 1),
 ('2026-01-01-000001', 'App\\Database\\Migrations\\CreateUsers', 'default', 'App', 1790920800, 1),
 ('2026-01-01-000002', 'App\\Database\\Migrations\\CreateTeachers', 'default', 'App', 1790920800, 1),

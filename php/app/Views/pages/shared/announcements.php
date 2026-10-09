@@ -100,6 +100,20 @@
               <span class="badge" style="background:<?= $bg ?>;color:<?= $tc ?>;border:1px solid <?= $tc ?>33;font-size:.68rem;">
                 <?= e($a['type']) ?>
               </span>
+              <?php $annState = \App\Models\AnnouncementModel::stateOf($a); ?>
+              <?php if ($annState === 'scheduled'): ?>
+              <span class="badge badge-pending ms-1" style="font-size:.68rem;" title="Not visible to others yet">
+                <i class="bi bi-clock me-1"></i>Scheduled · <?= date('M d, h:i A', strtotime($a['publish_at'])) ?>
+              </span>
+              <?php elseif ($annState === 'archived'): ?>
+              <span class="badge ms-1" style="font-size:.68rem;background:var(--surface-hover);color:var(--muted);border:1px solid var(--border);" title="Hidden from everyone except the principal and ADAS">
+                <i class="bi bi-archive me-1"></i>Archived
+              </span>
+              <?php elseif (! empty($a['expires_at'])): ?>
+              <span class="badge ms-1" style="font-size:.68rem;background:var(--surface-hover);color:var(--text-secondary);border:1px solid var(--border);">
+                <i class="bi bi-hourglass-split me-1"></i>Until <?= date('M d, h:i A', strtotime($a['expires_at'])) ?>
+              </span>
+              <?php endif; ?>
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
               <span class="text-muted" style="font-size:.72rem;">
@@ -155,15 +169,7 @@
             <input type="text" name="title" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label class="form-label" for="announcementContent">Content <span class="text-muted fw-normal">(optional)</span></label>
-            <div class="btn-group btn-group-sm mb-1" role="group" aria-label="Text formatting">
-              <button type="button" class="btn btn-outline-secondary" title="Bold (Ctrl+B)" onclick="toggleMarker(document.getElementById('announcementContent'),'**')">
-                <i class="bi bi-type-bold"></i>
-              </button>
-              <button type="button" class="btn btn-outline-secondary" title="Italic (Ctrl+I)" onclick="toggleMarker(document.getElementById('announcementContent'),'*')">
-                <i class="bi bi-type-italic"></i>
-              </button>
-            </div>
+            <label class="form-label" for="announcementContent">Content</label>
             <textarea name="content" id="announcementContent" class="form-control" rows="4"
                       placeholder="Write the announcement… (Ctrl+B bold, Ctrl+I italic)"></textarea>
           </div>
@@ -192,6 +198,25 @@
                 <div class="maroon-dp-grid"></div>
               </div>
             </div>
+          </div>
+          <!-- Scheduling: published (and everyone notified) at a set time; archived automatically after "Archive". -->
+          <div class="mb-3">
+            <label class="form-label">Publish</label>
+            <div class="d-flex gap-3 flex-wrap mb-2" style="font-size:.85rem;">
+              <?php foreach (['now' => 'Now', 'schedule' => 'Schedule for later'] as $mode => $modeLabel): ?>
+              <label class="d-inline-flex align-items-center gap-2" style="cursor:pointer;">
+                <input type="radio" name="publish_mode" value="<?= $mode ?>" class="form-check-input mt-0" <?= $mode === 'now' ? 'checked' : '' ?>
+                       onchange="const at = document.getElementById('announcementPublishAt'); at.classList.toggle('d-none', this.value !== 'schedule'); at.required = this.value === 'schedule';">
+                <?= $modeLabel ?>
+              </label>
+              <?php endforeach; ?>
+            </div>
+            <input type="datetime-local" name="publish_at" id="announcementPublishAt" class="form-control d-none" min="<?= date('Y-m-d\TH:i') ?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="announcementExpiresAt">Archive automatically <span class="text-muted fw-normal">(optional)</span></label>
+            <input type="datetime-local" name="expires_at" id="announcementExpiresAt" class="form-control" min="<?= date('Y-m-d\TH:i') ?>">
+            <div class="form-text">After this time it's hidden from everyone except the principal and ADAS.</div>
           </div>
         </div>
         <div class="modal-footer">

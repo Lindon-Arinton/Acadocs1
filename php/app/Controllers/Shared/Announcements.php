@@ -114,6 +114,21 @@ class Announcements extends BaseController
                         return $isAjax ? $this->ajaxError($error) : redirect()->to('/announcements')->with('flash', ['type' => 'danger', 'msg' => $error]);
                     }
 
+                    // Optional schedule: publish later and/or archive automatically.
+                    $publishAt = $this->request->getPost('publish_mode') === 'schedule'
+                        ? $this->toDateTime($this->request->getPost('publish_at'))
+                        : null;
+                    $expiresAt = $this->toDateTime($this->request->getPost('expires_at'));
+                    $scheduleError = match (true) {
+                        $this->request->getPost('publish_mode') === 'schedule' && $publishAt === null => 'Choose when to publish the announcement.',
+                        $publishAt !== null && $publishAt <= date('Y-m-d H:i:s') => 'The publish time must be in the future.',
+                        $expiresAt !== null && $expiresAt <= ($publishAt ?? date('Y-m-d H:i:s')) => 'The archive time must be after the announcement is published.',
+                        default => null,
+                    };
+                    if ($scheduleError !== null) {
+                        return $isAjax ? $this->ajaxError($scheduleError) : redirect()->to('/announcements')->with('flash', ['type' => 'danger', 'msg' => $scheduleError]);
+                    }
+
                     // Optional photo: validated before anything is saved.
                     $image = null;
                     $photo = $this->request->getFile('image');
@@ -142,25 +157,19 @@ class Announcements extends BaseController
                         'image'      => $image,
                         'date'       => $date,
                         'status'     => 'active',
+                        'publish_at' => $publishAt,
+                        'expires_at' => $expiresAt,
+                        'notified'   => $publishAt === null ? 1 : 0,
                         'created_by' => currentUser()['id'], // shown as "Posted by"
                     ]);
 
-                    $poster     = currentUser();
-                    $notifModel = new NotificationModel();
-                    foreach ((new UserModel())->active()->where('id !=', $poster['id'])->findAll() as $recipient) {
-                        $notifModel->insert([
-                            'user_id' => $recipient['id'],
-                            'type'    => 'announcement',
-                            'title'   => $title,
-                            'sub'     => $type . ' · ' . date('M d', strtotime($date)),
-                            'url'     => base_url('announcements') . '?id=' . $announcementId,
-                            'ref_type' => 'announcement',
-                            'ref_id'  => $announcementId,
-                            'is_read' => 0,
-                        ]);
+                    // Scheduled: everyone is notified when it goes live (App\Libraries\Automation).
+                    if ($publishAt === null) {
+                        $model->notifyEveryone($model->find($announcementId));
+                        $message = 'Announcement posted successfully.';
+                    } else {
+                        $message = 'Announcement scheduled for ' . date('M d, Y · h:i A', strtotime($publishAt)) . '.';
                     }
-
-                    $message = 'Announcement posted successfully.';
                 } elseif ($action === 'delete') {
                     $announcementId = (int) $this->request->getPost('id');
                     $existing       = $model->find($announcementId);
@@ -200,6 +209,11 @@ class Announcements extends BaseController
 
         $builder = $model->select('announcements.*, users.name AS poster_name, users.role AS poster_role')
             ->join('users', 'users.id = announcements.created_by', 'left');
+        // Posters (principal / ADAS) also see scheduled and archived ones, tagged
+        // as such; everyone else sees only what's live right now.
+        if (! hasRole('admin', 'adas')) {
+            $builder->live();
+        }
         if ($filter !== 'all') {
             $builder->where('announcements.type', $filter);
         }
@@ -237,5 +251,14 @@ class Announcements extends BaseController
             'deletedNotice'  => $deletedNotice,
             'requestedId'    => $requestedId ? (int) $requestedId : null,
         ]);
+    }
+
+    /** A datetime-local value ("2026-10-12T08:00") as "Y-m-d H:i:s", or null when blank/invalid. */
+    private function toDateTime(?string $value): ?string
+    {
+        $value = trim((string) $value);
+        $time  = $value !== '' ? strtotime($value) : false;
+
+        return $time ? date('Y-m-d H:i:s', $time) : null;
     }
 }

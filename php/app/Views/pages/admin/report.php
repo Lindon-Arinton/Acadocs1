@@ -74,81 +74,7 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
-<style>
-  :root { --maroon: #800000; --maroon-soft: #fdf2f2; --text: #1f2937; --muted: #6b7280; --border: #e5e7eb; }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: #e9e5e6; color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 12.5px; line-height: 1.5; }
-
-  .toolbar { position: sticky; top: 0; z-index: 5; display: flex; gap: .5rem; justify-content: center; padding: .7rem; background: #2b2b30; }
-  .toolbar button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: .5rem 1rem; cursor: pointer; }
-  .toolbar .primary { background: var(--maroon); color: #fff; }
-  .toolbar .ghost { background: rgba(255,255,255,.12); color: #fff; }
-
-  .page { width: 210mm; min-height: 297mm; margin: 18px auto; padding: 16mm 15mm; background: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
-
-  .letterhead { display: grid; grid-template-columns: 80px 1fr 80px; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 3px double var(--maroon); }
-  .letterhead img { width: 76px; height: auto; }
-  .letterhead .lh-text { text-align: center; line-height: 1.25; }
-  .lh-text .rp { font-family: 'Old English Text MT', 'UnifrakturMaguntia', serif; font-size: 13px; }
-  .lh-text .deped { font-family: 'Old English Text MT', 'UnifrakturMaguntia', serif; font-size: 20px; }
-  .lh-text .line { font-weight: 700; font-size: 10.5px; letter-spacing: .02em; }
-
-  .report-title { text-align: center; margin: 16px 0 4px; }
-  .report-title h1 { margin: 0; font-size: 18px; letter-spacing: .06em; text-transform: uppercase; color: var(--maroon); }
-  .report-title .scope { font-weight: 700; font-size: 13px; margin-top: 2px; }
-  .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; margin: 10px 0 6px; padding: 7px 10px; background: var(--maroon-soft); border-radius: 6px; font-size: 11px; color: var(--muted); }
-
-  .sec { margin-top: 18px; break-inside: avoid; page-break-inside: avoid; }
-  .sec-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding-bottom: 5px; font-size: 13.5px; border-bottom: 1px solid var(--border); }
-  .sec-title i { color: var(--maroon); }
-  .sec-no { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--maroon); color: #fff; font-size: 10.5px; }
-  .note { font-size: 11px; color: var(--muted); margin: 4px 0 0; }
-
-  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .tile { border: 1px solid var(--border); border-top: 3px solid var(--maroon); border-radius: 8px; padding: 9px 10px; }
-  .tile .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-  .tile .value { font-size: 20px; font-weight: 700; margin: 2px 0; }
-  .tile .delta { font-size: 10.5px; }
-  .good { color: #059669; font-weight: 600; } .bad { color: #dc2626; font-weight: 600; } .muted { color: var(--muted); }
-
-  .insight { display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; margin-bottom: 6px; border-radius: 6px; background: #fafafa; border-left: 4px solid; }
-  .insight i { margin-top: 1px; }
-
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-  .chart-box { position: relative; height: 210px; border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-  th, td { padding: 5px 7px; border-bottom: 1px solid var(--border); text-align: left; }
-  thead th { background: var(--maroon); color: #fff; font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; }
-  tbody tr:nth-child(even) td { background: #fbf8f8; }
-  tfoot td { font-weight: 700; border-top: 2px solid var(--maroon); }
-  .num { text-align: right; font-variant-numeric: tabular-nums; }
-  /* Wide tables (DepEd KPIs: 11 columns) must fit the A4 width. */
-  table.compact { table-layout: fixed; font-size: 10px; }
-  table.compact th, table.compact td { padding: 4px 3px; }
-  table.compact thead th { font-size: 8.5px; letter-spacing: 0; line-height: 1.2; white-space: normal; }
-  table.compact th:first-child, table.compact td:first-child { width: 62px; }
-  .empty { padding: 12px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; }
-
-  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; break-inside: avoid; }
-  .sig .lbl { font-size: 11px; color: var(--muted); margin-bottom: 30px; }
-  .sig .name { border-top: 1px solid var(--text); padding-top: 3px; font-weight: 700; text-align: center; }
-  .sig .role { text-align: center; font-size: 11px; color: var(--muted); }
-  .footer { margin-top: 18px; font-size: 10px; color: var(--muted); text-align: center; }
-
-  @page { size: A4; margin: 12mm; }
-  @media print {
-    body { background: #fff; }
-    .toolbar { display: none; }
-    .page { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
-    thead th, .sec-no, .tile, .insight, .meta, tbody tr:nth-child(even) td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
-  @media (max-width: 840px) {
-    .page { width: auto; margin: 0; padding: 18px 14px; }
-    .tiles { grid-template-columns: repeat(2, 1fr); }
-    .two-col { grid-template-columns: 1fr; }
-  }
-</style>
+<link rel="stylesheet" href="<?= base_url('assets/css/report-print.css') ?>">
 </head>
 <body>
 
@@ -159,18 +85,7 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
 </div>
 
 <div class="page">
-  <div class="letterhead">
-    <img src="<?= base_url('assets/img/deped-seal.png') ?>" alt="DepEd seal">
-    <div class="lh-text">
-      <div class="rp">Republic of the Philippines</div>
-      <div class="deped">Department of Education</div>
-      <div class="line">REGION IV-A, CALABARZON</div>
-      <div class="line">SCHOOLS DIVISION OF BATANGAS PROVINCE</div>
-      <div class="line">MATABUNGKAY NATIONAL HIGH SCHOOL</div>
-      <div class="line">MATABUNGKAY, LIAN, BATANGAS</div>
-    </div>
-    <img src="<?= base_url('assets/img/logo-icon.png') ?>" alt="School logo">
-  </div>
+  <?php include APPPATH . 'Views/partials/report_letterhead.php'; ?>
 
   <div class="report-title">
     <h1>School Performance Report</h1>

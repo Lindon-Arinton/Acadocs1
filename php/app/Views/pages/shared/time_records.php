@@ -325,7 +325,10 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted" style="font-size:.82rem;">Dates listed here (plus every Saturday &amp; Sunday) are excluded from absence detection during import.</p>
+        <p class="text-muted" style="font-size:.82rem;">
+          Dates listed here (plus every Saturday &amp; Sunday) are excluded from absence detection during import.
+          <strong>Every year</strong> holidays repeat on the same date each year; Holy Week and National Heroes Day are worked out automatically.
+        </p>
         <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form row g-2 align-items-end mb-3">
           <input type="hidden" name="action" value="holiday_add">
           <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
@@ -352,6 +355,11 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
           <div class="col-2">
             <button type="submit" class="btn btn-primary btn-sm w-100">Add</button>
           </div>
+          <div class="col-12">
+            <label class="d-inline-flex align-items-center gap-2 mb-0" style="font-size:.8rem;cursor:pointer;">
+              <input type="checkbox" name="holiday_recurring" value="1" class="form-check-input mt-0"> Every year (same date annually)
+            </label>
+          </div>
         </form>
         <div class="table-responsive" style="max-height:260px;overflow-y:auto;">
           <table class="table table-sm mb-0">
@@ -359,7 +367,13 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             <tbody>
               <?php foreach ($holidays as $h): ?>
               <tr>
-                <td><?= date('M d, Y', strtotime($h['date'])) ?></td>
+                <td class="text-nowrap">
+                  <?php if ((int) $h['recurring']): ?>
+                  <?= date('M d', strtotime($h['date'])) ?> <span class="badge badge-reviewed ms-1" style="font-size:.62rem;">Every year</span>
+                  <?php else: ?>
+                  <?= date('M d, Y', strtotime($h['date'])) ?>
+                  <?php endif; ?>
+                </td>
                 <td class="text-muted"><?= e($h['label'] ?? '') ?></td>
                 <td class="text-end">
                   <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form d-inline" data-confirm-title="Remove this holiday?" data-confirm-icon="warning">
@@ -371,9 +385,14 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
                 </td>
               </tr>
               <?php endforeach; ?>
-              <?php if (empty($holidays)): ?>
-              <tr><td colspan="3" class="text-center text-muted py-3">No holidays added yet.</td></tr>
-              <?php endif; ?>
+              <?php foreach ($movableHolidays as $mDate => $mLabel): ?>
+              <!-- Computed for the year being viewed; nothing to edit or remove. -->
+              <tr>
+                <td class="text-nowrap"><?= date('M d, Y', strtotime($mDate)) ?> <span class="badge badge-pending ms-1" style="font-size:.62rem;" title="Worked out automatically each year">Auto</span></td>
+                <td class="text-muted"><?= e($mLabel) ?></td>
+                <td></td>
+              </tr>
+              <?php endforeach; ?>
             </tbody>
           </table>
         </div>
@@ -463,10 +482,8 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
 <?php endif; ?>
 
 <?php
-$holidayMap = [];
-foreach ($holidays as $h) {
-    $holidayMap[$h['date']] = $h['label'] ?: 'Holiday';
-}
+// The viewed date's holiday, whether one-off, every-year or automatic (HolidayModel::labelFor()).
+$holidayMap = $holidayLabel !== null ? [$dateFilter => $holidayLabel] : [];
 $holidayMapJson  = json_encode($holidayMap);
 $dateFilterJson  = json_encode($dateFilter);
 $canManageHolidays = hasRole('admin', 'adas') ? 'true' : 'false';

@@ -3,6 +3,7 @@
 namespace App\Controllers\Teacher;
 
 use App\Controllers\BaseController;
+use App\Libraries\MpsAlerts;
 use App\Libraries\MpsCalculator;
 use App\Libraries\MpsScoreImporter;
 use App\Libraries\SchoolCalendar;
@@ -74,7 +75,7 @@ class PerformanceMps extends BaseController
      * numeric array index, not the string key '', which would break the
      * grade|subject|section lookup this constant is used to build.
      */
-    private const NO_SECTION = '_none_';
+    public const NO_SECTION = '_none_'; // cell-key stand-in for a class with no section on record
 
     public function index()
     {
@@ -139,6 +140,7 @@ class PerformanceMps extends BaseController
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to($redirect);
             }
 
+            $this->raiseMpsAlerts($year, $term);
             $message = 'MPS scores saved for Term ' . $term . ', SY ' . $year . '.';
 
             if ($isAjax) {
@@ -307,6 +309,7 @@ class PerformanceMps extends BaseController
             return redirect()->to($redirect);
         }
 
+        $this->raiseMpsAlerts($year, $term);
         $message = sprintf(
             'Imported %d score(s) from %s for Term %d, SY %s.',
             $summary['saved'],
@@ -397,6 +400,30 @@ class PerformanceMps extends BaseController
     public function handledCellsFor(?string $year = null, ?int $term = null): array
     {
         return $this->handledCells($this->currentTeacherRow($year, $term));
+    }
+
+    /**
+     * Learner performance alerts for the classes this teacher just saved or
+     * imported (see MpsAlerts). Never allowed to fail the save itself.
+     */
+    private function raiseMpsAlerts(string $year, int $term): void
+    {
+        try {
+            (new MpsAlerts())->checkClasses($year, $term, $this->handledCellsFor($year, $term), (int) (currentUser()['id'] ?? 0) ?: null);
+        } catch (\Throwable $e) {
+            log_message('error', 'MPS alerts failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Same as handledCellsFor(), for any teacher (teachers.id) — used by the
+     * automations that check every teacher's classes (term reminders).
+     *
+     * @return array<string,array{grade:string,subject:string,section:?string}>
+     */
+    public function handledCellsForTeacher(int $teacherId, string $year, int $term): array
+    {
+        return $this->handledCells((new TeacherModel())->findWithSubjects($teacherId, $year, $term));
     }
 
     /**

@@ -80,7 +80,7 @@ class TeacherDashboard extends BaseController
 
         $recentFeedback = $this->recentFeedback($user);
 
-        $announcements = (new AnnouncementModel())->where('status', 'active')->orderBy('date', 'DESC')->findAll(5);
+        $announcements = (new AnnouncementModel())->live()->orderBy('date', 'DESC')->findAll(5);
         $links         = (new DocumentLinkModel())->whereIn('access_level', ['All Users', 'Teachers'])
             ->orderBy('date_added', 'DESC')->findAll(6);
 

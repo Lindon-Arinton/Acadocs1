@@ -36,6 +36,7 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'authGuard'     => AuthGuard::class,
+        'automation'    => \App\Filters\AutomationTick::class,
     ];
 
     /**
@@ -81,6 +82,7 @@ class Filters extends BaseFilters
         'after' => [
             // 'honeypot',
             // 'secureheaders',
+            'automation', // fallback scheduler, throttled (see Config\Automation)
         ],
     ];
 

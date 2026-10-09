@@ -60,6 +60,9 @@ Vagrantfile
 /writable/uploads/*
 !/writable/uploads/index.html
 
+# Uploads the daily cleanup found unreferenced (kept 30 days, see Config\Automation)
+/writable/orphaned_uploads/
+
 /writable/debugbar/*
 !/writable/debugbar/index.html
 

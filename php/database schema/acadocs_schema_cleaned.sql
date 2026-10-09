@@ -54,6 +54,9 @@ CREATE TABLE `announcements` (
   `image` varchar(255) DEFAULT NULL,
   `date` date NOT NULL,
   `status` enum('active','inactive') DEFAULT 'active',
+  `publish_at` datetime DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `notified` tinyint(1) NOT NULL DEFAULT 1,
   `created_by` int(10) unsigned DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
@@ -75,6 +78,17 @@ CREATE TABLE `api_tokens` (
   UNIQUE KEY `token_hash` (`token_hash`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `api_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `automation_log` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `job` varchar(100) NOT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `ran_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `job` (`job`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -267,6 +281,7 @@ CREATE TABLE `holidays` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `date` date NOT NULL,
   `label` varchar(150) DEFAULT NULL,
+  `recurring` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `date` (`date`)

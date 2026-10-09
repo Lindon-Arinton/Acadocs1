@@ -35,9 +35,6 @@ class TimeRecordImporter
     private TimeRecordModel $timeRecords;
     private UserModel $users;
 
-    /** @var array<string,bool> cached holiday dates (Y-m-d => true) */
-    private array $holidayDates = [];
-
     /** @var list<array{label:string,start_date:string,end_date:string}> cached academic breaks */
     private array $academicBreaks = [];
 
@@ -48,7 +45,6 @@ class TimeRecordImporter
         $this->timeRecords = new TimeRecordModel();
         $this->users       = new UserModel();
 
-        $this->holidayDates   = array_fill_keys($this->holidays->allDates(), true);
         $this->academicBreaks = (new AcademicBreakModel())->findAll();
     }
 
@@ -663,7 +659,8 @@ class TimeRecordImporter
 
     private function isWeekendOrHoliday(string $date): bool
     {
-        return isset($this->holidayDates[$date]) || $this->isWeekend($date);
+        // labelFor() covers one-off, every-year and movable (Holy Week, Heroes Day) holidays.
+        return $this->isWeekend($date) || $this->holidays->labelFor($date) !== null;
     }
 
     /** Saturday or Sunday. */

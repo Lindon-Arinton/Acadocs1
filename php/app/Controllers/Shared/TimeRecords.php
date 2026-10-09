@@ -37,8 +37,9 @@ class TimeRecords extends BaseController
                     $message = 'Record updated.';
                 } elseif ($action === 'holiday_add') {
                     (new HolidayModel())->insert([
-                        'date'  => $this->request->getPost('holiday_date'),
-                        'label' => $this->request->getPost('holiday_label') ?: null,
+                        'date'      => $this->request->getPost('holiday_date'),
+                        'label'     => $this->request->getPost('holiday_label') ?: null,
+                        'recurring' => $this->request->getPost('holiday_recurring') ? 1 : 0,
                     ]);
                     $message = 'Holiday added.';
                 } elseif ($action === 'holiday_delete') {
@@ -157,7 +158,10 @@ class TimeRecords extends BaseController
             'sort'         => $sort,
             'statusFilter' => $statusFilter,
             'flash'        => session()->getFlashdata('flash'),
-            'holidays'     => (new HolidayModel())->orderBy('date', 'ASC')->findAll(),
+            // Every-year holidays first (by month/day), then one-off dates.
+            'holidays'     => (new HolidayModel())->orderBy('recurring', 'DESC')->orderBy("DATE_FORMAT(date, '%m-%d')", 'ASC', false)->orderBy('date', 'ASC')->findAll(),
+            'movableHolidays' => HolidayModel::movableFor((int) substr($dateFilter, 0, 4)),
+            'holidayLabel'    => (new HolidayModel())->labelFor($dateFilter),
             'academicBreaks' => (new AcademicBreakModel())->orderBy('start_date', 'ASC')->findAll(),
             'activeBreak'    => (new AcademicBreakModel())->covering($dateFilter),
         ]);

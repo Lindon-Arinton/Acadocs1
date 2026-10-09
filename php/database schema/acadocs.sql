@@ -57,6 +57,9 @@ CREATE TABLE `announcements` (
   `image` varchar(255) DEFAULT NULL,
   `date` date NOT NULL,
   `status` enum('active','inactive') DEFAULT 'active',
+  `publish_at` datetime DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `notified` tinyint(1) NOT NULL DEFAULT 1,
   `created_by` int(10) UNSIGNED DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -83,6 +86,19 @@ CREATE TABLE `api_tokens` (
   `last_used_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `automation_log`
+--
+
+CREATE TABLE `automation_log` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `job` varchar(100) NOT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `ran_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -418,6 +434,7 @@ CREATE TABLE `holidays` (
   `id` int(10) UNSIGNED NOT NULL,
   `date` date NOT NULL,
   `label` varchar(150) DEFAULT NULL,
+  `recurring` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -425,8 +442,21 @@ CREATE TABLE `holidays` (
 -- Dumping data for table `holidays`
 --
 
-INSERT INTO `holidays` (`id`, `date`, `label`, `created_at`) VALUES
-(1, '2026-06-12', 'independence day', '2026-07-27 03:29:27');
+INSERT INTO `holidays` (`id`, `date`, `label`, `recurring`, `created_at`) VALUES
+(1, '2026-06-12', 'Independence Day', 1, '2026-07-27 03:29:27'),
+(43, '2026-01-01', 'New Year\'s Day', 1, '2026-10-09 09:00:12'),
+(44, '2026-04-09', 'Day of Valor (Araw ng Kagitingan)', 1, '2026-10-09 09:00:12'),
+(45, '2026-05-01', 'Labor Day', 1, '2026-10-09 09:00:12'),
+(46, '2026-08-21', 'Ninoy Aquino Day', 1, '2026-10-09 09:00:12'),
+(47, '2026-11-01', 'All Saints\' Day', 1, '2026-10-09 09:00:12'),
+(48, '2026-11-02', 'All Souls\' Day', 1, '2026-10-09 09:00:12'),
+(49, '2026-11-30', 'Bonifacio Day', 1, '2026-10-09 09:00:12'),
+(50, '2026-12-08', 'Feast of the Immaculate Conception of Mary', 1, '2026-10-09 09:00:12'),
+(51, '2026-12-24', 'Christmas Eve', 1, '2026-10-09 09:00:12'),
+(52, '2026-12-25', 'Christmas Day', 1, '2026-10-09 09:00:12'),
+(53, '2026-12-30', 'Rizal Day', 1, '2026-10-09 09:00:12'),
+(54, '2026-12-31', 'Last Day of the Year (New Year\'s Eve)', 1, '2026-10-09 09:00:12'),
+(55, '2026-02-17', 'Chinese New Year', 0, '2026-10-09 09:00:12');
 
 -- --------------------------------------------------------
 
@@ -7326,6 +7356,13 @@ ALTER TABLE `api_tokens`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `automation_log`
+--
+ALTER TABLE `automation_log`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `job` (`job`);
+
+--
 -- Indexes for table `biometric_employees`
 --
 ALTER TABLE `biometric_employees`
@@ -7630,6 +7667,12 @@ ALTER TABLE `api_tokens`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `automation_log`
+--
+ALTER TABLE `automation_log`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `biometric_employees`
 --
 ALTER TABLE `biometric_employees`
@@ -7705,7 +7748,7 @@ ALTER TABLE `enrollment_by_level`
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT for table `kpi_snapshots`
