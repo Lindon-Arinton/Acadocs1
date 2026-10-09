@@ -1,0 +1,7 @@
+# Local test accounts and run output
+accounts.json
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

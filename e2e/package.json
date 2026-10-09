@@ -1,0 +1,16 @@
+{
+  "name": "acadocs-e2e",
+  "private": true,
+  "description": "Playwright end-to-end tests for ACADOCS. Kept out of the root package.json (the Figma/React export) so its dependencies don't clash.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:8080/login"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0"
+  }
+}

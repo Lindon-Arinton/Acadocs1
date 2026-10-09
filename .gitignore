@@ -1,0 +1,6 @@
+# Cypress: local test accounts and run output
+cypress.env.json
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+node_modules/
