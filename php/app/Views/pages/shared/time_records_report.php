@@ -152,8 +152,8 @@ $icons = ['Present' => 'bi-check-circle-fill', 'Late' => 'bi-alarm-fill', 'Absen
           <tr>
             <td class="text-nowrap"><a href="<?= base_url('time-records?date=' . $r['date']) ?>" class="text-reset"><?= date('M j, Y', strtotime($r['date'])) ?></a></td>
             <td class="text-muted"><?= date('D', strtotime($r['date'])) ?></td>
-            <td class="text-center"><?= $r['time_in'] ? date('h:i A', strtotime($r['time_in'])) : '<span class="text-muted">—</span>' ?></td>
-            <td class="text-center"><?= $r['time_out'] ? date('h:i A', strtotime($r['time_out'])) : '<span class="text-muted">—</span>' ?></td>
+            <td class="text-center"><?= $r['time_in'] ? '<span class="time-chip time-chip-in" title="Time in"><i class="bi bi-box-arrow-in-right"></i>' . date('h:i A', strtotime($r['time_in'])) . '</span>' : '<span class="text-muted">—</span>' ?></td>
+            <td class="text-center"><?= $r['time_out'] ? '<span class="time-chip time-chip-out" title="Time out"><i class="bi bi-box-arrow-right"></i>' . date('h:i A', strtotime($r['time_out'])) . '</span>' : '<span class="text-muted">—</span>' ?></td>
             <td class="text-center"><?= $hours !== null ? number_format($hours, 1) : '<span class="text-muted">—</span>' ?></td>
             <td class="text-center">
               <span class="badge badge-<?= strtolower(str_replace(' ', '-', $r['status'])) ?>"><i class="bi <?= $icons[$r['status']] ?? 'bi-circle' ?>"></i> <?= e($r['status']) ?></span>

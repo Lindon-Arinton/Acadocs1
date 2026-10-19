@@ -119,7 +119,8 @@ class TimeRecords extends BaseController
         $sort         = $this->request->getGet('sort') ?? 'name_az';
         $statusFilter = $this->request->getGet('status') ?? 'all';
 
-        if ($statusFilter !== 'all' && ! in_array($statusFilter, TimeRecordModel::STATUSES, true)) {
+        // Academic Break isn't offered as a filter (breaks are managed under Academic Breaks).
+        if ($statusFilter !== 'all' && ! in_array($statusFilter, ['Present', 'Late', 'Absent', 'On Leave'], true)) {
             $statusFilter = 'all';
         }
 

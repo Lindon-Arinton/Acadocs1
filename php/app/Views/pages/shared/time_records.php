@@ -86,7 +86,6 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             <option value="Late"     <?= $statusFilter==='Late'     ? 'selected' : '' ?>>Late</option>
             <option value="Absent"   <?= $statusFilter==='Absent'   ? 'selected' : '' ?>>Absent</option>
             <option value="On Leave" <?= $statusFilter==='On Leave' ? 'selected' : '' ?>>On Leave</option>
-            <option value="Academic Break" <?= $statusFilter==='Academic Break' ? 'selected' : '' ?>>Academic Break</option>
           </select>
           <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
           <div class="maroon-select-panel"></div>
@@ -151,13 +150,12 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
 <?php endif; ?>
 
 <!-- Summary stats: click a card to filter the table by that status; click it again to go back to All -->
-<div class="row row-cols-2 row-cols-sm-3 row-cols-lg-5 g-3 mb-4">
+<div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
   <?php foreach ([
     ['Present',        'present',        'bi-check-circle-fill',    $summary['Present']],
     ['Late',           'late',           'bi-alarm-fill',           $summary['Late']],
     ['Absent',         'absent',         'bi-x-circle-fill',        $summary['Absent']],
     ['On Leave',       'on-leave',       'bi-calendar-check',       $summary['On Leave']],
-    ['Academic Break', 'academic-break', 'bi-calendar-range-fill',  $summary['Academic Break']],
   ] as [$label,$cls,$icon,$cnt]):
     $isActive = $statusFilter === $label;
   ?>
@@ -204,9 +202,8 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             <td class="fw-semibold"><?= personLink($userIdsByEmployeeId[$r['employee_id']] ?? null, $r['employee_name']) ?></td>
             <td class="text-center">
               <?php if ($r['time_in']): ?>
-              <span class="d-inline-flex align-items-center gap-1">
-                <i class="bi bi-clock text-muted"></i>
-                <?= date('h:i A', strtotime($r['time_in'])) ?>
+              <span class="time-chip time-chip-in" title="Time in">
+                <i class="bi bi-box-arrow-in-right"></i><?= date('h:i A', strtotime($r['time_in'])) ?>
               </span>
               <?php else: ?>
               <span class="text-muted">—</span>
@@ -214,9 +211,8 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             </td>
             <td class="text-center">
               <?php if ($r['time_out']): ?>
-              <span class="d-inline-flex align-items-center gap-1">
-                <i class="bi bi-clock text-muted"></i>
-                <?= date('h:i A', strtotime($r['time_out'])) ?>
+              <span class="time-chip time-chip-out" title="Time out">
+                <i class="bi bi-box-arrow-right"></i><?= date('h:i A', strtotime($r['time_out'])) ?>
               </span>
               <?php else: ?>
               <span class="text-muted">—</span>
