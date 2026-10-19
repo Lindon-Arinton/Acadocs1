@@ -5,12 +5,9 @@ namespace App\Controllers\Teacher;
 use App\Controllers\BaseController;
 use App\Libraries\MpsAlerts;
 use App\Libraries\MpsCalculator;
-use App\Libraries\MpsScoreImporter;
 use App\Libraries\SchoolCalendar;
 use App\Models\MpsTestScoreModel;
 use App\Models\TeacherModel;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class PerformanceMps extends BaseController
 {
@@ -242,96 +239,13 @@ class PerformanceMps extends BaseController
         return array_values($years);
     }
 
-    public function import()
-    {
-        if (! hasRole('teacher')) {
-            return redirect()->to('/dashboard');
-        }
-
-        $isAjax   = $this->request->isAJAX();
-        $redirect = '/performance/mps';
-
-        $year = trim($this->request->getPost('school_year') ?? '');
-        $term = (int) $this->request->getPost('term');
-
-        if (! self::isValidYear($year)) {
-            return $isAjax ? $this->ajaxError(self::INVALID_YEAR_MESSAGE) : $this->invalidYearRedirect($redirect);
-        }
-
-        if (! in_array($term, self::TERM_OPTIONS, true)) {
-            return $isAjax ? $this->ajaxError('Invalid term.') : redirect()->to($redirect);
-        }
-
-        $redirect = '/performance/mps?year=' . urlencode($year) . '&term=' . $term;
-
-        $file = $this->request->getFile('import_file');
-
-        if (! $file || ! $file->isValid() || $file->hasMoved()) {
-            return $isAjax ? $this->ajaxError('Please choose a valid Excel file to upload.') : redirect()->to($redirect);
-        }
-
-        if (! in_array(strtolower($file->getExtension() ?: ''), ['xlsx', 'xls'], true)) {
-            return $isAjax ? $this->ajaxError('Only .xlsx or .xls files are supported.') : redirect()->to($redirect);
-        }
-
-        $uploadPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'mps_imports';
-        if (! is_dir($uploadPath)) {
-            mkdir($uploadPath, 0777, true);
-        }
-
-        $fileName = date('Ymd_His') . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientName());
-
-        if (! $file->move($uploadPath, $fileName)) {
-            return $isAjax ? $this->ajaxError('Could not save the uploaded file.') : redirect()->to($redirect);
-        }
-
-        try {
-            $summary = (new MpsScoreImporter())->import(
-                $uploadPath . DIRECTORY_SEPARATOR . $fileName,
-                $year,
-                $term,
-                $this->gradeSubjectOnly($this->handledCells($this->currentTeacherRow($year, $term))),
-                currentUser()['name'] ?? null
-            );
-        } catch (\Throwable $e) {
-            return $isAjax ? $this->ajaxError('Import failed: ' . $e->getMessage()) : redirect()->to($redirect);
-        }
-
-        if ($summary['saved'] === 0) {
-            $message = 'No scores were imported. ' . implode(' ', array_merge($summary['errors'], $summary['warnings']));
-
-            if ($isAjax) {
-                return $this->ajaxError(trim($message));
-            }
-
-            session()->setFlashdata('flash', ['type' => 'danger', 'msg' => trim($message)]);
-
-            return redirect()->to($redirect);
-        }
-
-        $this->raiseMpsAlerts($year, $term);
-        $message = sprintf(
-            'Imported %d score(s) from %s for Term %d, SY %s.',
-            $summary['saved'],
-            implode(', ', $summary['periods_found']),
-            $term,
-            $year,
-        );
-
-        if ($summary['warnings'] !== []) {
-            $message .= ' ' . implode(' ', $summary['warnings']);
-        }
-
-        if ($isAjax) {
-            return $this->ajaxSuccess($message, ['summary' => $summary, 'redirect' => $redirect]);
-        }
-
-        session()->setFlashdata('flash', ['type' => $summary['warnings'] === [] ? 'success' : 'warning', 'msg' => $message]);
-
-        return redirect()->to($redirect);
-    }
-
-    public function template()
+    /**
+     * Printable MPS report for validation — every class the signed-in teacher
+     * handles for the year/term with its Summative 1 / Summative 2 / Term Exam
+     * MPS, average and descriptor, plus signature blocks for the teacher, the
+     * validating coordinator and the school head.
+     */
+    public function report()
     {
         if (! hasRole('teacher')) {
             return redirect()->to('/dashboard');
@@ -339,51 +253,49 @@ class PerformanceMps extends BaseController
 
         $year = trim($this->request->getGet('year') ?? '');
         $term = (int) $this->request->getGet('term');
-        if (! self::isValidYear($year) || ! in_array($term, self::TERM_OPTIONS, true)) {
-            [$year, $term] = [null, null];
+
+        if (! self::isValidYear($year)) {
+            return $this->invalidYearRedirect('/performance/mps');
         }
 
-        $handledCells = $this->handledCells($this->currentTeacherRow($year, $term));
-        $subjects     = $this->subjectsFromCells($handledCells);
-        $gradeLevels  = $this->gradesFromCells($handledCells);
+        if (! in_array($term, self::TERM_OPTIONS, true)) {
+            return redirect()->to('/performance/mps');
+        }
 
-        if ($subjects === [] || $gradeLevels === []) {
+        $teacher = $this->currentTeacherRow($year, $term);
+        $rows    = self::performanceRows(
+            $this->handledCells($teacher),
+            (new MpsTestScoreModel())->forYearTerm($year, $term)
+        );
+
+        if ($rows === []) {
             session()->setFlashdata('flash', [
                 'type' => 'danger',
                 'msg'  => 'You have no subjects for this term yet — add them under My Profile → Subject Load.',
             ]);
 
-            return redirect()->to('/performance/mps');
+            return redirect()->to('/performance/mps?year=' . urlencode($year) . '&term=' . $term);
         }
 
-        $spreadsheet = new Spreadsheet();
-        $sheet       = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('MPS');
-
-        $row = 1;
-        foreach (self::PERIOD_MAP as $label) {
-            $sheet->setCellValue("A{$row}", strtoupper($label));
-            $row += 2;
-
-            $sheet->fromArray(array_merge([null], $subjects), null, "A{$row}");
-            $row++;
-
-            foreach ($gradeLevels as $grade) {
-                $sheet->setCellValue("A{$row}", strtoupper($grade));
-                $row++;
-            }
-
-            $row += 2; // blank separator row before the next section
+        $byGrade = [];
+        foreach ($rows as $row) {
+            $byGrade[$row['grade']][] = $row;
         }
 
-        foreach (range('A', chr(ord('A') + count($subjects))) as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        $averages = array_values(array_filter(array_column($rows, 'avg'), static fn ($v) => $v !== null));
 
-        $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'mps_template_' . uniqid() . '.xlsx';
-        (new Xlsx($spreadsheet))->save($tempFile);
-
-        return $this->response->download($tempFile, null)->setFileName('mps_scores_template.xlsx');
+        return view('pages/teacher/performance_mps_report', [
+            'year'         => $year,
+            'term'         => $term,
+            'teacherName'  => $teacher['name'] ?? (currentUser()['name'] ?? ''),
+            'employeeId'   => $teacher['employee_id'] ?? '',
+            'periods'      => self::PERIOD_MAP,
+            'byGrade'      => $byGrade,
+            'classCount'   => count($rows),
+            'incomplete'   => count(array_filter($rows, static fn ($r) => $r['s1'] === null || $r['s2'] === null || $r['exam'] === null)),
+            'belowMastery' => count(array_filter($averages, static fn ($v) => $v < 75)),
+            'overall'      => $averages ? round(array_sum($averages) / count($averages), 2) : null,
+        ]);
     }
 
     /**
@@ -586,17 +498,6 @@ class PerformanceMps extends BaseController
         sort($extra, SORT_NATURAL | SORT_FLAG_CASE);
 
         return array_values(array_merge(array_intersect(self::SUBJECTS, $found), $extra));
-    }
-
-    /** Collapses handledCells down to "Grade X|Subject" => true — for the Excel importer/template, which don't break scores out by section. */
-    private function gradeSubjectOnly(array $cells): array
-    {
-        $out = [];
-        foreach ($cells as $cell) {
-            $out[$cell['grade'] . '|' . $cell['subject']] = true;
-        }
-
-        return $out;
     }
 
     /**

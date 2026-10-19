@@ -7,12 +7,11 @@
       <p>Summative Test 1, Summative Test 2 &amp; Term Examination — per grade level, subject &amp; section</p>
     </div>
     <div class="d-flex gap-2">
-      <a href="<?= base_url('performance/mps/template?year=' . urlencode($year) . '&term=' . (int) $term) ?>" class="btn btn-sm btn-outline-light">
-        <i class="bi bi-download me-1"></i>Download Template
+      <?php if (! empty($handledCells)): ?>
+      <a href="<?= base_url('performance/mps/report?year=' . urlencode($year) . '&term=' . (int) $term) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-light">
+        <i class="bi bi-file-earmark-check me-1"></i>Generate Report for Validation
       </a>
-      <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#importMpsModal">
-        <i class="bi bi-upload me-1"></i>Import from Excel
-      </button>
+      <?php endif; ?>
       <a href="<?= base_url('teacher-dashboard') ?>" class="btn btn-sm btn-outline-light">
         <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
       </a>
@@ -134,57 +133,6 @@
 </form>
 <?php endif; ?>
 
-
-<!-- Import from Excel Modal -->
-<div class="modal fade" id="importMpsModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header gradient">
-        <h6 class="modal-title"><i class="bi bi-upload me-2"></i>Import MPS Scores</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="POST" action="<?= base_url('performance/mps/import') ?>" class="ajax-form" enctype="multipart/form-data" data-confirm-title="Import this file?" data-confirm-text="Matching scores for the same school year, term, test period, grade level, and subject will be overwritten.">
-        <div class="modal-body">
-          <p class="text-muted" style="font-size:.82rem;">
-            Upload the school's MPS workbook — the sheet with a grade-level &times; subject grid for each test period
-            (Summative Test 1/2, Term Examination), same layout as the printed MPS report.
-            Not sure of the format? <a href="<?= base_url('performance/mps/template?year=' . urlencode($year) . '&term=' . (int) $term) ?>">Download the template</a>.
-          </p>
-          <div class="row g-2 mb-2">
-            <div class="col-6">
-              <label class="form-label">School Year</label>
-              <input type="text" name="school_year" value="<?= e($year) ?>" list="mpsYearOptions"
-                     pattern="\d{4}-\d{4}" placeholder="e.g. 2026-2027" required
-                     inputmode="numeric" maxlength="9" autocomplete="off" title="YYYY-YYYY, e.g. 2026-2027"
-                     class="form-control form-control-sm sy-input">
-              <div class="invalid-feedback">Use YYYY-YYYY with consecutive years, e.g. 2026-2027.</div>
-            </div>
-            <div class="col-6">
-              <label class="form-label">Term</label>
-              <div class="maroon-select maroon-select-sm" style="width:100%;">
-                <select name="term" class="maroon-select-native" required>
-                  <?php foreach ($terms as $t): ?>
-                  <option value="<?= (int) $t ?>" <?= $t === $term ? 'selected' : '' ?>>Term <?= (int) $t ?></option>
-                  <?php endforeach; ?>
-                </select>
-                <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
-                <div class="maroon-select-panel"></div>
-              </div>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Excel file (.xlsx, .xls)</label>
-            <input type="file" name="import_file" class="form-control" accept=".xlsx,.xls" required>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Import</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
 <?php
 $extraScript = <<<'HTML'
