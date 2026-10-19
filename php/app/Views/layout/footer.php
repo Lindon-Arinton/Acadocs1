@@ -1125,7 +1125,7 @@ function updateActiveNavLinks(pathname) {
 
 function isAjaxNavExempt(url) {
     // "template" (singular) covers file-download endpoints like
-    // enrollment-kpis/template and performance/mps/template — not the
+    // enrollment-kpis/template — not the
     // plural /templates list page, which is a normal AJAX-navigable view.
     // "annotate"/"annotated" are the full-screen annotator and its saved PDF.
     return /\/(download|logout|login|template)(\/|$|\?)/.test(url.pathname) || /\/(file|preview|annotate|annotated)(\/|$|\?)/.test(url.pathname);

@@ -35,8 +35,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('document-files/(:num)/download', 'Shared\DocumentFileDownload::show/$1');
     $routes->get('document-files/(:num)/preview', 'Shared\DocumentFileDownload::preview/$1');
     $routes->match(['get', 'post'], 'performance/mps', 'Teacher\PerformanceMps::index');
-    $routes->post('performance/mps/import', 'Teacher\PerformanceMps::import');
-    $routes->get('performance/mps/template', 'Teacher\PerformanceMps::template');
+    $routes->get('performance/mps/report', 'Teacher\PerformanceMps::report');
     $routes->get('enrollment-kpis', static fn () => redirect()->to('/dashboard'));
     $routes->post('enrollment-kpis/import', 'Admin\EnrollmentKpis::import');
     $routes->get('enrollment-kpis/template', 'Admin\EnrollmentKpis::template');
@@ -46,6 +45,9 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->post('announcements/(:num)/share', 'Shared\Announcements::share/$1');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');
+    $routes->post('time-records/sync', 'Shared\TimeRecords::sync');
+    $routes->get('time-records/live', 'Shared\TimeRecords::live');
+    $routes->get('time-records/report', 'Shared\TimeRecords::report');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
     $routes->match(['get', 'post'], 'document-links', 'Shared\DocumentLinks::index');
     $routes->match(['get', 'post'], 'templates', 'Shared\Templates::index');

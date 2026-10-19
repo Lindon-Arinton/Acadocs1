@@ -116,6 +116,19 @@ CREATE TABLE `biometric_employees` (
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `biometric_punches`
+--
+
+CREATE TABLE `biometric_punches` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `ac_no` varchar(24) NOT NULL,
+  `punched_at` datetime NOT NULL,
+  `punch` tinyint(3) UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 check-in, 1 check-out, 2/3 break, 4/5 overtime'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 --
 -- Dumping data for table `biometric_employees`
 --
@@ -7370,6 +7383,14 @@ ALTER TABLE `biometric_employees`
   ADD UNIQUE KEY `ac_no` (`ac_no`);
 
 --
+-- Indexes for table `biometric_punches`
+--
+ALTER TABLE `biometric_punches`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `ac_no_punched_at` (`ac_no`,`punched_at`),
+  ADD KEY `punched_at` (`punched_at`);
+
+--
 -- Indexes for table `conversations`
 --
 ALTER TABLE `conversations`
@@ -7677,6 +7698,12 @@ ALTER TABLE `automation_log`
 --
 ALTER TABLE `biometric_employees`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+
+--
+-- AUTO_INCREMENT for table `biometric_punches`
+--
+ALTER TABLE `biometric_punches`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `conversations`
