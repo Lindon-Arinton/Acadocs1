@@ -89,10 +89,9 @@
 <script>window.Chart || document.write('<script src="<?= base_url('assets/js/chart.umd.min.js') ?>"><\/script>');</script>
 
 <script>
-/* ── Dark mode toggle (persisted; data-bs-theme also drives Bootstrap's
+/* ── Dark mode toggle (persisted via AcadocsPrefs — see
+   partials/display_prefs_head.php; data-bs-theme also drives Bootstrap's
    own dark styling for modals/dropdowns/forms) ──────────────────── */
-const THEME_KEY = 'theme';
-
 function syncThemeIcon() {
     const icon = document.getElementById('theme-toggle-icon');
     if (!icon) return;
@@ -100,20 +99,34 @@ function syncThemeIcon() {
     icon.className = isDark ? 'bi bi-sun fs-5' : 'bi bi-moon-stars fs-5';
 }
 
-function toggleTheme() {
-    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-    const next = isDark ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-bs-theme', next);
-    localStorage.setItem(THEME_KEY, next);
-    syncThemeIcon();
+// Center of an element, as the origin for the theme-change reveal animation.
+function themeTransitionOrigin(el) {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
 
-    // Charts bake their colors in at build time — re-render the page so
-    // they pick up the new theme's palette.
+// An explicit pick here overrides "System" from the Settings page.
+function toggleTheme(btn) {
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    AcadocsPrefs.set('theme', isDark ? 'light' : 'dark', { origin: themeTransitionOrigin(btn) });
+}
+
+// Fires for the toggle, the Settings page, and the OS switching while on
+// "System". Charts bake their colors in at build time — re-render the page
+// so they pick up the new theme's palette.
+document.addEventListener('acadocs:themechange', () => {
+    syncThemeIcon();
+    const icon = document.getElementById('theme-toggle-icon');
+    if (icon) {
+        icon.classList.add('theme-icon-spin');
+        icon.addEventListener('animationend', () => icon.classList.remove('theme-icon-spin'), { once: true });
+    }
     applyChartDefaults();
     if (Object.values(Chart.instances).some(c => c.canvas && c.canvas.isConnected)) {
         loadPage(window.location.href, { push: false, scroll: false });
     }
-}
+});
 
 syncThemeIcon();
 
@@ -191,15 +204,15 @@ function closeSidebar() {
     const results = document.getElementById('topbarSearchResults');
     if (!input || !results) return;
 
-    const pages = [...document.querySelectorAll('#sidebar .nav-link')]
-        .map(a => ({ label: a.querySelector('.sidebar-label')?.textContent.trim() || '', href: a.href, icon: a.querySelector('.nav-icon')?.className || 'bi bi-dot' }))
+    const pages = [...document.querySelectorAll('#sidebar .nav-link, #topbar .dropdown-item:not(.text-danger)')]
+        .map(a => ({ label: (a.querySelector('.sidebar-label') || a).textContent.trim(), href: a.href, icon: a.querySelector('.nav-icon, .bi')?.className.replace(/\bme-\d\b/, '').trim() || 'bi bi-dot', keywords: (a.dataset.searchKeywords || '').toLowerCase() }))
         .filter((p, i, all) => p.label && all.findIndex(o => o.href === p.href) === i);
     let active = 0;
 
     const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     function items(q) {
         const needle = q.toLowerCase();
-        const list = pages.filter(p => p.label.toLowerCase().includes(needle)).slice(0, 6)
+        const list = pages.filter(p => p.label.toLowerCase().includes(needle) || p.keywords.includes(needle)).slice(0, 6)
             .map(p => ({ ...p, hint: 'Page' }));
         if (input.dataset.docsUrl) list.push({ label: 'Search documents for “' + q + '”', href: input.dataset.docsUrl + '?q=' + encodeURIComponent(q), icon: 'bi bi-folder2-open', hint: 'Documents' });
         list.push({ label: 'Search templates for “' + q + '”', href: input.dataset.templatesUrl + '?q=' + encodeURIComponent(q), icon: 'bi bi-file-earmark-text', hint: 'Templates' });
@@ -312,6 +325,10 @@ function showToast(message, type = 'success') {
 
 /* ── Number animation helper ─────────────────────────────── */
 function animateCounter(el, target, duration = 1200) {
+    if (document.documentElement.hasAttribute('data-reduce-motion')) {
+        el.textContent = target.toLocaleString();
+        return;
+    }
     let start = 0;
     const step = target / (duration / 16);
     const timer = setInterval(() => {

@@ -125,7 +125,7 @@ body {
   background: var(--bg);
   font-family: 'Inter', system-ui, sans-serif;
   color: var(--text);
-  font-size: 14px;
+  font-size: .875rem; /* 14px at the default root size; scales with the Text size setting */
   line-height: 1.5;
   transition: background .2s ease, color .2s ease;
 }
@@ -2701,3 +2701,114 @@ a.td-list-item:hover { color: inherit; border-color: color-mix(in srgb, var(--pr
 @media (prefers-reduced-motion: reduce) {
   .tab-fade-in { animation: none; }
 }
+
+/* ── Display & Accessibility settings (pages/shared/settings.php) ──────
+   Attributes on <html> are set by partials/display_prefs_head.php. Text
+   size is the root font-size itself (inline style), so everything sized in
+   rem follows it. */
+.pref-choice-group { display: flex; flex-wrap: wrap; gap: .5rem; }
+.pref-choice {
+  display: inline-flex; align-items: center; gap: .45rem; min-height: 2.5rem;
+  padding: .45rem .9rem; border: 1px solid var(--input-border); border-radius: .6rem;
+  background: var(--card); color: var(--text-secondary); font-size: .85rem; font-weight: 500;
+  cursor: pointer; transition: border-color .15s, background-color .15s, color .15s;
+}
+.pref-choice:hover { background: var(--surface-hover); }
+.btn-check:checked + .pref-choice {
+  border-color: var(--primary); background: var(--highlight-bg); color: var(--highlight-tx);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.btn-check:focus-visible + .pref-choice { outline: 2px solid var(--primary); outline-offset: 2px; }
+.pref-choice-glyph { font-weight: 700; line-height: 1; }
+
+.pref-toggle {
+  display: flex; align-items: center; gap: .9rem; margin: 0;
+  padding: .9rem 1.25rem; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.pref-toggle:last-child { border-bottom: 0; }
+.pref-toggle:hover { background: var(--surface-hover); }
+.pref-toggle-icon { flex-shrink: 0; width: 1.5rem; text-align: center; font-size: 1.15rem; color: var(--primary); }
+[data-bs-theme="dark"] .pref-toggle-icon { color: var(--highlight-tx); }
+.pref-toggle-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.pref-toggle-label { font-weight: 600; color: var(--text); }
+.pref-toggle-help { font-size: .8rem; color: var(--muted); }
+.pref-toggle .form-switch { padding-left: 0; }
+.pref-toggle .form-switch .form-check-input { width: 2.5em; height: 1.35em; margin: 0; cursor: pointer; }
+
+/* Reduce motion — the setting, or the OS asking for it */
+[data-reduce-motion] *,
+[data-reduce-motion] *::before,
+[data-reduce-motion] *::after {
+  animation-duration: .01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* High contrast — darker secondary text, stronger borders */
+[data-high-contrast] {
+  --text:              #000000;
+  --text-secondary:    #111827;
+  --muted:             #374151;
+  --border:            #6b7280;
+  --input-border:      #4b5563;
+  --bs-body-color:     #000000;
+  --bs-secondary-color: #374151;
+  --bs-border-color:   #6b7280;
+}
+[data-high-contrast][data-bs-theme="dark"] {
+  --text:              #ffffff;
+  --text-secondary:    #f4f4f6;
+  --muted:             #d4d4dc;
+  --border:            #6b6b78;
+  --input-border:      #7a7a88;
+  --bs-body-color:     #ffffff;
+  --bs-secondary-color: #d4d4dc;
+  --bs-border-color:   #6b6b78;
+}
+[data-high-contrast] .form-control::placeholder { color: var(--muted); opacity: 1; }
+
+/* Underline links — inline text links only, not buttons/nav/card links */
+[data-underline-links] #main-content a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):not(.list-group-item):not(.text-decoration-none):not(.dashboard-card-link):not(.td-card):not(.td-list-item):not(.stat-tile),
+[data-underline-links] .notif-item-title a,
+[data-underline-links] .link-maroon {
+  text-decoration: underline !important;
+  text-underline-offset: .18em;
+}
+
+/* Prominent focus outline (keyboard only) */
+[data-focus-ring] { --focus-ring: #1d4ed8; }
+[data-focus-ring][data-bs-theme="dark"] { --focus-ring: #93c5fd; }
+[data-focus-ring] :focus-visible,
+[data-focus-ring] .btn-check:focus-visible + .pref-choice,
+[data-focus-ring] .btn-check:focus-visible + .btn {
+  outline: 3px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+}
+[data-focus-ring] #sidebar :focus-visible { outline-color: #fde68a !important; }
+
+/* Increase text spacing (toward WCAG 1.4.12) */
+[data-text-spacing] body { line-height: 1.8; letter-spacing: .04em; word-spacing: .12em; }
+[data-text-spacing] #main-content p { margin-bottom: 1.25em; }
+
+/* ── Light/dark switch animation (display_prefs_head.php) ──────────────
+   .theme-reveal: the new theme grows as a circle from the clicked button
+   (clip-path animated from JS) over a still snapshot of the old one.
+   .theme-fade: fallback where View Transitions aren't supported. */
+.theme-reveal::view-transition-old(root),
+.theme-reveal::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+.theme-fade,
+.theme-fade *,
+.theme-fade *::before,
+.theme-fade *::after {
+  transition: background-color .4s ease, border-color .4s ease, color .4s ease, fill .4s ease, box-shadow .4s ease !important;
+}
+@keyframes themeIconSpin {
+  from { transform: rotate(-120deg) scale(.4); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+#theme-toggle-icon { display: inline-block; }
+.theme-icon-spin { animation: themeIconSpin .5s cubic-bezier(.34, 1.56, .64, 1); }

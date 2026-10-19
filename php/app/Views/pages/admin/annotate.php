@@ -24,12 +24,7 @@ $saveUrl   = base_url('task-submissions/' . $file['id'] . '/annotate');
 <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
 <link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-(function () {
-    var saved = localStorage.getItem('theme');
-    if (saved === 'dark') document.documentElement.setAttribute('data-bs-theme', 'dark');
-})();
-</script>
+<?php include APPPATH . 'Views/partials/display_prefs_head.php'; ?>
 <style>
   body { margin: 0; background: #3a3a40; font-family: 'Inter', system-ui, sans-serif; }
   .ann-bar {

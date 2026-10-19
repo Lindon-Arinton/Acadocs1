@@ -889,9 +889,9 @@ if (perfChartEl) {
         { label:"Average MPS", data:' . json_encode(array_column($perfLevel, 'mps')) . ', backgroundColor:maroon, borderRadius:4, maxBarThickness:26 }
       ]
     },
-    // Axis starts 10 points below the lowest grade level (rounded down to a
-    // multiple of 10), so no bar is ever cut off.
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false,min:Math.max(0, Math.floor((Math.min(...' . json_encode(array_map('floatval', array_column($perfLevel, 'mps'))) . ') - 10) / 10) * 10),max:100,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }
+    // Fixed 0–100 axis: bar length is the value, so a truncated baseline would
+    // exaggerate the gaps between grade levels.
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{min:0,max:100,grid:{color:chartGridColor()}},x:{grid:{display:false}}} }
   });
 }
 

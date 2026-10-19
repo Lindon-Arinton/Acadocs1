@@ -127,15 +127,7 @@ try {
 <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
 <link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-// Applied before first paint (this early, inline, in <head>) so the page
-// never flashes light before switching to a saved dark preference.
-(function () {
-    var saved = localStorage.getItem('theme');
-    var theme = saved === 'dark' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-bs-theme', theme);
-})();
-</script>
+<?php include APPPATH . 'Views/partials/display_prefs_head.php'; ?>
 <?php if (isset($extraHead)) echo $extraHead; ?>
 </head>
 <body>
@@ -412,7 +404,7 @@ try {
   <!-- Actions -->
   <div class="d-flex align-items-center gap-2 ms-auto">
     <!-- Dark mode toggle -->
-    <button type="button" class="notif-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark mode">
+    <button type="button" class="notif-btn" id="theme-toggle-btn" onclick="toggleTheme(this)" title="Toggle dark mode">
       <i class="bi bi-moon-stars fs-5" id="theme-toggle-icon"></i>
     </button>
 
@@ -489,6 +481,7 @@ try {
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="<?= base_url('profile') ?>"><i class="bi bi-person me-2"></i>My Profile</a></li>
+        <li><a class="dropdown-item" href="<?= base_url('settings') ?>" data-search-keywords="settings preferences theme dark mode light mode text size font zoom contrast motion animation focus"><i class="bi bi-universal-access me-2"></i>Display &amp; Accessibility</a></li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item text-danger" href="<?= base_url('logout') ?>" onclick="return confirmLogout(event, this)"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
       </ul>
