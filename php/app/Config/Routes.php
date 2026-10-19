@@ -45,6 +45,9 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->post('announcements/(:num)/share', 'Shared\Announcements::share/$1');
     $routes->match(['get', 'post'], 'time-records', 'Shared\TimeRecords::index');
     $routes->post('time-records/import', 'Shared\TimeRecords::import');
+    $routes->post('time-records/sync', 'Shared\TimeRecords::sync');
+    $routes->get('time-records/live', 'Shared\TimeRecords::live');
+    $routes->get('time-records/report', 'Shared\TimeRecords::report');
     $routes->match(['get', 'post'], 'deped-documents', 'Shared\DepedDocuments::index');
     $routes->match(['get', 'post'], 'document-links', 'Shared\DocumentLinks::index');
     $routes->match(['get', 'post'], 'templates', 'Shared\Templates::index');

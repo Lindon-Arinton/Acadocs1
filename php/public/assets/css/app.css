@@ -2270,6 +2270,27 @@ body.doc-dragging .doc-breadcrumb a.doc-crumb { border-color: rgba(255,255,255,.
 .timing-late   { background: #fee2e2; color: #991b1b; }
 [data-bs-theme="dark"] .timing-ontime { background: rgba(16,185,129,.16); color: #6ee7b7; }
 [data-bs-theme="dark"] .timing-late   { background: rgba(239,68,68,.16);  color: #fca5a5; }
+
+/* Time Records: live clock — equal-width digits and room for "12:59:59 PM" so the badge doesn't jitter each second */
+#dtrLiveClock { display: inline-block; min-width: 11ch; font-variant-numeric: tabular-nums; text-align: left; }
+
+/* Attendance report: summary tiles, and a clean printout (no app chrome or filters) */
+.report-stat { border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: .6rem .75rem; height: 100%; }
+.report-stat .k { font-size: .72rem; color: var(--muted, #6b7280); margin-bottom: .25rem; }
+.report-stat .v { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media print {
+  #sidebar, #topbar, .print-hide { display: none !important; }
+  #main-content { margin: 0 !important; padding: 0 !important; }
+  .card { box-shadow: none !important; break-inside: avoid; }
+  #report-table tr { break-inside: avoid; }
+}
+
+/* Time Records: biometric scanner connection pill */
+.scanner-status { display: inline-flex; align-items: center; font-size: .75rem; font-weight: 600; padding: .3rem .7rem; border-radius: 999px; white-space: nowrap; }
+.scanner-status.is-up   { background: #d1fae5; color: #065f46; }
+.scanner-status.is-down { background: #fee2e2; color: #991b1b; }
+[data-bs-theme="dark"] .scanner-status.is-up   { background: rgba(16,185,129,.16); color: #6ee7b7; }
+[data-bs-theme="dark"] .scanner-status.is-down { background: rgba(239,68,68,.16);  color: #fca5a5; }
 .annot-badge { background: var(--highlight-bg); color: var(--highlight-tx); }
 .annot-badge:hover { text-decoration: underline !important; color: var(--highlight-tx); }
 

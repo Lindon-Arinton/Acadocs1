@@ -92,23 +92,53 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
           <div class="maroon-select-panel"></div>
         </div>
       </form>
-      <div class="ms-auto d-flex gap-2">
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <?php if ($biometricSync !== null): ?>
+        <?php $scannerUp = $biometricSync['ok'] === true; ?>
+        <span id="biometricStatus" class="scanner-status <?= $scannerUp ? 'is-up' : 'is-down' ?>"
+              data-latest-punch="<?= e($biometricSync['latest_punch'] ?? '') ?>">
+          <i class="bi <?= $scannerUp ? 'bi-check-circle-fill' : 'bi-x-circle-fill' ?> me-1"></i><span class="biometric-status-text">Scanner <?= $scannerUp ? 'connected' : 'not connected' ?></span>
+        </span>
+        <?php endif; ?>
+        <?php if (! hasRole('admin','adas')): ?>
+        <a href="<?= base_url('time-records/report') ?>" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-file-earmark-bar-graph me-1"></i>My Attendance
+        </a>
         <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('time-table','time_records')">
           <i class="bi bi-download me-1"></i>Export
-        </button>
-        <?php if (hasRole('admin','adas')): ?>
-        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#holidaysModal">
-          <i class="bi bi-calendar-x me-1"></i>Manage Holidays
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#breaksModal">
-          <i class="bi bi-calendar-range me-1"></i>Academic Breaks
-        </button>
-        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
-          <i class="bi bi-upload me-1"></i>Import
         </button>
         <?php endif; ?>
       </div>
     </div>
+    <?php if (hasRole('admin','adas')): ?>
+    <div class="d-flex align-items-center gap-2 flex-wrap border-top pt-3 mt-3">
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#holidaysModal">
+        <i class="bi bi-calendar-x me-1"></i>Manage Holidays
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#breaksModal">
+        <i class="bi bi-calendar-range me-1"></i>Academic Breaks
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#leavesModal">
+        <i class="bi bi-person-dash me-1"></i>Manage Leaves
+      </button>
+      <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+        <a href="<?= base_url('time-records/report') ?>" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-file-earmark-bar-graph me-1"></i>Reports
+        </a>
+        <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('time-table','time_records')">
+          <i class="bi bi-download me-1"></i>Export
+        </button>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+          <i class="bi bi-upload me-1"></i>Import
+        </button>
+        <?php if ($biometricSync !== null): ?>
+        <form method="POST" action="<?= base_url('time-records/sync') ?>" class="ajax-form d-inline">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-arrow-repeat me-1"></i>Sync from Device</button>
+        </form>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
   </div>
 </div>
 
@@ -151,7 +181,7 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
     <div class="card-title">Attendance Records</div>
     <div class="card-description">
       <?= date('l, F d, Y', strtotime($dateFilter)) ?> ·
-      <span id="time-records-count"><?= count($records) ?></span> total employees
+      <span id="time-records-count"><?= count($records) + count($notYetIn) ?></span> total employees<?php if ($notYetIn): ?> · <?= count($notYetIn) ?> not yet timed in<?php endif; ?>
     </div>
   </div>
   <div class="card-body p-0">
@@ -214,7 +244,18 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             <?php endif; ?>
           </tr>
           <?php endforeach; ?>
-          <?php if (empty($records)): ?>
+          <?php foreach ($notYetIn as $p): ?>
+          <tr class="not-yet-in">
+            <td class="text-muted">AC-<?= e($p['ac_no']) ?></td>
+            <td class="fw-semibold"><?= personLink($p['user_id'], $p['name']) ?></td>
+            <td class="text-center"><span class="text-muted">—</span></td>
+            <td class="text-center"><span class="text-muted">—</span></td>
+            <td class="text-center"><span class="badge badge-pending"><i class="bi bi-hourglass-split"></i> Not yet timed in</span></td>
+            <td class="text-muted" style="font-size:.78rem;">Marked Absent tomorrow if there's no scan today</td>
+            <?php if (hasRole('admin','adas')): ?><td></td><?php endif; ?>
+          </tr>
+          <?php endforeach; ?>
+          <?php if (empty($records) && empty($notYetIn)): ?>
           <tr>
             <td colspan="7" class="text-center py-5">
               <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
@@ -404,6 +445,108 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
   </div>
 </div>
 
+<!-- Manage Leaves Modal -->
+<div class="modal fade" id="leavesModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-person-dash me-2"></i>Manage Leaves — <?= date('M d, Y', strtotime($dateFilter)) ?></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:.82rem;">
+          Only people who <strong>haven't timed in</strong> on <?= date('M d, Y', strtotime($dateFilter)) ?> are listed.
+          For a leave of several days, set <strong>Until</strong>: weekends, holidays and any day the person timed in are skipped.
+          If someone on leave scans in anyway, that day becomes Present.
+        </p>
+        <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form" data-confirm-title="Mark the selected people on leave?">
+          <input type="hidden" name="action" value="leave_add">
+          <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+          <div class="row g-2 align-items-end mb-2">
+            <div class="col-md-5">
+              <label class="form-label">Search</label>
+              <input type="search" id="leaveSearch" class="form-control form-control-sm" placeholder="Name or AC-No…" autocomplete="off">
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label">Reason</label>
+              <input type="text" name="leave_reason" class="form-control form-control-sm" list="leaveReasons" maxlength="100" placeholder="e.g. Sick Leave">
+              <datalist id="leaveReasons">
+                <option value="Sick Leave"><option value="Vacation Leave"><option value="Official Business">
+                <option value="Special Leave"><option value="Maternity Leave"><option value="Paternity Leave">
+              </datalist>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label">Until</label>
+              <div class="maroon-dp" data-min="<?= e($dateFilter) ?>">
+                <input type="text" class="form-control form-control-sm maroon-dp-display" value="<?= date('M j, Y', strtotime($dateFilter)) ?>" readonly>
+                <input type="hidden" name="leave_until" value="<?= e($dateFilter) ?>">
+                <div class="maroon-dp-panel">
+                  <div class="maroon-dp-header">
+                    <button type="button" class="maroon-dp-nav" data-dir="-1"><i class="bi bi-chevron-left"></i></button>
+                    <span class="maroon-dp-month-label"></span>
+                    <button type="button" class="maroon-dp-nav" data-dir="1"><i class="bi bi-chevron-right"></i></button>
+                  </div>
+                  <div class="maroon-dp-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                  <div class="maroon-dp-grid"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive border rounded" style="max-height:260px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0" id="leaveCandidates">
+              <tbody>
+                <?php foreach ($leaveCandidates as $p): ?>
+                <tr data-search="<?= e(strtolower($p['name'] . ' ac-' . $p['ac_no'] . ' ' . $p['ac_no'])) ?>">
+                  <td style="width:32px;"><input type="checkbox" name="leave_ac_no[]" value="<?= e($p['ac_no']) ?>" id="leave-<?= e($p['ac_no']) ?>" class="form-check-input"></td>
+                  <td><label for="leave-<?= e($p['ac_no']) ?>" class="mb-0 fw-semibold" style="cursor:pointer;"><?= e($p['name']) ?></label></td>
+                  <td class="text-muted small">AC-<?= e($p['ac_no']) ?></td>
+                  <td class="text-muted small"><?= e($p['role']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+                <tr class="leave-empty"<?= $leaveCandidates ? ' style="display:none;"' : '' ?>>
+                  <td colspan="4" class="text-center text-muted py-3"><?= $leaveCandidates ? 'No one matches your search.' : 'Everyone has timed in or is already on leave.' ?></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <span class="small text-muted"><span id="leaveSelectedCount">0</span> selected</span>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-person-dash me-1"></i>Mark On Leave</button>
+          </div>
+        </form>
+
+        <h6 class="mt-4 mb-2" style="font-size:.85rem;">On leave on <?= date('M d, Y', strtotime($dateFilter)) ?></h6>
+        <div class="table-responsive" style="max-height:200px;overflow-y:auto;">
+          <table class="table table-sm mb-0">
+            <tbody>
+              <?php foreach ($onLeave as $r): ?>
+              <tr>
+                <td class="fw-semibold"><?= e($r['employee_name']) ?></td>
+                <td class="text-muted small"><?= e($r['remarks'] ?? '') ?></td>
+                <td class="text-end">
+                  <form method="POST" action="<?= base_url('time-records') ?>" class="ajax-form d-inline" data-confirm-title="Remove this leave?" data-confirm-text="Only this day is cleared." data-confirm-icon="warning">
+                    <input type="hidden" name="action" value="leave_remove">
+                    <input type="hidden" name="date" value="<?= e($dateFilter) ?>">
+                    <input type="hidden" name="record_id" value="<?= (int) $r['id'] ?>">
+                    <button type="submit" class="btn btn-ghost btn-sm text-danger" title="Remove"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              <?php if (empty($onLeave)): ?>
+              <tr><td colspan="3" class="text-center text-muted py-3">No one is on leave this day.</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Academic Breaks Modal -->
 <?php $breakDatePicker = static fn (string $name) => '
             <div class="maroon-dp">
@@ -487,6 +630,7 @@ $holidayMap = $holidayLabel !== null ? [$dateFilter => $holidayLabel] : [];
 $holidayMapJson  = json_encode($holidayMap);
 $dateFilterJson  = json_encode($dateFilter);
 $canManageHolidays = hasRole('admin', 'adas') ? 'true' : 'false';
+$liveUrl = base_url('time-records/live');
 
 $extraScript = <<<HTML
 <script>
@@ -498,6 +642,41 @@ window.dtrClockTimer = setInterval(function () {
     if (!el) { clearInterval(window.dtrClockTimer); return; }
     el.textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 }, 1000);
+
+// Live biometric feed: every 30 s ask the server for the latest punch (it
+// syncs new punches from the device when due). When one arrives for the day
+// on screen, quietly reload the table — unless the user is mid-edit or
+// searching, in which case it waits for the next tick.
+clearInterval(window.dtrLiveTimer);
+window.dtrLiveTimer = setInterval(function () {
+    var box = document.getElementById('biometricStatus');
+    if (!box) { clearInterval(window.dtrLiveTimer); return; }
+    if (document.hidden) return;
+
+    fetch('{$liveUrl}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (s) {
+            if (!s || !document.body.contains(box)) return;
+            if (s.at) {
+                var up = s.ok === true;
+                box.querySelector('.biometric-status-text').textContent = 'Scanner ' + (up ? 'connected' : 'not connected');
+                box.querySelector('i').className = 'bi ' + (up ? 'bi-check-circle-fill' : 'bi-x-circle-fill') + ' me-1';
+                box.classList.toggle('is-up', up);
+                box.classList.toggle('is-down', !up);
+            }
+            if (!s.latest_punch || s.latest_punch === box.dataset.latestPunch) return;
+
+            var busy = document.querySelector('.modal.show')
+                || (document.getElementById('timeSearchInput') || {}).value;
+            if (busy) return;
+
+            box.dataset.latestPunch = s.latest_punch;
+            if (s.latest_punch.slice(0, 10) === {$dateFilterJson}) {
+                loadPage(window.location.href, { push: false, scroll: false, quiet: true });
+            }
+        })
+        .catch(function () {});
+}, 30000);
 
 // Values are read inside the function body (not as top-level const/let)
 // because this script gets re-injected on every AJAX filter navigation on
@@ -529,6 +708,30 @@ function maybeShowHolidayAlert() {
     });
 }
 maybeShowHolidayAlert();
+
+// Manage Leaves: filter the people list as you type; count what's ticked.
+(function () {
+    var search = document.getElementById('leaveSearch');
+    var table  = document.getElementById('leaveCandidates');
+    if (!search || !table) return;
+    var empty = table.querySelector('.leave-empty');
+    var rows  = table.querySelectorAll('tr[data-search]');
+    search.addEventListener('input', function () {
+        var q = search.value.trim().toLowerCase();
+        var shown = 0;
+        rows.forEach(function (row) {
+            // Keep ticked people visible so a new search doesn't hide who's selected.
+            var match = !q || row.dataset.search.indexOf(q) !== -1 || row.querySelector('input').checked;
+            row.style.display = match ? '' : 'none';
+            if (match) shown++;
+        });
+        if (rows.length) empty.style.display = shown ? 'none' : '';
+    });
+    table.addEventListener('change', function () {
+        document.getElementById('leaveSelectedCount').textContent = table.querySelectorAll('input:checked').length;
+    });
+    document.getElementById('leavesModal').addEventListener('shown.bs.modal', function () { search.focus(); });
+})();
 
 function filterByStatus(status) {
     var select = document.getElementById('statusFilterSelect');

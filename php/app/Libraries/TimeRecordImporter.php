@@ -25,7 +25,7 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 class TimeRecordImporter
 {
     /** Time-in later than this is marked "Late" instead of "Present". */
-    private const LATE_THRESHOLD = '07:30';
+    public const LATE_THRESHOLD = '07:30';
 
     /** Splits punches into morning (time-in) and afternoon (time-out) when the Status column was pressed wrong. */
     private const MIDDAY = '12:00';
@@ -181,6 +181,114 @@ class TimeRecordImporter
         $summary['placeholders_created'] = array_values(array_unique($summary['placeholders_created']));
 
         return $summary;
+    }
+
+    /**
+     * Imports punches read straight off the device (see BiometricSync),
+     * through the same rules as an uploaded punch log.
+     *
+     * @param list<array{ac_no:string,name?:string,time:\DateTimeInterface,punch:int}> $punches punch: 0 check-in, 1 check-out, other = break/OT
+     * @return array same summary as import()
+     */
+    public function importPunches(array $punches): array
+    {
+        $rows = [['No', 'Name', 'Department', 'Date/Time', 'Status']];
+        foreach ($punches as $p) {
+            $rows[] = [
+                $p['ac_no'],
+                $p['name'] ?? '',
+                '',
+                $p['time']->format('Y-m-d H:i:s'),
+                match ($p['punch']) { 0 => 'C/In', 1 => 'C/Out', default => 'Other' },
+            ];
+        }
+
+        $header = $this->findPunchLogHeader($rows);
+
+        return $this->importPunchLog($rows, $header['row'], $header['columns'], [
+            'rows_read'              => 0,
+            'inserted'               => 0,
+            'updated'                => 0,
+            'present'                => 0,
+            'late'                   => 0,
+            'absent'                 => 0,
+            'incomplete'             => 0,
+            'academic_break'         => 0,
+            'skipped_non_school_day' => 0,
+            'placeholders_created'   => [],
+            'errors'                 => [],
+            'latest_date'            => null,
+        ]);
+    }
+
+    /**
+     * Marks Absent (or Academic Break) everyone expected to scan
+     * (TimeRecordModel::expectedPeople()) who has no record at all on a
+     * school day from $from to $to. A school day is a weekday that isn't a
+     * holiday and on which someone scanned. Each person only counts from
+     * their first-ever scan (so new hires aren't absent before they started),
+     * and people not linked to an account only until their last scan (they
+     * may have left). Existing records are never touched.
+     *
+     * @return int records added
+     */
+    public function fillNoScanDays(string $from, string $to): int
+    {
+        $db = $this->timeRecords->db;
+
+        $schoolDays = array_values(array_filter(
+            array_column($db->query(
+                'SELECT DISTINCT DATE(punched_at) AS d FROM biometric_punches WHERE punched_at BETWEEN ? AND ? ORDER BY d',
+                [$from . ' 00:00:00', $to . ' 23:59:59']
+            )->getResultArray(), 'd'),
+            fn (string $d) => ! $this->isWeekendOrHoliday($d)
+        ));
+        if ($schoolDays === []) {
+            return 0;
+        }
+
+        $spans = [];
+        foreach ($db->query('SELECT ac_no, DATE(MIN(punched_at)) AS first_day, DATE(MAX(punched_at)) AS last_day FROM biometric_punches GROUP BY ac_no')->getResultArray() as $r) {
+            $spans[$r['ac_no']] = $r;
+        }
+
+        $existing = [];
+        foreach ($db->query('SELECT employee_id, date FROM time_records WHERE date BETWEEN ? AND ?', [$from, $to])->getResultArray() as $r) {
+            $existing[$r['employee_id'] . '|' . $r['date']] = true;
+        }
+
+        $summary = ['absent' => 0, 'academic_break' => 0];
+        $rows    = [];
+        foreach (TimeRecordModel::expectedPeople() as $acNo => $person) {
+            $span = $spans[$acNo] ?? null;
+            if ($span === null) {
+                continue; // never scanned: nothing to go on
+            }
+            $until = $person['scanner_only'] ? $span['last_day'] : $to;
+
+            foreach ($schoolDays as $day) {
+                if ($day < $span['first_day'] || $day > $until || isset($existing['AC-' . $acNo . '|' . $day])) {
+                    continue;
+                }
+                [$status, $remarks] = $this->noPunchStatus($day, $summary);
+                $rows[] = [
+                    'date'          => $day,
+                    'employee_name' => $person['name'],
+                    'employee_id'   => 'AC-' . $acNo,
+                    'user_id'       => $person['user_id'],
+                    'time_in'       => null,
+                    'time_out'      => null,
+                    'status'        => $status,
+                    'remarks'       => $remarks,
+                ];
+            }
+        }
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            $this->timeRecords->insertBatch($chunk);
+        }
+
+        return count($rows);
     }
 
     /**

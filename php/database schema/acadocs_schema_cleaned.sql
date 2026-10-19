@@ -106,6 +106,18 @@ CREATE TABLE `biometric_employees` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `biometric_punches` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `ac_no` varchar(24) NOT NULL,
+  `punched_at` datetime NOT NULL,
+  `punch` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT '0 check-in, 1 check-out, 2/3 break, 4/5 overtime',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ac_no_punched_at` (`ac_no`,`punched_at`),
+  KEY `punched_at` (`punched_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `conversation_participants` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `conversation_id` int(10) unsigned NOT NULL,

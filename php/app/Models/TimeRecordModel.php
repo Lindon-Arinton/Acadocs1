@@ -61,6 +61,25 @@ class TimeRecordModel extends Model
     }
 
     /**
+     * Everyone expected to scan: active accounts with a biometric number,
+     * plus named scanner users not linked to an account (scanner_only).
+     *
+     * @return array<string,array{ac_no:string,name:string,role:string,user_id:?int,scanner_only:bool}> keyed by AC-No
+     */
+    public static function expectedPeople(): array
+    {
+        $people = [];
+        foreach ((new UserModel())->select('id, name, role, ac_no')->where('is_active', 1)->where('ac_no IS NOT NULL', null, false)->where('ac_no !=', '')->findAll() as $u) {
+            $people[(string) $u['ac_no']] = ['ac_no' => (string) $u['ac_no'], 'name' => $u['name'], 'role' => ucfirst($u['role']), 'user_id' => (int) $u['id'], 'scanner_only' => false];
+        }
+        foreach ((new BiometricEmployeeModel())->where('is_placeholder', 0)->findAll() as $b) {
+            $people[(string) $b['ac_no']] ??= ['ac_no' => (string) $b['ac_no'], 'name' => $b['name'], 'role' => 'Scanner only', 'user_id' => null, 'scanner_only' => true];
+        }
+
+        return $people;
+    }
+
+    /**
      * Gives an account the records scanned under its biometric number that
      * don't belong to anyone yet (e.g. imported before the number was set),
      * and refreshes the name shown on all of that account's records. Records

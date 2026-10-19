@@ -22,6 +22,7 @@ use Config\SchoolCalendar as CalendarConfig;
  *    the day after the term ends, follow up with those still missing scores.
  *  - Report packs: the day after a term (and the school year) ends, tell the
  *    principal and ADAS the end-of-term / end-of-year pack is ready.
+ *  - Biometric attendance: every few minutes, pull the scanner's log into time_records (BiometricSync).
  *  - Cleanup (once a day): spent password-reset codes, old notifications,
  *    abandoned chats and their files, old import files, orphaned uploads.
  *
@@ -50,6 +51,7 @@ class Automation
         $this->publishScheduledAnnouncements();
         $this->archiveExpiredAnnouncements();
         $this->termJobs();
+        $this->pullBiometric();
         if ($this->log->claim('cleanup:' . $this->today)) {
             $this->cleanup();
         }
@@ -87,6 +89,19 @@ class Automation
         if ($archived > 0) {
             $this->report[] = 'Archived ' . $archived . ' expired announcement(s)';
         }
+    }
+
+    // ── Biometric attendance ────────────────────────────────────────
+
+    private function pullBiometric(): void
+    {
+        $sync = new BiometricSync();
+        if (! $sync->isDue() || (! is_cli() && ! config('Biometric')->pullOnWebRequests)) {
+            return;
+        }
+
+        $result         = $sync->pull();
+        $this->report[] = 'Biometric pull: ' . ($result['ok'] ? '' : 'FAILED — ') . $result['message'];
     }
 
     // ── Term reminders and report packs ─────────────────────────────

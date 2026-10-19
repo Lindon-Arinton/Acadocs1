@@ -3,6 +3,7 @@
 namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
+use App\Libraries\BiometricSync;
 use App\Libraries\TimeRecordImporter;
 use App\Models\AcademicBreakModel;
 use App\Models\HolidayModel;
@@ -73,6 +74,32 @@ class TimeRecords extends BaseController
                             ->update();
                     }
                     $message = 'Academic break removed.';
+                } elseif ($action === 'leave_add') {
+                    $from  = (string) $this->request->getPost('date');
+                    $until = (string) ($this->request->getPost('leave_until') ?: $from);
+                    $acNos = array_filter(array_map('strval', (array) $this->request->getPost('leave_ac_no')));
+                    if (! strtotime($from) || ! strtotime($until) || $until < $from) {
+                        return $isAjax ? $this->ajaxError('The "until" date must be on or after the start date.') : redirect()->to($redirect);
+                    }
+                    if ($acNos === []) {
+                        return $isAjax ? $this->ajaxError('Choose at least one person.') : redirect()->to($redirect);
+                    }
+                    if ((strtotime($until) - strtotime($from)) / 86400 > 366) {
+                        return $isAjax ? $this->ajaxError('A leave can span at most a year.') : redirect()->to($redirect);
+                    }
+
+                    [$marked, $message] = $this->markOnLeave($acNos, $from, $until, trim((string) $this->request->getPost('leave_reason')));
+                    if ($marked === 0) {
+                        return $isAjax ? $this->ajaxError($message) : redirect()->to($redirect);
+                    }
+                } elseif ($action === 'leave_remove') {
+                    $record = $model->find((int) $this->request->getPost('record_id'));
+                    if ($record && $record['status'] === 'On Leave') {
+                        // A leave record never has punches (see markOnLeave()), so removing it just clears the day;
+                        // the next biometric sync marks it Absent again if it was a school day with no punch.
+                        $model->delete($record['id']);
+                    }
+                    $message = 'Leave removed.';
                 }
             } catch (\Throwable $e) {
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to($redirect);
@@ -149,6 +176,7 @@ class TimeRecords extends BaseController
         }
 
         return view('pages/shared/time_records', [
+            'notYetIn'     => $statusFilter === 'all' ? $this->notYetTimedIn($dateFilter, $search) : [],
             'userIdsByEmployeeId' => $userIdsByEmployeeId,
             'pageTitle'    => 'Time Records',
             'records'      => $records,
@@ -164,7 +192,232 @@ class TimeRecords extends BaseController
             'holidayLabel'    => (new HolidayModel())->labelFor($dateFilter),
             'academicBreaks' => (new AcademicBreakModel())->orderBy('start_date', 'ASC')->findAll(),
             'activeBreak'    => (new AcademicBreakModel())->covering($dateFilter),
+            'biometricSync'  => config('Biometric')->enabled ? BiometricSync::lastStatus() ?? ['ok' => null] : null,
+            'leaveCandidates' => hasRole('admin', 'adas') ? $this->leaveCandidates($dateFilter) : [],
+            'onLeave'         => (new TimeRecordModel())->where('date', $dateFilter)->where('status', 'On Leave')->orderBy('employee_name', 'ASC')->findAll(),
         ]);
+    }
+
+    /**
+     * Today only (a school day): everyone expected to scan who has no record
+     * yet. Past days don't need this — the sync marks those people Absent
+     * (TimeRecordImporter::fillNoScanDays()).
+     *
+     * @return list<array{ac_no:string,name:string,user_id:?int}>
+     */
+    private function notYetTimedIn(string $date, string $search): array
+    {
+        if ($date !== date('Y-m-d') || (int) date('N') >= 6 || (new HolidayModel())->labelFor($date) !== null || (new AcademicBreakModel())->covering($date)) {
+            return [];
+        }
+
+        $people = TimeRecordModel::expectedPeople();
+        foreach ((new TimeRecordModel())->select('employee_id')->where('date', $date)->findAll() as $r) {
+            unset($people[substr($r['employee_id'], 3)]);
+        }
+
+        // Only people the scanner has seen before; someone who never scanned has nothing to go on.
+        $seen = array_flip(array_column(db_connect()->query('SELECT DISTINCT ac_no FROM biometric_punches')->getResultArray(), 'ac_no'));
+        $out  = [];
+        foreach ($people as $acNo => $p) {
+            if (! isset($seen[$acNo]) || ($p['scanner_only'] && ! $this->scannedSince($acNo, date('Y-m-d', strtotime('-31 days'))))) {
+                continue;
+            }
+            if ($search !== '' && stripos($p['name'] . ' AC-' . $acNo, $search) === false) {
+                continue;
+            }
+            $out[] = $p;
+        }
+        usort($out, static fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return $out;
+    }
+
+    private function scannedSince(string $acNo, string $date): bool
+    {
+        return db_connect()->query('SELECT 1 FROM biometric_punches WHERE ac_no = ? AND punched_at >= ? LIMIT 1', [$acNo, $date . ' 00:00:00'])->getRowArray() !== null;
+    }
+
+    /**
+     * Everyone who can be marked On Leave for a day: active accounts with a
+     * biometric number, plus named scanner users not linked to an account
+     * yet — minus anyone who has already timed in (or out) that day or is
+     * already on leave.
+     *
+     * @return list<array{ac_no:string,name:string,role:string,user_id:?int}>
+     */
+    private function leaveCandidates(string $date): array
+    {
+        $people = TimeRecordModel::expectedPeople();
+
+        $taken = (new TimeRecordModel())->select('employee_id')->where('date', $date)
+            ->groupStart()->where('time_in IS NOT NULL', null, false)->orWhere('time_out IS NOT NULL', null, false)->orWhere('status', 'On Leave')->groupEnd()
+            ->findAll();
+        foreach ($taken as $r) {
+            unset($people[substr($r['employee_id'], 3)]); // "AC-12" -> "12"
+        }
+
+        usort($people, static fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return $people;
+    }
+
+    /**
+     * Records On Leave for each person on each school day from $from to
+     * $until (weekends and holidays skipped), over an Absent or empty day —
+     * never over a day they timed in.
+     *
+     * @return array{0:int,1:string} [days marked, message]
+     */
+    private function markOnLeave(array $acNos, string $from, string $until, string $reason): array
+    {
+        $candidates = array_column($this->leaveCandidates($from), null, 'ac_no');
+        $model      = new TimeRecordModel();
+        $holidays   = new HolidayModel();
+        $remarks    = 'On leave' . ($reason !== '' ? ': ' . $reason : '');
+
+        $marked  = 0;
+        $skipped = [];
+        foreach ($acNos as $acNo) {
+            $person = $candidates[$acNo] ?? null;
+            if ($person === null) {
+                $skipped[] = 'AC-' . $acNo;
+
+                continue; // timed in already, already on leave, or not a known person
+            }
+
+            for ($day = $from; $day <= $until; $day = date('Y-m-d', strtotime($day . ' +1 day'))) {
+                $isSchoolDay = (int) date('N', strtotime($day)) < 6 && $holidays->labelFor($day) === null;
+                if (! $isSchoolDay && $from !== $until) {
+                    continue;
+                }
+
+                $existing = $model->where('employee_id', 'AC-' . $acNo)->where('date', $day)->first();
+                if ($existing && ($existing['time_in'] !== null || $existing['time_out'] !== null)) {
+                    continue;
+                }
+
+                $data = [
+                    'date'          => $day,
+                    'employee_name' => $person['name'],
+                    'employee_id'   => 'AC-' . $acNo,
+                    'user_id'       => $person['user_id'],
+                    'time_in'       => null,
+                    'time_out'      => null,
+                    'status'        => 'On Leave',
+                    'remarks'       => $remarks,
+                ];
+                $existing ? $model->update($existing['id'], $data) : $model->insert($data);
+                $marked++;
+            }
+        }
+
+        $people = count($acNos) - count($skipped);
+        $message = $marked === 0
+            ? 'No one was marked on leave.'
+            : sprintf('Marked %d %s on leave (%d day%s).', $people, $people === 1 ? 'person' : 'people', $marked, $marked === 1 ? '' : 's in total');
+
+        return [$marked, $skipped === [] ? $message : $message . ' Skipped (already timed in or on leave): ' . implode(', ', $skipped) . '.'];
+    }
+
+    /**
+     * Polled by an open Time Records page: syncs new punches from the
+     * device when one is due (see BiometricSync::isDue()) and reports the
+     * latest punch, so the page can refresh itself when it changes.
+     */
+    public function live()
+    {
+        $sync = new BiometricSync();
+        $status = $sync->isDue() ? $sync->pull() : (BiometricSync::lastStatus() ?? []);
+
+        return $this->response->setJSON([
+            'ok'           => $status['ok'] ?? null,
+            'at'           => isset($status['at']) ? date('M d, h:i A', strtotime($status['at'])) : null,
+            'message'      => $status['message'] ?? null,
+            'latest_punch' => $status['latest_punch'] ?? null,
+        ]);
+    }
+
+    /**
+     * Attendance report for one person over a date range: every record,
+     * totals per status, attendance rate and total tardiness. Admin/ADAS can
+     * pick anyone; everyone else sees only their own.
+     */
+    public function report()
+    {
+        $canPickAnyone = hasRole('admin', 'adas');
+        $people        = TimeRecordModel::expectedPeople();
+
+        // "BAUTISTA, JORGE C. · AC-25" (from the search box) or a bare "25".
+        $raw  = trim((string) $this->request->getGet('person'));
+        $acNo = preg_match('/AC-?(\w+)\s*$/i', $raw, $m) ? $m[1] : $raw;
+
+        if (! $canPickAnyone) {
+            $acNo = (string) (currentUser()['ac_no'] ?? '');
+        }
+
+        $from = (string) ($this->request->getGet('from') ?: date('Y-m-01'));
+        $to   = (string) ($this->request->getGet('to') ?: date('Y-m-d'));
+        if (! strtotime($from) || ! strtotime($to)) {
+            [$from, $to] = [date('Y-m-01'), date('Y-m-d')];
+        }
+        if ($to < $from) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $person  = null;
+        $records = [];
+        $totals  = array_fill_keys(TimeRecordModel::STATUSES, 0);
+        $lateMinutes = 0;
+
+        if ($acNo !== '') {
+            $records = (new TimeRecordModel())->where('employee_id', 'AC-' . $acNo)
+                ->where('date >=', $from)->where('date <=', $to)
+                ->orderBy('date', 'ASC')->findAll();
+
+            $person = $people[$acNo] ?? ($records !== [] ? ['ac_no' => $acNo, 'name' => end($records)['employee_name'], 'role' => 'Former / unlinked', 'user_id' => null] : null);
+
+            foreach ($records as $r) {
+                $totals[$r['status']] = ($totals[$r['status']] ?? 0) + 1;
+                if ($r['status'] === 'Late' && $r['time_in']) {
+                    $lateMinutes += max(0, (int) round((strtotime($r['time_in']) - strtotime(TimeRecordImporter::LATE_THRESHOLD)) / 60));
+                }
+            }
+        }
+
+        $attended = $totals['Present'] + $totals['Late'];
+        $expected = $attended + $totals['Absent'];
+
+        return view('pages/shared/time_records_report', [
+            'pageTitle'     => 'Attendance Report',
+            'canPickAnyone' => $canPickAnyone,
+            'people'        => $people,
+            'acNo'          => $acNo,
+            'person'        => $person,
+            'from'          => $from,
+            'to'            => $to,
+            'records'       => $records,
+            'totals'        => $totals,
+            'rate'          => $expected > 0 ? round($attended / $expected * 100, 1) : null,
+            'lateMinutes'   => $lateMinutes,
+        ]);
+    }
+
+    /** "Sync from Device": pulls new punches now instead of waiting for the next automatic sync. */
+    public function sync()
+    {
+        if (! hasRole('admin', 'adas')) {
+            return $this->ajaxError('You are not authorized to do this.', 403);
+        }
+
+        $result = (new BiometricSync())->pull();
+        if (! $result['ok']) {
+            return $this->ajaxError('Could not sync: ' . $result['message']);
+        }
+
+        $date = $result['summary']['latest_date'] ?? date('Y-m-d');
+
+        return $this->ajaxSuccess($result['message'], ['redirect' => '/time-records?date=' . $date]);
     }
 
     public function import()
