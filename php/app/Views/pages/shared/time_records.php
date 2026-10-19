@@ -3,11 +3,12 @@
 <?php
 // The selected date is the page's headline; prev / next / today step through days.
 $dtrIsToday = $dateFilter === date('Y-m-d');
-$dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string {
+$dtrDayUrl  = static function (string $date) use ($sort, $statusFilter, $scanFilter): string {
     return base_url('time-records') . '?' . http_build_query(array_filter([
         'date'   => $date,
         'sort'   => $sort !== 'name_az' ? $sort : null,
         'status' => $statusFilter !== 'all' ? $statusFilter : null,
+        'scan'   => $scanFilter !== 'all' ? $scanFilter : null,
     ]));
 };
 ?>
@@ -86,6 +87,19 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter): string 
             <option value="Late"     <?= $statusFilter==='Late'     ? 'selected' : '' ?>>Late</option>
             <option value="Absent"   <?= $statusFilter==='Absent'   ? 'selected' : '' ?>>Absent</option>
             <option value="On Leave" <?= $statusFilter==='On Leave' ? 'selected' : '' ?>>On Leave</option>
+          </select>
+          <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
+          <div class="maroon-select-panel"></div>
+        </div>
+
+        <div class="maroon-select maroon-select-sm" style="width:auto;" title="Who has scanned">
+          <select name="scan" class="maroon-select-native" onchange="this.form.requestSubmit()">
+            <option value="all"  <?= $scanFilter==='all'  ? 'selected' : '' ?>>All scans</option>
+            <option value="in"   <?= $scanFilter==='in'   ? 'selected' : '' ?>>Timed in</option>
+            <option value="out"  <?= $scanFilter==='out'  ? 'selected' : '' ?>>Timed out</option>
+            <option value="none" <?= $scanFilter==='none' ? 'selected' : '' ?>>Not yet timed in</option>
+            <option value="no_in"  <?= $scanFilter==='no_in'  ? 'selected' : '' ?>>Time out, no time in</option>
+            <option value="no_out" <?= $scanFilter==='no_out' ? 'selected' : '' ?>>Time in, no time out</option>
           </select>
           <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
           <div class="maroon-select-panel"></div>

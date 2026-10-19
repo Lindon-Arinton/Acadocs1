@@ -124,6 +124,11 @@ class TimeRecords extends BaseController
             $statusFilter = 'all';
         }
 
+        $scanFilter = $this->request->getGet('scan') ?? 'all';
+        if (! in_array($scanFilter, ['all', 'in', 'out', 'none', 'no_in', 'no_out'], true)) {
+            $scanFilter = 'all';
+        }
+
         // Summary counts always reflect every status for the date (still
         // respecting search), so every card stays visible/clickable no
         // matter which status is currently selected in the filter.
@@ -159,6 +164,17 @@ class TimeRecords extends BaseController
             $builder->where('status', $statusFilter);
         }
 
+        // Scan filter: who has already timed in / timed out, or hasn't scanned at all.
+        match ($scanFilter) {
+            'in'    => $builder->where('time_in IS NOT NULL', null, false),
+            'out'   => $builder->where('time_out IS NOT NULL', null, false),
+            'none'  => $builder->where('time_in IS NULL', null, false)->where('time_out IS NULL', null, false),
+            // Incomplete scans: timed out without a time-in, or timed in without a time-out.
+            'no_in'  => $builder->where('time_in IS NULL', null, false)->where('time_out IS NOT NULL', null, false),
+            'no_out' => $builder->where('time_in IS NOT NULL', null, false)->where('time_out IS NULL', null, false),
+            default => null,
+        };
+
         match ($sort) {
             'status'  => $builder->orderBy('status', 'ASC')->orderBy('employee_name', 'ASC'),
             'time_in' => $builder->orderBy('time_in', 'ASC'),
@@ -177,7 +193,8 @@ class TimeRecords extends BaseController
         }
 
         return view('pages/shared/time_records', [
-            'notYetIn'     => $statusFilter === 'all' ? $this->notYetTimedIn($dateFilter, $search) : [],
+            'notYetIn'     => $statusFilter === 'all' && in_array($scanFilter, ['all', 'none'], true) ? $this->notYetTimedIn($dateFilter, $search) : [],
+            'scanFilter'   => $scanFilter,
             'userIdsByEmployeeId' => $userIdsByEmployeeId,
             'pageTitle'    => 'Time Records',
             'records'      => $records,
