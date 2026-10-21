@@ -176,7 +176,7 @@
           <div class="mb-3">
             <label class="form-label" for="announcementImage">Photo</label>
             <input type="file" name="image" id="announcementImage" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp"
-                   onchange="previewAnnouncementImage(this)">
+                   onchange="previewAnnouncementImage(this)" data-dropzone-list="off">
             <div class="form-text">JPG, PNG, GIF or WEBP, up to 5 MB. Shown as the banner of the announcement.</div>
             <div id="announcementImagePreview" class="ann-photo-preview d-none">
               <img alt="">
@@ -462,6 +462,7 @@ function previewAnnouncementImage(input) {
 function clearAnnouncementImage() {
     document.getElementById('announcementImage').value = '';
     document.getElementById('announcementImagePreview').classList.add('d-none');
+    if (typeof refreshDropzone === 'function') refreshDropzone(document.getElementById('announcementImage'));
 }
 
 function openPostAnnouncementModal() {

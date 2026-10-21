@@ -1037,6 +1037,147 @@ function initMaroonSelect(root) {
 }
 document.querySelectorAll('.maroon-select').forEach(initMaroonSelect);
 
+/* ── Drag-and-drop file zone ──
+   Turns every visible <input type="file" class="form-control"> into a drop
+   zone. The native input stays in the form (stretched invisibly over the
+   zone), so clicking still opens the file picker, `required` still works,
+   and FormData picks the files up as before. Dropped files are checked
+   against the input's `accept` list; on a `multiple` input they're added to
+   the files already chosen. A 'change' event is fired so page handlers
+   (previews, auto-titles) still run.
+   Add data-dropzone-list="off" when the page shows its own file preview.
+   After changing input.files / input.value in code, call refreshDropzone(input). */
+function fileDzFormatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+function fileDzAccepts(input, file) {
+    const accept = (input.getAttribute('accept') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (!accept.length) return true;
+    const name = file.name.toLowerCase();
+    const type = (file.type || '').toLowerCase();
+    return accept.some(a => a.startsWith('.') ? name.endsWith(a)
+        : a.endsWith('/*') ? type.startsWith(a.slice(0, -1))
+        : type === a);
+}
+function refreshDropzone(input) {
+    const zone = input && input._fileDz;
+    if (!zone) return;
+    const files = Array.from(input.files || []);
+    const title = zone.querySelector('.file-dz-title');
+    const sub   = zone.querySelector('.file-dz-sub');
+    zone.classList.toggle('has-files', files.length > 0);
+    if (!files.length) {
+        title.innerHTML = '<span class="file-dz-link">Choose ' + (input.multiple ? 'files' : 'a file') + '</span> or drag ' + (input.multiple ? 'them' : 'it') + ' here';
+    } else if (files.length === 1) {
+        title.textContent = files[0].name;
+    } else {
+        title.textContent = files.length + ' files selected';
+    }
+    sub.textContent = files.length
+        ? (input.multiple ? 'Drop or click to add more' : 'Drop or click to replace')
+        : (zone.dataset.hint || '');
+
+    const list = zone.nextElementSibling && zone.nextElementSibling.classList.contains('file-dz-list') ? zone.nextElementSibling : null;
+    if (!list) return;
+    list.innerHTML = '';
+    list.classList.toggle('d-none', files.length === 0);
+    files.forEach((file, i) => {
+        const row = document.createElement('div');
+        row.className = 'file-dz-item';
+        row.innerHTML = '<i class="bi bi-file-earmark-text"></i><span class="file-dz-name"></span>'
+            + '<span class="file-dz-size"></span>'
+            + '<button type="button" class="btn btn-ghost btn-sm" title="Remove"><i class="bi bi-x-lg"></i></button>';
+        row.querySelector('.file-dz-name').textContent = file.name;
+        row.querySelector('.file-dz-size').textContent = fileDzFormatSize(file.size);
+        row.querySelector('button').addEventListener('click', () => {
+            const dt = new DataTransfer();
+            Array.from(input.files).forEach((f, j) => { if (j !== i) dt.items.add(f); });
+            input.files = dt.files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        list.appendChild(row);
+    });
+}
+function initFileDropzone(input) {
+    if (input._fileDz || input.closest('.file-dz') || input.classList.contains('d-none')) return;
+
+    // The hint text right under the input (e.g. "PDF, Word... Max 10MB") moves into the zone.
+    const hintEl = input.nextElementSibling && input.nextElementSibling.matches('.form-text, p.text-muted') ? input.nextElementSibling : null;
+
+    const zone = document.createElement('div');
+    zone.className = 'file-dz' + (input.classList.contains('form-control-sm') ? ' file-dz-sm' : '');
+    const accept = (input.getAttribute('accept') || '').split(',').map(s => s.trim()).filter(Boolean).join(', ');
+    zone.dataset.hint = hintEl ? hintEl.textContent.trim() : (accept ? 'Accepted: ' + accept : '');
+    zone.innerHTML = '<i class="bi bi-cloud-arrow-up file-dz-icon"></i>'
+        + '<div class="file-dz-text"><div class="file-dz-title"></div><div class="file-dz-sub"></div></div>';
+    input.parentNode.insertBefore(zone, input);
+    zone.appendChild(input);
+    input.classList.add('file-dz-input');
+    if (hintEl) hintEl.classList.add('d-none');
+
+    if (input.dataset.dropzoneList !== 'off') {
+        const list = document.createElement('div');
+        list.className = 'file-dz-list d-none';
+        zone.after(list);
+    }
+    input._fileDz = zone;
+
+    let depth = 0;
+    zone.addEventListener('dragenter', e => { e.preventDefault(); depth++; zone.classList.add('is-dragover'); });
+    zone.addEventListener('dragover',  e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    zone.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; zone.classList.remove('is-dragover'); } });
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        depth = 0;
+        zone.classList.remove('is-dragover');
+        const dropped  = Array.from(e.dataTransfer.files || []);
+        const accepted = dropped.filter(f => fileDzAccepts(input, f));
+        if (accepted.length < dropped.length && typeof showToast === 'function') {
+            showToast((dropped.length - accepted.length) + ' file(s) skipped — that file type isn\'t allowed here.', 'danger');
+        }
+        if (!accepted.length) return;
+
+        const dt = new DataTransfer();
+        if (input.multiple) {
+            const key = f => f.name + '|' + f.size + '|' + f.lastModified;
+            const have = new Set(Array.from(input.files || []).map(key));
+            Array.from(input.files || []).forEach(f => dt.items.add(f));
+            accepted.forEach(f => { if (!have.has(key(f))) dt.items.add(f); });
+        } else {
+            dt.items.add(accepted[0]);
+        }
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    // Picking with the dialog on a multiple input adds to the current files
+    // instead of replacing them (same as dropping). Runs in the capture phase
+    // on the zone so the page's own onchange handler sees the merged list.
+    let previous = [];
+    input.addEventListener('click', () => { previous = Array.from(input.files || []); });
+    zone.addEventListener('change', e => {
+        if (e.target === input && input.multiple && previous.length && e.isTrusted) {
+            const dt = new DataTransfer();
+            const key = f => f.name + '|' + f.size + '|' + f.lastModified;
+            const have = new Set(previous.map(key));
+            previous.forEach(f => dt.items.add(f));
+            Array.from(input.files || []).forEach(f => { if (!have.has(key(f))) dt.items.add(f); });
+            previous = [];
+            input.files = dt.files;
+        }
+    }, true);
+    input.addEventListener('change', () => refreshDropzone(input));
+    input.form?.addEventListener('reset', () => setTimeout(() => refreshDropzone(input)));
+
+    refreshDropzone(input);
+}
+function initFileDropzones(scope) {
+    scope.querySelectorAll('input[type="file"].form-control').forEach(initFileDropzone);
+}
+initFileDropzones(document);
+
 /* ── AJAX page navigation (no full reload / no white flash) ──
    Intercepts internal links + GET filter forms, fetches the target
    page, swaps #main-content in place, and re-runs that page's own
@@ -1079,6 +1220,7 @@ function finishAjaxProgress() {
 function reinitPageWidgets(scope) {
     scope.querySelectorAll('.maroon-dp').forEach(initMaroonDatePicker);
     scope.querySelectorAll('.maroon-select').forEach(initMaroonSelect);
+    initFileDropzones(scope);
     scope.querySelectorAll('[data-counter]').forEach(el => animateCounter(el, parseInt(el.dataset.counter, 10)));
     applyRequiredMarkers(scope);
 }
@@ -1169,7 +1311,9 @@ function removeOrphanedMaroonSelectPanels() {
 // quiet: an in-place refresh (live search) — no overlay, no entry animation,
 // no scroll jump, and the URL is replaced instead of pushed. afterSwap runs
 // once the new content and its page script are in place.
-function loadPage(url, { push = true, scroll = true, quiet = false, afterSwap = null } = {}) {
+// overlay: false skips the loading screen (the caller shows its own, e.g. the Templates
+// folder opening). entry: 'folder' swaps in the new content with the folder-open entrance.
+function loadPage(url, { push = true, scroll = true, quiet = false, afterSwap = null, overlay = true, entry = null } = {}) {
     const target = new URL(url, window.location.href);
     if (target.origin !== window.location.origin || isAjaxNavExempt(target)) {
         window.location.href = target.href;
@@ -1179,7 +1323,7 @@ function loadPage(url, { push = true, scroll = true, quiet = false, afterSwap = 
     const token = ++ajaxNavToken;
     const main = document.getElementById('main-content');
     startAjaxProgress();
-    if (!quiet) showPageLoadingOverlay();
+    if (!quiet && overlay) showPageLoadingOverlay();
 
     fetch(target.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => {
@@ -1204,15 +1348,23 @@ function loadPage(url, { push = true, scroll = true, quiet = false, afterSwap = 
 
             closeAnyOpenModals();
             Object.values(Chart.instances).forEach(c => { if (main.contains(c.canvas)) c.destroy(); });
+            // The page we are leaving, for page scripts that animate from it (Templates folders).
+            window.lastAjaxFromUrl = window.location.href;
             main.innerHTML = newMain.innerHTML;
             // Only after the swap: this is what actually detaches the old
             // wrappers from the document, which is what tells the cleanup
             // which body-level panels are truly orphaned vs. still in use.
             removeOrphanedMaroonSelectPanels();
             if (!quiet) {
-                main.classList.remove('animate-in');
-                void main.offsetWidth;
-                main.classList.add('animate-in');
+                // 'folder': only the part below the page header/filters ([data-folder-stage]) animates in.
+                const entryEl    = entry === 'folder' ? (main.querySelector('[data-folder-stage]') || main) : main;
+                const entryClass = entry === 'folder' ? 'folder-in' : 'animate-in';
+                main.classList.remove('animate-in', 'folder-in');
+                entryEl.classList.remove('folder-in');
+                if (entry !== 'none') {
+                    void entryEl.offsetWidth;
+                    entryEl.classList.add(entryClass);
+                }
             }
 
             if (doc.title) document.title = doc.title;

@@ -19,6 +19,25 @@ foreach ($templates as $t) {
 }
 $previewableExt  = ['pdf', 'jpg', 'jpeg', 'png', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'odt', 'ods', 'odp'];
 $hasActiveFilter = $search !== '' || $fileType !== 'all';
+// No section picked and no search: show the sections as cards. Otherwise list the templates.
+$gridMode    = $catId === 0 && ! $hasActiveFilter;
+$openSection = null;
+foreach ($categories as $c) {
+    if ((int) $c['id'] === $catId) {
+        $openSection = $c;
+    }
+}
+// A paper folder (back, a sheet, front flap) — the flap opens when a file is dragged over it.
+$folderIcon = static function (string $color, string $extra = ''): string {
+    return '<div class="tpl-folder ' . $extra . '" style="--folder:' . $color . '" aria-hidden="true">'
+        . '<span class="tpl-folder-back"></span><span class="tpl-folder-paper"></span><span class="tpl-folder-paper tpl-folder-paper-2"></span><span class="tpl-folder-front"></span></div>';
+};
+// Card colours, in section order (A–Z).
+$sectionPalette = ['#7f1d1d', '#2f4a7a', '#2f7d4f', '#8e5ba8', '#ea7a1e', '#1f6f7a', '#d4a72c', '#be185d', '#475569', '#0e7490'];
+$sectionColor   = [];
+foreach (array_values($categories) as $i => $c) {
+    $sectionColor[(int) $c['id']] = $sectionPalette[$i % count($sectionPalette)];
+}
 $canManage       = hasRole('adas');
 $formatLabels    = ['pdf' => 'PDF', 'docx' => 'Word'];
 
@@ -57,7 +76,7 @@ include APPPATH . 'Views/layout/header.php';
     <form method="GET" action="<?= base_url('templates') ?>" id="filterForm" class="d-flex gap-2 flex-wrap align-items-center">
       <div class="input-group input-group-sm" style="flex:1;min-width:220px;max-width:340px;">
         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-        <input type="text" name="q" value="<?= e($search) ?>" placeholder="Search templates by title or file name..."
+        <input type="text" name="q" value="<?= e($search) ?>" placeholder="Search templates by title, file name or tag..."
                class="form-control border-start-0 ps-0" id="templateSearchInput" autocomplete="off">
       </div>
 
@@ -102,6 +121,104 @@ include APPPATH . 'Views/layout/header.php';
   </div>
 </div>
 
+<?php if ($gridMode): ?>
+<!-- The folder animation stays inside data-folder-stage: below the header and filters here,
+     and below the folder bar inside a folder. -->
+<div data-folder-stage>
+<!-- Sections as cards -->
+<?php if (empty($categories)): ?>
+<div class="card"><div class="card-body text-center py-5">
+  <i class="bi bi-folder2 fs-1 d-block mb-3 text-muted"></i>
+  <p class="text-muted mb-0"><?= $canManage ? 'No sections yet. Use "Add Section" to create one.' : 'No template sections yet.' ?></p>
+</div></div>
+<?php endif; ?>
+<div class="row g-3 mb-4">
+  <?php foreach ($categories as $cat): $count = (int) $cat['count']; ?>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="tpl-section-card h-100" data-section-id="<?= (int) $cat['id'] ?>"<?php if ($canManage): ?> data-drop-section="<?= (int) $cat['id'] ?>" data-section-name="<?= e($cat['name']) ?>"<?php endif; ?>>
+      <a href="<?= base_url('templates?category=' . (int) $cat['id']) ?>" class="tpl-section-link stretched-link"
+         aria-label="Open <?= e($cat['name']) ?> (<?= $count ?> <?= $count === 1 ? 'template' : 'templates' ?>)">
+        <?= $folderIcon($sectionColor[(int) $cat['id']]) ?>
+        <div class="tpl-section-main">
+          <div class="tpl-section-title">
+            <span class="tpl-section-name<?= mb_strlen($cat['name']) > 20 ? ' is-long' : '' ?>"><?= e($cat['name']) ?></span>
+            <span class="tpl-section-count"><?= $count ?></span>
+          </div>
+          <p class="tpl-section-desc"><?= e($cat['description'] ?: 'Forms and documents for ' . $cat['name'] . '.') ?></p>
+        </div>
+        <i class="bi bi-chevron-right tpl-section-chevron"></i>
+      </a>
+      <div class="tpl-section-foot">
+        <?php if ($canManage): ?>
+        <div class="tpl-section-actions">
+          <button type="button" class="btn btn-ghost btn-sm" title="Upload to <?= e($cat['name']) ?>" onclick="openUploadModal(<?= (int) $cat['id'] ?>)">
+            <i class="bi bi-cloud-upload"></i>
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" title="Edit section"
+                  onclick='openEditSectionModal(<?= json_encode(['id' => (int) $cat['id'], 'name' => $cat['name'], 'description' => $cat['description'] ?? ''], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+            <i class="bi bi-pencil"></i>
+          </button>
+          <?php if ($count === 0): ?>
+          <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form d-inline"
+                data-confirm-title="Delete this section?" data-confirm-text="This section has no templates and will be removed.">
+            <input type="hidden" name="action" value="delete_category">
+            <input type="hidden" name="id" value="<?= (int) $cat['id'] ?>">
+            <button class="btn btn-ghost btn-sm text-danger" title="Delete empty section"><i class="bi bi-trash"></i></button>
+          </form>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <span class="tpl-section-total"><i class="bi bi-file-earmark-text me-1"></i><?= $count ?> <?= $count === 1 ? 'template' : 'templates' ?></span>
+      </div>
+      <?php if ($canManage): ?><div class="tpl-drop-hint" aria-hidden="true"><i class="bi bi-box-arrow-in-down me-1"></i><span>Drop to add to <?= e($cat['name']) ?></span></div><?php endif; ?>
+    </div>
+  </div>
+  <?php endforeach; ?>
+</div>
+</div><!-- /data-folder-stage -->
+<?php else: ?>
+
+<?php if ($openSection): ?>
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <a href="<?= base_url('templates') ?>" class="btn btn-outline-secondary btn-sm tpl-back-link" data-section-id="<?= (int) $openSection['id'] ?>"
+     data-section-name="<?= e($openSection['name']) ?>" data-folder-color="<?= $sectionColor[(int) $openSection['id']] ?? '#7f1d1d' ?>"><i class="bi bi-arrow-left me-1"></i>All sections</a>
+  <?= $folderIcon($sectionColor[(int) $openSection['id']] ?? '#7f1d1d', 'tpl-folder-sm is-open') ?>
+  <div style="min-width:0;">
+    <div class="fw-bold"><?= e($openSection['name']) ?></div>
+    <?php if (! empty($openSection['description'])): ?><div class="text-muted" style="font-size:.78rem;"><?= e($openSection['description']) ?></div><?php endif; ?>
+  </div>
+</div>
+<?php elseif ($hasActiveFilter): ?>
+<div class="mb-3"><a href="<?= base_url('templates') ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>All sections</a></div>
+<?php endif; ?>
+
+<?php if (count($categories) > 0): ?>
+<!-- Folder bar: switch folders (the open one is marked); the ADAS can also drag a template
+     here to move it, or files from the computer to upload them -->
+<div class="tpl-dock mb-3" id="tplDock">
+  <div class="tpl-dock-label">
+    <?php if ($canManage): ?>
+    <i class="bi bi-arrows-move me-1"></i>Drag a template onto a folder to move it — or drop files from your computer to upload
+    <?php else: ?>
+    <i class="bi bi-folder2-open me-1"></i>Folders
+    <?php endif; ?>
+  </div>
+  <div class="tpl-dock-folders" role="navigation" aria-label="Template folders">
+    <?php foreach ($categories as $cat): $isOpen = $openSection && (int) $cat['id'] === (int) $openSection['id']; ?>
+    <a href="<?= base_url('templates?category=' . (int) $cat['id']) ?>" class="tpl-dock-folder<?= $isOpen ? ' is-current' : '' ?>"
+       data-section-id="<?= (int) $cat['id'] ?>" data-section-name="<?= e($cat['name']) ?>"
+       <?php if ($canManage): ?>data-drop-section="<?= (int) $cat['id'] ?>"<?php endif; ?>
+       <?= $isOpen ? 'aria-current="page"' : '' ?> title="<?= e($cat['name']) . ($isOpen ? ' (open)' : '') ?>">
+      <?= $folderIcon($sectionColor[(int) $cat['id']], 'tpl-folder-xs' . ($isOpen ? ' is-open' : '')) ?>
+      <span class="tpl-dock-name"><?= e($cat['name']) ?></span>
+      <?php if ($isOpen): ?><span class="tpl-dock-current"><i class="bi bi-eye-fill me-1"></i>Open</span><?php endif; ?>
+    </a>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
+
+<div data-folder-stage>
 <!-- Sections -->
 <?php $rendered = 0; foreach ($categories as $cat):
   if ($catId > 0 && $catId !== (int) $cat['id']) {
@@ -115,9 +232,9 @@ include APPPATH . 'Views/layout/header.php';
 ?>
 <div class="card mb-4">
   <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-    <button type="button" class="btn section-toggle-btn collapsed flex-grow-1 d-flex align-items-center text-start p-0 border-0 bg-transparent"
+    <button type="button" class="btn section-toggle-btn flex-grow-1 d-flex align-items-center text-start p-0 border-0 bg-transparent"
             data-bs-toggle="collapse" data-bs-target="#section-body-<?= $cat['id'] ?>"
-            aria-expanded="false" aria-controls="section-body-<?= $cat['id'] ?>">
+            aria-expanded="true" aria-controls="section-body-<?= $cat['id'] ?>">
       <i class="bi bi-chevron-down section-toggle-arrow me-2 text-muted"></i>
       <span class="fw-semibold"><i class="bi bi-folder2 me-2 text-muted"></i><?= e($cat['name']) ?></span>
       <span class="badge badge-secondary ms-2"><?= count($items) ?></span>
@@ -139,7 +256,7 @@ include APPPATH . 'Views/layout/header.php';
     </div>
     <?php endif; ?>
   </div>
-  <div class="collapse" id="section-body-<?= $cat['id'] ?>">
+  <div class="collapse show" id="section-body-<?= $cat['id'] ?>">
   <div class="card-body">
     <?php if (empty($items)): ?>
     <p class="text-muted mb-0 text-center py-3"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No templates uploaded in this section yet.</p>
@@ -153,7 +270,7 @@ include APPPATH . 'Views/layout/header.php';
         // isn't a dropdown, so it keeps its file-type color.
         $downloadColor    = ! empty($conversions) ? 'var(--primary)' : $tc;
       ?>
-      <div class="list-group-item d-flex align-items-center gap-3 flex-wrap py-3">
+      <div class="list-group-item d-flex align-items-center gap-3 flex-wrap py-3<?= $canManage ? ' tpl-draggable' : '' ?>"<?php if ($canManage): ?> draggable="true" data-template-id="<?= (int) $t['id'] ?>" data-template-title="<?= e($t['title']) ?>" data-from-id="<?= (int) $t['category_id'] ?>" data-from-name="<?= e($t['category_name']) ?>" title="Drag onto a folder to move it"<?php endif; ?>>
         <div style="width:40px;height:40px;border-radius:10px;background:<?= $bg ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <i class="bi <?= $icon ?>" style="color:<?= $tc ?>;font-size:1.1rem;"></i>
         </div>
@@ -171,6 +288,13 @@ include APPPATH . 'Views/layout/header.php';
           <p class="text-muted mb-1 text-truncate" style="font-size:.72rem;" title="<?= e($t['description']) ?>">
             <?= e($t['description']) ?>
           </p>
+          <?php endif; ?>
+          <?php if (! empty($t['tags'])): ?>
+          <div class="d-flex flex-wrap gap-1 mb-1">
+            <?php foreach (array_filter(array_map('trim', explode(',', $t['tags']))) as $tag): ?>
+            <a href="<?= base_url('templates?q=' . rawurlencode($tag)) ?>" class="tpl-tag" title="Show templates tagged <?= e($tag) ?>"><?= e($tag) ?></a>
+            <?php endforeach; ?>
+          </div>
           <?php endif; ?>
           <p class="mb-0" style="font-size:.7rem;color:var(--muted);">
             <i class="bi bi-person me-1"></i><?= e($t['uploaded_by']) ?> · <?= date('M d, Y', strtotime($t['date_added'])) ?>
@@ -216,6 +340,8 @@ include APPPATH . 'Views/layout/header.php';
             <?php endif; ?>
           </div>
           <?php if ($canManage): ?>
+          <button type="button" class="btn btn-sm btn-outline-secondary" title="Move to another section"
+                  onclick="openMoveTemplate(this.closest('[data-template-id]'))"><i class="bi bi-folder-symlink"></i></button>
           <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
                 data-confirm-title="Delete this template?">
             <input type="hidden" name="action" value="delete_template">
@@ -239,8 +365,11 @@ include APPPATH . 'Views/layout/header.php';
   <p class="text-muted mb-0">No templates found matching your search/filters.</p>
 </div></div>
 <?php endif; ?>
+</div><!-- /data-folder-stage -->
+<?php endif; /* gridMode */ ?>
 
 <?php if ($canManage): ?>
+<div id="tplSectionsData" class="d-none" data-url="<?= base_url('templates') ?>" data-sections="<?= e(json_encode(array_map(static fn ($c) => ['id' => (int) $c['id'], 'name' => $c['name']], array_values($categories)))) ?>"></div>
 <!-- Add Category Modal -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1">
   <div class="modal-dialog">
@@ -254,11 +383,39 @@ include APPPATH . 'Views/layout/header.php';
         <div class="modal-body">
           <label class="form-label">Section Name</label>
           <input type="text" name="name" class="form-control" placeholder="e.g. Certificate, BAC Forms, COA Forms" required>
-          <p class="text-muted mt-2 mb-0" style="font-size:.78rem;">Only add a section if it doesn't already exist below.</p>
+          <p class="text-muted mt-2 mb-3" style="font-size:.78rem;">Only add a section if it doesn't already exist below.</p>
+          <label class="form-label">Description <span class="text-muted">(optional)</span></label>
+          <input type="text" name="description" class="form-control" maxlength="255" placeholder="e.g. Bids and Awards Committee forms and documents.">
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">Add Section</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Section Modal -->
+<div class="modal fade" id="editSectionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header gradient">
+        <h6 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Section</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form" data-confirm-action="update">
+        <input type="hidden" name="action" value="edit_category">
+        <input type="hidden" name="id" id="editSectionId">
+        <div class="modal-body">
+          <label class="form-label">Section Name</label>
+          <input type="text" name="name" id="editSectionName" class="form-control mb-3" required>
+          <label class="form-label">Description <span class="text-muted">(shown on the section card)</span></label>
+          <input type="text" name="description" id="editSectionDesc" class="form-control" maxlength="255">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
         </div>
       </form>
     </div>
@@ -280,7 +437,8 @@ include APPPATH . 'Views/layout/header.php';
           <div class="mb-3">
             <label class="form-label">Section</label>
             <div class="maroon-select" style="width:100%;">
-              <select name="category_id" id="uploadCategorySelect" class="maroon-select-native" required>
+              <select name="category_id" id="uploadCategorySelect" class="maroon-select-native" required onchange="renderTemplateSuggestions()">
+                <option value="auto" selected>Auto-classify from the file</option>
                 <?php foreach ($categories as $c): ?>
                 <option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option>
                 <?php endforeach; ?>
@@ -288,18 +446,31 @@ include APPPATH . 'Views/layout/header.php';
               <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
               <div class="maroon-select-panel"></div>
             </div>
+            <div class="text-muted mt-1" style="font-size:.75rem;" id="uploadAutoHint">
+              <i class="bi bi-magic me-1"></i>The section is picked by reading the document's contents (the file name is used when there is little text). Each file can land in a different section.
+              <?php if (! $ocrAvailable): ?><br><i class="bi bi-info-circle me-1"></i>Scanned PDFs and photos are matched by file name only until OCR (Tesseract) is installed on the server.<?php endif; ?>
+            </div>
+            <div id="uploadSuggestion" class="tpl-suggest d-none"></div>
           </div>
           <div class="mb-3">
             <label class="form-label">File(s)</label>
             <input type="file" name="file[]" id="uploadFileInput" class="form-control"
                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png"
-                   onchange="handleTemplateFilesChange(this)" multiple required>
+                   onchange="handleTemplateFilesChange(this)" data-dropzone-list="off" multiple required>
             <p class="text-muted mt-1 mb-0" style="font-size:.75rem;">PDF, Word, Excel, CSV, PowerPoint, images or archives · Max 10MB each. Select multiple files to upload them all at once.</p>
             <div id="uploadFilesPreview" class="mt-2 d-none"></div>
           </div>
           <div class="mb-3" id="uploadTitleGroup">
             <label class="form-label">Title</label>
-            <input type="text" name="title" id="uploadTitleInput" class="form-control" placeholder="Select a file to auto-fill, or type your own" required>
+            <input type="text" name="title" id="uploadTitleInput" class="form-control" placeholder="Select a file to auto-fill, or type your own" required
+                   oninput="this.dataset.edited = '1'; renderTitleSuggestions()">
+            <div id="uploadTitleSuggest" class="tpl-title-panel d-none" aria-live="polite"></div>
+          </div>
+          <div class="mb-3 d-none" id="uploadTagsGroup">
+            <label class="form-label">Tags <span class="text-muted">(added automatically — edit if needed)</span></label>
+            <input type="text" name="tags" id="uploadTagsInput" class="form-control" maxlength="400" disabled
+                   placeholder="e.g. Certificate, Award" oninput="this.dataset.edited = '1'">
+            <div class="form-text">Separate tags with commas. Tags are searchable.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Description <span class="text-muted">(optional)</span></label>
@@ -543,6 +714,13 @@ async function downloadTemplate(url, suggestedName) {
     }
 }
 
+function openEditSectionModal(section) {
+    document.getElementById('editSectionId').value   = section.id;
+    document.getElementById('editSectionName').value = section.name || '';
+    document.getElementById('editSectionDesc').value = section.description || '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editSectionModal')).show();
+}
+
 function openUploadModal(categoryId) {
     const select = document.getElementById('uploadCategorySelect');
     if (select && categoryId) {
@@ -553,10 +731,27 @@ function openUploadModal(categoryId) {
 }
 
 function handleTemplateFilesChange(fileInput) {
+    if (typeof refreshDropzone === 'function') refreshDropzone(fileInput);
     const files = Array.from(fileInput.files || []);
     const titleGroup = document.getElementById('uploadTitleGroup');
     const titleInput = document.getElementById('uploadTitleInput');
     const preview = document.getElementById('uploadFilesPreview');
+
+    const tagsGroup = document.getElementById('uploadTagsGroup');
+    const tagsInput = document.getElementById('uploadTagsInput');
+    // Tags are reviewed per file only for a single upload; a batch gets automatic tags.
+    tagsGroup.classList.toggle('d-none', files.length !== 1);
+    tagsInput.disabled = files.length !== 1;
+    tagsInput.value = '';
+    tagsInput.dataset.edited = '';
+    titleInput.dataset.edited = '';
+    const titleSuggest = document.getElementById('uploadTitleSuggest');
+    titleSuggest.classList.add('d-none');
+    titleSuggest.innerHTML = '';
+    TEMPLATE_TITLE_OPTIONS = [];
+    TEMPLATE_TITLE_NOTE = '';
+    TEMPLATE_TITLE_STATE = 'idle';
+    TEMPLATE_BATCH_OPTIONS = {};
 
     if (files.length === 0) {
         titleGroup.classList.remove('d-none');
@@ -564,6 +759,8 @@ function handleTemplateFilesChange(fileInput) {
         titleInput.value = '';
         preview.classList.add('d-none');
         preview.innerHTML = '';
+        TEMPLATE_SUGGESTIONS = [];
+        renderTemplateSuggestions();
         return;
     }
 
@@ -575,11 +772,12 @@ function handleTemplateFilesChange(fileInput) {
         titleGroup.classList.remove('d-none');
         titleInput.required = true;
         const name = files[0].name;
-        titleInput.value = name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
+        titleInput.value = baseFileTitle(name);
+        showTitleLoading(name);
     }
 
     const summary = files.length > 1
-        ? files.length + ' files selected — each will be uploaded as its own template, named after its file.'
+        ? files.length + ' files selected — each becomes its own template. Check each title below.'
         : files.length + ' file selected.';
 
     preview.classList.remove('d-none');
@@ -590,11 +788,307 @@ function handleTemplateFilesChange(fileInput) {
         + files.map(function (f, i) {
             return '<div class=\"d-flex align-items-center gap-2 p-2 rounded-3 mb-1\" style=\"background:var(--surface-hover);\">'
                 + '<i class=\"bi bi-file-earmark text-muted\"></i>'
-                + '<span class=\"small text-truncate flex-grow-1\">' + escapeHtml(f.name) + '</span>'
+                + '<div class=\"flex-grow-1\" style=\"min-width:0;\"><div class=\"small text-truncate\">' + escapeHtml(f.name) + '</div>'
+                + '<div class=\"tpl-file-suggest\" id=\"tplSuggest' + i + '\"><span class=\"spinner-border spinner-border-sm me-1\" style=\"width:.7rem;height:.7rem;\"></span>Classifying…</div></div>'
                 + '<button type=\"button\" class=\"btn btn-sm btn-outline-secondary py-0 px-2\" onclick=\"removeTemplateFile(' + i + ')\" title=\"Remove this file\"><i class=\"bi bi-x-lg\"></i></button>'
-                + '</div>';
+                + '</div>'
+                + (files.length > 1 ? batchTitleRow(i, f.name) : '');
         }).join('');
+
+    classifyTemplateFiles(fileInput);
 }
+
+/* ── Auto-classification (TemplateClassifier on the server) ── */
+var TEMPLATE_SUGGESTIONS = [];
+var TEMPLATE_CLASSIFY_TOKEN = 0;
+
+function classifyTemplateFiles(fileInput) {
+    const token = ++TEMPLATE_CLASSIFY_TOKEN;
+    TEMPLATE_SUGGESTIONS = [];
+    renderTemplateSuggestions();
+
+    const fd = new FormData();
+    fd.append('action', 'classify');
+    Array.from(fileInput.files || []).forEach(function (f) { fd.append('file[]', f); });
+
+    fetch(fileInput.form.getAttribute('action'), { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (token !== TEMPLATE_CLASSIFY_TOKEN) return; // files changed meanwhile
+            TEMPLATE_SUGGESTIONS = data.status === 'success' ? data.results : [];
+            const tagsInput = document.getElementById('uploadTagsInput');
+            if (TEMPLATE_SUGGESTIONS.length === 1 && !tagsInput.dataset.edited) {
+                tagsInput.value = (TEMPLATE_SUGGESTIONS[0].tags || []).join(', ');
+            }
+            if (TEMPLATE_SUGGESTIONS.length === 1) showTitleSuggestion(TEMPLATE_SUGGESTIONS[0]);
+            if (TEMPLATE_SUGGESTIONS.length > 1) TEMPLATE_SUGGESTIONS.forEach(applyBatchTitleSuggestion);
+            renderTemplateSuggestions();
+        })
+        .catch(function () {
+            if (token !== TEMPLATE_CLASSIFY_TOKEN) return;
+            document.querySelectorAll('.tpl-file-suggest').forEach(function (el) { el.textContent = 'Could not classify — pick a section.'; });
+            if (TEMPLATE_TITLE_STATE === 'loading') {
+                TEMPLATE_TITLE_STATE = 'ready';
+                TEMPLATE_TITLE_NOTE = '<i class=\"bi bi-exclamation-circle me-1\"></i>Could not read the document to suggest titles. Check the title yourself.';
+                renderTitleSuggestions();
+            }
+        });
+}
+
+function suggestionBadge(s) {
+    if (!s || !s.category_id) {
+        return '<span class=\"tpl-conf tpl-conf-none\"><i class=\"bi bi-question-circle me-1\"></i>No match — pick a section</span>';
+    }
+    const pct = Math.round(s.confidence * 100);
+    return '<span class=\"tpl-conf ' + (s.confident ? 'tpl-conf-high' : 'tpl-conf-low') + '\"><i class=\"bi bi-magic me-1\"></i>'
+        + escapeHtml(s.category_name) + ' · ' + pct + '%</span>';
+}
+
+// Shows each file's suggested section, and for a single file a summary box
+// with one-click alternatives. Re-runs when the Section dropdown changes.
+function renderTemplateSuggestions() {
+    const select  = document.getElementById('uploadCategorySelect');
+    const box     = document.getElementById('uploadSuggestion');
+    const hint    = document.getElementById('uploadAutoHint');
+    if (!select || !box) return;
+    const isAuto  = select.value === 'auto';
+    hint.classList.toggle('d-none', !isAuto);
+
+    TEMPLATE_SUGGESTIONS.forEach(function (s, i) {
+        const el = document.getElementById('tplSuggest' + i);
+        if (!el) return;
+        const tags = (s.tags || []).map(function (t) { return '<span class=\"tpl-tag\">' + escapeHtml(t) + '</span>'; }).join('');
+        const titled = false
+            ? '<span class=\"tpl-basis\"><i class=\"bi bi-fonts me-1\"></i>Will be titled “' + escapeHtml(s.recommended_title) + '”</span> '
+            : '';
+        el.innerHTML = (isAuto ? suggestionBadge(s) + ' ' : '') + basisLabel(s) + ' ' + titled + tags;
+    });
+
+    const one = TEMPLATE_SUGGESTIONS.length === 1 ? TEMPLATE_SUGGESTIONS[0] : null;
+    if (!one) { box.classList.add('d-none'); box.innerHTML = ''; return; }
+
+    const options = [];
+    if (one.category_id) options.push(one);
+    (one.alternatives || []).forEach(function (a) { if (a.confidence >= 0.05) options.push(a); });
+
+    let html;
+    if (!one.category_id) {
+        html = '<i class=\"bi bi-question-circle me-1\"></i>Could not tell which section this belongs to. Please pick one above.';
+    } else if (isAuto) {
+        html = '<div><i class=\"bi bi-magic me-1\"></i>Will be filed in <strong>' + escapeHtml(one.category_name) + '</strong> ('
+            + Math.round(one.confidence * 100) + '% match' + (one.confident ? '' : ' — please double-check') + ').</div>'
+            + basisSentence(one);
+    } else if (String(one.category_id) !== select.value) {
+        html = '<div><i class=\"bi bi-info-circle me-1\"></i>This looks like <strong>' + escapeHtml(one.category_name) + '</strong> ('
+            + Math.round(one.confidence * 100) + '% match), not the section you picked.</div>';
+    } else {
+        html = '<div><i class=\"bi bi-check2-circle me-1\"></i>Matches the suggested section.</div>';
+    }
+    if (options.length > 1 || (!isAuto && one.category_id && String(one.category_id) !== select.value)) {
+        html += '<div class=\"mt-1 d-flex flex-wrap gap-1 align-items-center\"><span>Use:</span>' + options.map(function (o) {
+            return '<button type=\"button\" class=\"btn btn-sm btn-outline-secondary py-0 px-2\" style=\"font-size:.72rem;\" onclick=\"pickTemplateSection(' + o.category_id + ')\">'
+                + escapeHtml(o.category_name) + ' · ' + Math.round(o.confidence * 100) + '%</button>';
+        }).join('') + '</div>';
+    }
+    box.innerHTML = html;
+    box.classList.remove('d-none');
+}
+
+// Title suggestions from the document's contents, in a highlighted panel
+// under the Title field — always shown, even when the file name looks fine,
+// so the ADAS can double-check it. When the name says nothing (final,
+// revised copy, scan001, Document1) or a dated document lacks its year, the
+// best suggestion is filled in right away. The file name stays one click away.
+var TEMPLATE_TITLE_OPTIONS = [];
+var TEMPLATE_TITLE_NOTE = '';
+var TEMPLATE_TITLE_STATE = 'idle'; // idle | loading | ready
+var TEMPLATE_FILE_NAME_TITLE = '';
+
+// escapeHtml() does not escape quotes; this one is safe inside attributes.
+function escapeAttr(str) {
+    return escapeHtml(str).replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function baseFileTitle(name) {
+    return name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
+}
+
+function uniqueTitles(list) {
+    const seen = {};
+    return list.filter(function (t) {
+        if (!t) return false;
+        const k = t.trim().toLowerCase();
+        if (seen[k]) return false;
+        seen[k] = true;
+        return true;
+    });
+}
+
+function showTitleLoading(fileName) {
+    TEMPLATE_TITLE_STATE = 'loading';
+    TEMPLATE_FILE_NAME_TITLE = baseFileTitle(fileName);
+    TEMPLATE_TITLE_OPTIONS = [];
+    TEMPLATE_TITLE_NOTE = '';
+    renderTitleSuggestions();
+}
+
+function showTitleSuggestion(s) {
+    const input = document.getElementById('uploadTitleInput');
+    TEMPLATE_TITLE_STATE = 'ready';
+    TEMPLATE_TITLE_OPTIONS = uniqueTitles([s.recommended_title].concat(s.suggested_titles || []));
+    TEMPLATE_TITLE_NOTE = '';
+
+    if (s.recommended_title && !input.dataset.edited) {
+        const oldName = input.value;
+        input.value = s.recommended_title;
+        if (s.recommended_reason === 'period') {
+            // Meaningful name, but the document is for a specific period and the name had no year.
+            TEMPLATE_TITLE_NOTE = '<i class=\"bi bi-calendar-check me-1\"></i>Added <strong>' + escapeHtml(s.period) + '</strong> from the '
+                + escapeHtml(s.period_source || 'document') + ' — this kind of document is for a specific period.';
+        } else {
+            TEMPLATE_TITLE_NOTE = '<i class=\"bi bi-magic me-1\"></i>“' + escapeHtml(oldName) + '” doesn’t say what the document is, so the title was taken from its '
+                + (s.source === 'ocr' ? 'scanned text' : 'contents')
+                + (s.period ? ' (period: <strong>' + escapeHtml(s.period) + '</strong>'
+                    + (s.period_source === 'file name' ? ', kept from the file name' : '') + ')' : '') + '.';
+        }
+    } else if (s.generic_name && !input.dataset.edited) {
+        TEMPLATE_TITLE_NOTE = '<span class=\"text-warning-emphasis\"><i class=\"bi bi-exclamation-triangle me-1\"></i>“' + escapeHtml(input.value)
+            + '” doesn’t say what the document is, and no heading was found in it. Please type a descriptive title.</span>';
+    } else if (TEMPLATE_TITLE_OPTIONS.length) {
+        const same = TEMPLATE_TITLE_OPTIONS.some(function (t) { return t.toLowerCase() === input.value.trim().toLowerCase(); });
+        TEMPLATE_TITLE_NOTE = same
+            ? '<i class=\"bi bi-check2-circle me-1\"></i>The file name matches the document’s heading.'
+            : '<i class=\"bi bi-info-circle me-1\"></i>The file name was kept. Compare it with what the document says:';
+    }
+    renderTitleSuggestions();
+}
+
+// One title choice button. best = mark it as the top suggestion.
+function titleChip(text, active, onclick, kind) {
+    const badge = kind === 'best' ? '<span class=\"tpl-chip-badge\">Best match</span>'
+        : kind === 'file' ? '<span class=\"tpl-chip-badge tpl-chip-badge-muted\">File name</span>' : '';
+    return '<button type=\"button\" class=\"tpl-title-chip' + (active ? ' active' : '') + (kind === 'file' ? ' is-file' : '') + '\" onclick=\"' + onclick + '\"'
+        + ' title=\"' + escapeAttr(text) + '\">' + (active ? '<i class=\"bi bi-check-circle-fill me-1\"></i>' : '<i class=\"bi bi-circle me-1\"></i>')
+        + '<span class=\"tpl-chip-text\">' + escapeHtml(text) + '</span>' + badge + '</button>';
+}
+
+function renderTitleSuggestions() {
+    const input = document.getElementById('uploadTitleInput');
+    const box   = document.getElementById('uploadTitleSuggest');
+    if (!box) return;
+    if (TEMPLATE_TITLE_STATE === 'idle') { box.classList.add('d-none'); box.innerHTML = ''; return; }
+
+    const head = '<div class=\"tpl-title-panel-head\"><i class=\"bi bi-stars me-1\"></i>Suggested titles <span>from the document</span></div>';
+    let body;
+    if (TEMPLATE_TITLE_STATE === 'loading') {
+        body = '<div class=\"tpl-title-panel-loading\"><span class=\"spinner-border spinner-border-sm me-2\"></span>Reading the document…</div>';
+    } else {
+        const value = input.value.trim().toLowerCase();
+        const chips = TEMPLATE_TITLE_OPTIONS.map(function (t, i) {
+            return titleChip(t, t.trim().toLowerCase() === value, 'useSuggestedTitle(' + i + ')', i === 0 ? 'best' : '');
+        });
+        const fileInList = TEMPLATE_TITLE_OPTIONS.some(function (t) { return t.trim().toLowerCase() === TEMPLATE_FILE_NAME_TITLE.trim().toLowerCase(); });
+        if (TEMPLATE_FILE_NAME_TITLE && !fileInList) {
+            chips.push(titleChip(TEMPLATE_FILE_NAME_TITLE, TEMPLATE_FILE_NAME_TITLE.trim().toLowerCase() === value, 'useFileNameTitle()', 'file'));
+        }
+        body = (TEMPLATE_TITLE_NOTE ? '<div class=\"tpl-title-panel-note\">' + TEMPLATE_TITLE_NOTE + '</div>' : '')
+            + (TEMPLATE_TITLE_OPTIONS.length
+                ? '<div class=\"tpl-title-chips\">' + chips.join('') + '</div>'
+                : '<div class=\"tpl-title-panel-note text-muted\">No clear heading was found in the document, so the file name is used. Make sure it describes the document.</div>');
+    }
+    box.innerHTML = head + body;
+    box.classList.remove('d-none');
+}
+
+function useSuggestedTitle(i) {
+    const input = document.getElementById('uploadTitleInput');
+    if (TEMPLATE_TITLE_OPTIONS[i] === undefined) return;
+    input.value = TEMPLATE_TITLE_OPTIONS[i];
+    input.dataset.edited = '1';
+    renderTitleSuggestions();
+}
+function useFileNameTitle() {
+    const input = document.getElementById('uploadTitleInput');
+    input.value = TEMPLATE_FILE_NAME_TITLE;
+    input.dataset.edited = '1';
+    renderTitleSuggestions();
+}
+
+/* Batch upload: every file gets its own editable title with suggestions. */
+var TEMPLATE_BATCH_OPTIONS = {};
+
+function batchTitleRow(i, fileName) {
+    return '<div class=\"tpl-batch-title\">'
+        + '<div class=\"input-group input-group-sm\"><span class=\"input-group-text\"><i class=\"bi bi-fonts\"></i></span>'
+        + '<input type=\"text\" name=\"batch_titles[]\" id=\"tplBatchTitle' + i + '\" class=\"form-control\" maxlength=\"255\" value=\"' + escapeAttr(baseFileTitle(fileName)) + '\"'
+        + ' data-file-title=\"' + escapeAttr(baseFileTitle(fileName)) + '\" oninput=\"this.dataset.edited = \\'1\\'; renderBatchTitleChips(' + i + ')\" aria-label=\"Title for ' + escapeAttr(fileName) + '\"></div>'
+        + '<div class=\"tpl-title-chips mt-1\" id=\"tplBatchChips' + i + '\"><span class=\"tpl-title-panel-loading\"><span class=\"spinner-border spinner-border-sm me-1\" style=\"width:.7rem;height:.7rem;\"></span>Reading the document for title suggestions…</span></div>'
+        + '</div>';
+}
+
+function applyBatchTitleSuggestion(s) {
+    const input = document.getElementById('tplBatchTitle' + s.index);
+    if (!input) return;
+    TEMPLATE_BATCH_OPTIONS[s.index] = uniqueTitles([s.recommended_title].concat(s.suggested_titles || []));
+    if (s.recommended_title && !input.dataset.edited) input.value = s.recommended_title;
+    renderBatchTitleChips(s.index);
+}
+
+function renderBatchTitleChips(i) {
+    const box   = document.getElementById('tplBatchChips' + i);
+    const input = document.getElementById('tplBatchTitle' + i);
+    if (!box || !input) return;
+    const opts  = TEMPLATE_BATCH_OPTIONS[i];
+    if (!opts) return; // still loading
+    const value = input.value.trim().toLowerCase();
+    const file  = input.dataset.fileTitle || '';
+    const chips = opts.slice(0, 3).map(function (t, k) {
+        return titleChip(t, t.trim().toLowerCase() === value, 'useBatchTitle(' + i + ', ' + k + ')', k === 0 ? 'best' : '');
+    });
+    if (file && !opts.some(function (t) { return t.trim().toLowerCase() === file.trim().toLowerCase(); })) {
+        chips.push(titleChip(file, file.trim().toLowerCase() === value, 'useBatchTitle(' + i + ', -1)', 'file'));
+    }
+    box.innerHTML = opts.length ? chips.join('') : '<span class=\"tpl-title-panel-loading\">No heading found — the file name will be used.</span>';
+}
+
+function useBatchTitle(i, k) {
+    const input = document.getElementById('tplBatchTitle' + i);
+    if (!input) return;
+    input.value = k < 0 ? (input.dataset.fileTitle || '') : (TEMPLATE_BATCH_OPTIONS[i] || [])[k] || input.value;
+    input.dataset.edited = '1';
+    renderBatchTitleChips(i);
+}
+
+// What the suggestion was based on: the document's text, OCR of a scan, or only the file name.
+function basisLabel(s) {
+    if (s.source === 'ocr') return '<span class=\"tpl-basis\"><i class=\"bi bi-camera me-1\"></i>Scanned text</span>';
+    if (s.basis === 'content') return '<span class=\"tpl-basis\"><i class=\"bi bi-file-text me-1\"></i>Read ' + s.words_read + ' words</span>';
+    return '<span class=\"tpl-basis tpl-basis-name\"><i class=\"bi bi-type me-1\"></i>File name only</span>';
+}
+function basisSentence(s) {
+    const words = (s.matched || []).map(function (w) { return '<em>' + escapeHtml(w) + '</em>'; }).join(', ');
+    let why;
+    if (s.source === 'ocr') why = 'Based on the scanned text of the document';
+    else if (s.basis === 'content') why = 'Based on the document contents (' + s.words_read + ' words read)';
+    else if (s.basis === 'name+content') why = 'The document has little text, so the file name counted most';
+    else why = 'No readable text in this file, so only the file name was used';
+    return '<div class=\"mt-1\" style=\"font-size:.72rem;\">' + why + (words ? ' — matched: ' + words : '') + '.</div>';
+}
+
+function pickTemplateSection(id) {
+    const select = document.getElementById('uploadCategorySelect');
+    select.value = String(id);
+    const root = select.closest('.maroon-select');
+    if (root && root.maroonSelectSync) root.maroonSelectSync();
+    renderTemplateSuggestions();
+}
+
+// Opening the Upload button fresh goes back to auto-classify.
+document.getElementById('uploadModal')?.addEventListener('hidden.bs.modal', function () {
+    const select = document.getElementById('uploadCategorySelect');
+    if (select) { select.value = 'auto'; const root = select.closest('.maroon-select'); if (root && root.maroonSelectSync) root.maroonSelectSync(); }
+    renderTemplateSuggestions();
+});
 
 function removeTemplateFile(index) {
     const input = document.getElementById('uploadFileInput');
@@ -612,6 +1106,353 @@ function discardTemplateFiles() {
     handleTemplateFilesChange(input);
 }
 
+/* ── Drag and drop onto folders (ADAS) ──
+   - A template row dragged onto another folder: asks, then moves it.
+   - Files dragged from the computer onto a folder: opens Upload with that folder picked.
+   The folder flap opens while something is held over it (see .tpl-folder in app.css). */
+var TPL_DRAG_TEMPLATE = null; // the template being dragged: {id, title, fromId, fromName}
+
+function tplDragKind(e) {
+    if (TPL_DRAG_TEMPLATE) return 'template';
+    const types = Array.from((e.dataTransfer && e.dataTransfer.types) || []);
+    return types.indexOf('Files') !== -1 ? 'files' : null;
+}
+
+function initTemplateDragDrop() {
+    if (!document.getElementById('tplSectionsData')) return; // only the ADAS manages templates
+
+    document.querySelectorAll('.tpl-draggable').forEach(function (row) {
+        row.addEventListener('dragstart', function (e) {
+            TPL_DRAG_TEMPLATE = { id: row.dataset.templateId, title: row.dataset.templateTitle, fromId: row.dataset.fromId, fromName: row.dataset.fromName };
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', row.dataset.templateTitle);
+            row.classList.add('is-dragging');
+            document.body.classList.add('tpl-dragging-doc');
+        });
+        row.addEventListener('dragend', function () {
+            row.classList.remove('is-dragging');
+            document.body.classList.remove('tpl-dragging-doc');
+            setTimeout(function () { TPL_DRAG_TEMPLATE = null; }, 0);
+        });
+    });
+
+    document.querySelectorAll('[data-drop-section]').forEach(function (target) {
+        let depth = 0;
+        const hint = target.querySelector('.tpl-drop-hint span');
+        target.addEventListener('dragenter', function (e) {
+            const kind = tplDragKind(e);
+            if (!kind) return;
+            e.preventDefault();
+            depth++;
+            const same = kind === 'template' && String(TPL_DRAG_TEMPLATE.fromId) === target.dataset.dropSection;
+            target.classList.add(same ? 'is-drop-same' : 'is-dragover');
+            if (hint) hint.textContent = same ? 'Already in this folder' : (kind === 'template' ? 'Drop to move here' : 'Drop to add to ' + target.dataset.sectionName);
+        });
+        target.addEventListener('dragover', function (e) {
+            const kind = tplDragKind(e);
+            if (!kind) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = target.classList.contains('is-drop-same') ? 'none' : (kind === 'template' ? 'move' : 'copy');
+        });
+        target.addEventListener('dragleave', function () {
+            if (--depth <= 0) {
+                depth = 0;
+                target.classList.remove('is-dragover', 'is-drop-same');
+            }
+        });
+        target.addEventListener('drop', function (e) {
+            const kind = tplDragKind(e);
+            if (!kind) return;
+            e.preventDefault();
+            depth = 0;
+            const same = target.classList.contains('is-drop-same');
+            target.classList.remove('is-dragover', 'is-drop-same');
+            if (same) return;
+            // The sheet drops into the folder and the flap closes.
+            target.classList.add('is-dropped');
+            setTimeout(function () { target.classList.remove('is-dropped'); }, 650);
+            if (kind === 'template') {
+                const t = TPL_DRAG_TEMPLATE;
+                TPL_DRAG_TEMPLATE = null;
+                setTimeout(function () { confirmMoveTemplate(t, target.dataset.dropSection, target.dataset.sectionName); }, 350);
+            } else {
+                const files = Array.from(e.dataTransfer.files || []);
+                setTimeout(function () { uploadDroppedFiles(files, target.dataset.dropSection, target.dataset.sectionName); }, 350);
+            }
+        });
+    });
+
+    // Files dropped beside a folder must not make the browser open them instead.
+    if (!window.__tplNoOpenDrop) {
+        window.__tplNoOpenDrop = true;
+        ['dragover', 'drop'].forEach(function (type) {
+            window.addEventListener(type, function (e) {
+                if (!document.getElementById('tplSectionsData')) return;
+                const types = Array.from((e.dataTransfer && e.dataTransfer.types) || []);
+                if (types.indexOf('Files') !== -1 && !e.defaultPrevented) e.preventDefault();
+            });
+        });
+    }
+}
+
+// Do you want to transfer “doc” to “folder” from “folder”?
+function confirmMoveTemplate(t, toId, toName) {
+    if (!t) return;
+    const url = document.getElementById('tplSectionsData').dataset.url;
+    Swal.fire({
+        icon: 'question',
+        title: 'Transfer document?',
+        html: 'Do you want to transfer <strong>“' + escapeHtml(t.title) + '”</strong> to <strong>“' + escapeHtml(toName)
+            + '”</strong> from <strong>“' + escapeHtml(t.fromName) + '”</strong>?',
+        showCancelButton: true,
+        confirmButtonText: '<i class=\"bi bi-folder-symlink me-1\"></i>Yes, transfer',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusCancel: true,
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'Transferring…', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
+        const fd = new FormData();
+        fd.append('action', 'move_template');
+        fd.append('id', t.id);
+        fd.append('category_id', toId);
+        fetch(url, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json().catch(function () { return { status: 'error', message: 'Unexpected server response.' }; }); })
+            .then(handleAjaxFormResult)
+            .catch(function () { Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server. Please try again.' }); });
+    });
+}
+
+// Keyboard / touch alternative to dragging: pick the folder from a list.
+function openMoveTemplate(row) {
+    if (!row) return;
+    const sections = JSON.parse(document.getElementById('tplSectionsData').dataset.sections || '[]');
+    const options = {};
+    sections.forEach(function (s) { if (String(s.id) !== row.dataset.fromId) options[s.id] = s.name; });
+    Swal.fire({
+        title: 'Move to which folder?',
+        html: '<div style=\"font-size:.85rem\">“' + escapeHtml(row.dataset.templateTitle) + '” is in <strong>' + escapeHtml(row.dataset.fromName) + '</strong>.</div>',
+        input: 'select',
+        inputOptions: options,
+        inputPlaceholder: 'Choose a folder',
+        showCancelButton: true,
+        confirmButtonText: 'Next',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        inputValidator: function (v) { return v ? null : 'Please choose a folder.'; },
+    }).then(function (r) {
+        if (!r.isConfirmed) return;
+        confirmMoveTemplate({ id: row.dataset.templateId, title: row.dataset.templateTitle, fromId: row.dataset.fromId, fromName: row.dataset.fromName }, r.value, options[r.value]);
+    });
+}
+
+// Files from the computer dropped on a folder: open Upload with that folder picked
+// (titles, tags and the section check still run there).
+function uploadDroppedFiles(files, sectionId, sectionName) {
+    const input = document.getElementById('uploadFileInput');
+    if (!input || !files.length) return;
+    const accept = (input.getAttribute('accept') || '').split(',').map(function (a) { return a.trim().toLowerCase(); }).filter(Boolean);
+    const ok = files.filter(function (f) { const n = f.name.toLowerCase(); return !accept.length || accept.some(function (a) { return n.endsWith(a); }); });
+    if (ok.length < files.length) showToast((files.length - ok.length) + ' file(s) skipped — that file type isn’t allowed for templates.', 'danger');
+    if (!ok.length) return;
+
+    openUploadModal(sectionId);
+    const dt = new DataTransfer();
+    ok.forEach(function (f) { dt.items.add(f); });
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    showToast(ok.length + ' file' + (ok.length === 1 ? '' : 's') + ' ready to upload to ' + escapeHtml(sectionName) + '. Check the details, then upload.');
+}
+
+/* ── Opening a folder: instead of the loading screen, the folder opens and
+   grows to fill the area below the page header and filters (those stay put)
+   while the section loads; then its templates come out of it.
+   Going back plays it in reverse: the section shrinks back into its folder
+   card and the flap closes. ── */
+function tplFolderMarkup(extra) {
+    return '<div class=\"tpl-folder ' + (extra || '') + '\" aria-hidden=\"true\"><span class=\"tpl-folder-back\"></span>'
+        + '<span class=\"tpl-folder-paper\"></span><span class=\"tpl-folder-paper tpl-folder-paper-2\"></span><span class=\"tpl-folder-front\"></span></div>';
+}
+
+function tplReduceMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// The area below the header and filters, in page coordinates, as it will be
+// once the page is scrolled to the top (navigation scrolls to the top).
+function tplStageBox() {
+    const stage = document.querySelector('[data-folder-stage]');
+    const main  = document.getElementById('main-content');
+    const sr = (stage || main).getBoundingClientRect();
+    const mr = main.getBoundingClientRect();
+    const top = sr.top + window.scrollY;
+    return {
+        left: mr.left + window.scrollX + 12,
+        top: top,
+        width: Math.max(200, mr.width - 24),
+        height: Math.max(320, window.innerHeight - (top - window.scrollY > window.innerHeight ? 0 : top) - 16),
+    };
+}
+
+function tplBoxOf(el) {
+    const r = el.getBoundingClientRect();
+    return { left: r.left + window.scrollX, top: r.top + window.scrollY, width: r.width, height: r.height };
+}
+
+function tplPlace(el, box) {
+    el.style.left = box.left + 'px';
+    el.style.top = box.top + 'px';
+    el.style.width = box.width + 'px';
+    el.style.height = box.height + 'px';
+}
+
+function tplMakeZoom(color, name, sub, box, open) {
+    const zoom = document.createElement('div');
+    zoom.className = 'tpl-folder-zoom' + (open ? ' is-expanded no-anim' : '');
+    zoom.style.setProperty('--folder', color);
+    zoom.setAttribute('role', 'status');
+    zoom.innerHTML = '<div class=\"tpl-folder-zoom-inner\">' + tplFolderMarkup('tpl-folder-xl' + (open ? ' is-open' : ''))
+        + '<div class=\"tpl-folder-zoom-name\">' + escapeHtml(name) + '</div><div class=\"tpl-folder-zoom-sub\">' + escapeHtml(sub) + '</div></div>';
+    tplPlace(zoom, box);
+    document.body.appendChild(zoom);
+    if (open) { void zoom.offsetWidth; zoom.classList.remove('no-anim'); }
+    return zoom;
+}
+
+function openSectionFolder(e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (typeof loadPage !== 'function') return;
+    const link = e.currentTarget;
+    // A section card, or a folder in the dock above a section's templates.
+    const card = link.closest('.tpl-section-card, .tpl-dock-folder');
+    e.preventDefault();
+    if (card && card.classList.contains('is-current')) return; // already open
+    if (card && card.classList.contains('tpl-dock-folder')) {
+        document.querySelectorAll('.tpl-dock-folder.is-current').forEach(function (c) {
+            c.classList.remove('is-current');
+            c.removeAttribute('aria-current');
+            const f = c.querySelector('.tpl-folder');
+            if (f) f.classList.remove('is-open');
+            const mark = c.querySelector('.tpl-dock-current');
+            if (mark) mark.remove();
+        });
+        card.classList.add('is-current');
+        card.setAttribute('aria-current', 'page');
+        card.insertAdjacentHTML('beforeend', '<span class=\"tpl-dock-current\"><i class=\"bi bi-eye-fill me-1\"></i>Open</span>');
+    }
+
+    if (!card || tplReduceMotion()) {
+        loadPage(link.href);
+        return;
+    }
+
+    const color = (card.querySelector('.tpl-folder') || card).style.getPropertyValue('--folder') || '#7f1d1d';
+    const name  = card.dataset.sectionName || (card.querySelector('.tpl-section-name, .tpl-dock-name') || card).textContent.trim();
+    const from  = tplBoxOf(card);
+    const to    = tplStageBox();
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' }); // bring the header back into view
+
+    // 1) The card's own folder flips open.
+    card.classList.add('is-opening');
+
+    // 2) A copy grows from the card to fill the area below the filters; its big folder opens.
+    const zoom = tplMakeZoom(color, name, 'Opening folder…', from, false);
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            zoom.classList.add('is-expanded');
+            tplPlace(zoom, to);
+        });
+    });
+    setTimeout(function () { const f = zoom.querySelector('.tpl-folder'); if (f) f.classList.add('is-open'); }, 220);
+
+    // 3) Loaded and fully open: the folder lifts away and the templates rise out of it.
+    let loaded = false, opened = false;
+    function reveal() {
+        if (!loaded || !opened) return;
+        zoom.classList.add('is-done');
+        setTimeout(function () { zoom.remove(); }, 380);
+    }
+    setTimeout(function () { opened = true; reveal(); }, 700);
+    setTimeout(function () { if (document.body.contains(zoom)) zoom.remove(); }, 10000); // never leave it stuck
+    loadPage(link.href, { overlay: false, entry: 'folder', scroll: false, afterSwap: function () { loaded = true; reveal(); } });
+}
+
+document.querySelectorAll('.tpl-section-link, .tpl-dock-folder').forEach(function (link) {
+    link.addEventListener('click', openSectionFolder);
+});
+
+// The All sections button inside a folder: the section folds back into its folder right
+// away (no loading screen), then the cards page shrinks it onto its card.
+function closeSectionFolder(e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (typeof loadPage !== 'function') return;
+    const link = e.currentTarget;
+    e.preventDefault();
+    if (tplReduceMotion()) {
+        loadPage(link.href);
+        return;
+    }
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+    const zoom = tplMakeZoom(link.dataset.folderColor || '#7f1d1d', link.dataset.sectionName || '', 'Closing folder…', tplStageBox(), true);
+    zoom.classList.add('is-folding-in', 'is-pending-close');
+    setTimeout(function () { if (document.body.contains(zoom)) zoom.remove(); }, 10000);
+    loadPage(link.href, { overlay: false, entry: 'none', scroll: false });
+}
+
+document.querySelectorAll('.tpl-back-link').forEach(function (link) {
+    link.addEventListener('click', closeSectionFolder);
+});
+
+// Back on the cards (from All sections, the sidebar or the browser's Back):
+// if we came from a section, it shrinks back onto its card and the flap closes.
+(function () {
+    const grid = document.querySelector('.tpl-section-card');
+    const pending = document.querySelector('.tpl-folder-zoom.is-pending-close');
+    let fromId = null;
+    try {
+        const from = new URL(window.lastAjaxFromUrl || '', window.location.href);
+        if (/\/templates\/?$/.test(from.pathname) && from.searchParams.get('category')) fromId = from.searchParams.get('category');
+    } catch (err) { /* no previous page */ }
+    window.lastAjaxFromUrl = null;
+
+    const card = grid && fromId ? document.querySelector('.tpl-section-card[data-section-id=\"' + fromId + '\"]') : null;
+    if (!card) {
+        if (pending) pending.remove();
+        return;
+    }
+    if (tplReduceMotion()) {
+        if (pending) pending.remove();
+        return;
+    }
+
+    const color = (card.querySelector('.tpl-folder') || card).style.getPropertyValue('--folder') || '#7f1d1d';
+    const name  = card.querySelector('.tpl-section-name').textContent;
+    // Sidebar / Back button: no folder on screen yet — start from the open, full-size one.
+    const zoom = pending || tplMakeZoom(color, name, 'Closing folder…', tplStageBox(), true);
+    zoom.classList.remove('is-pending-close', 'is-folding-in');
+    card.classList.add('is-opening'); // the card's folder waits open for its contents
+
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            zoom.classList.add('is-shrinking');
+            tplPlace(zoom, tplBoxOf(card));
+            const f = zoom.querySelector('.tpl-folder');
+            setTimeout(function () { if (f) f.classList.remove('is-open'); }, 160);
+        });
+    });
+    setTimeout(function () {
+        zoom.classList.add('is-done');
+        card.classList.remove('is-opening');
+        card.classList.add('is-closing');
+        setTimeout(function () { zoom.remove(); }, 300);
+        setTimeout(function () { card.classList.remove('is-closing'); }, 800);
+    }, 560);
+})();
+
+initTemplateDragDrop();
 initLiveSearch('templateSearchInput', 'filterForm');
 </script>";
 include APPPATH . 'Views/layout/footer.php'; ?>
