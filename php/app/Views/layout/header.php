@@ -16,6 +16,7 @@ $notifTypeIcons = [
     'document_feedback' => ['bi-chat-left-text-fill', '#eff6ff', '#1e40af'],
     'parent_meeting'    => ['bi-people-fill', '#fff7ed', '#9a3412'],
     'property_par'      => ['bi-clipboard-check-fill', '#fff0f0', '#800000'],
+    'property_concern'  => ['bi-flag-fill', '#fef9c3', '#713f12'],
     // Automations (App\Libraries\Automation, MpsAlerts)
     'mps_alert'         => ['bi-graph-down-arrow', '#fee2e2', '#b91c1c'],
     'term_reminder'     => ['bi-calendar-event-fill', '#fef3c7', '#92400e'],
@@ -32,6 +33,7 @@ $notifTypeFallbackUrl = static function (string $type) use ($role): string {
         'task_submission'                 => base_url('tasks'),
         'document_feedback'               => base_url('teacher-dashboard') . '#document-feedback',
         'property_par'                    => base_url('property-management?tab=par'),
+        'property_concern'                => base_url('property-management?tab=concerns'),
         'mps_alert', 'term_reminder'      => base_url($role === 'teacher' ? 'performance/mps' : 'dashboard'),
         'report_pack'                     => base_url('reports/term-pack'),
         default                           => base_url('announcements'),

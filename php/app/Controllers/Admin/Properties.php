@@ -7,6 +7,7 @@ use App\Controllers\Teacher\PerformanceMps;
 use App\Models\NotificationModel;
 use App\Models\PropertyAcknowledgementItemModel;
 use App\Models\PropertyAcknowledgementModel;
+use App\Models\PropertyConcernModel;
 use App\Models\PropertyConditionLogModel;
 use App\Models\RoomPropertyModel;
 use App\Models\TeacherSubjectModel;
@@ -24,10 +25,12 @@ use PhpOffice\PhpWord\PhpWord;
 /**
  * Property Management.
  *
- * - ADAS manages the inventory: adds/edits items, assigns each one to the
- *   accountable teacher, and issues Property Acknowledgment Receipts (PAR).
- * - Teachers can add items for themselves, update the condition of the
- *   items issued to them, and approve or return the PARs issued to them.
+ * - ADAS runs the inventory: adds/edits items, audits their condition
+ *   (Working / Not Working), distributes each room's items to the section's
+ *   adviser, issues Property Acknowledgment Receipts (PAR) and resolves
+ *   the concerns advisers report.
+ * - Teachers only see the items issued to them: they confirm receipt by
+ *   approving the PAR (or return it), and report concerns about an item.
  * - Principal (admin) and secretary have read-only access.
  *
  * Timestamps use the database clock (NOW()), same as the tables'
@@ -45,18 +48,24 @@ class Properties extends BaseController
 
         $user      = currentUser();
         $userId    = (int) ($user['id'] ?? 0);
-        $tab       = $this->request->getGet('tab') === 'par' ? 'par' : 'items';
+        $isTeacher = hasRole('teacher');
+        $tab       = in_array($this->request->getGet('tab'), ['par', 'concerns'], true) ? $this->request->getGet('tab') : 'items';
         $grade     = $this->request->getGet('grade') ?? 'all';
         $section   = $this->request->getGet('section') ?? 'all';
         $condition = $this->request->getGet('condition') ?? 'all';
-        $issued    = $this->request->getGet('issued') ?? 'all';
+        $issued    = $isTeacher ? 'me' : ($this->request->getGet('issued') ?? 'all');
         $search    = trim($this->request->getGet('q') ?? '');
         $sort      = $this->request->getGet('sort') ?? 'grade_az';
 
         // Section choices follow the grade filter: that grade's sections, or every
         // grade+section when "All Grades" is picked. A section that doesn't belong
         // to the chosen grade (e.g. left over after switching grade) is ignored.
-        $sectionOptions = (new RoomPropertyModel())->distinct()->select('grade, section')
+        // Teachers only get the grades/sections of their own items.
+        $scoped = function () use ($isTeacher, $userId) {
+            $m = new RoomPropertyModel();
+            return $isTeacher ? $m->where('issued_to', $userId) : $m;
+        };
+        $sectionOptions = $scoped()->distinct()->select('grade, section')
             ->orderBy('grade')->orderBy('section')->findAll();
         if ($grade !== 'all') {
             $sectionOptions = array_values(array_filter($sectionOptions, static fn ($o) => $o['grade'] === $grade));
@@ -67,12 +76,17 @@ class Properties extends BaseController
 
         $items = $this->filteredItems($grade, $section, $condition, $issued, $search, $sort);
 
-        $grades    = array_column((new RoomPropertyModel())->distinct()->select('grade')->orderBy('grade')->findAll(), 'grade');
+        $grades    = array_column($scoped()->distinct()->select('grade')->orderBy('grade')->findAll(), 'grade');
         $condStats = array_count_values(array_column($items, 'condition_status'));
 
         $parModel = new PropertyAcknowledgementModel();
-        $pars     = $parModel->listing(hasRole('teacher') ? $userId : null);
+        $pars     = $parModel->listing($isTeacher ? $userId : null);
         $pendingParCount = count(array_filter($pars, static fn ($p) => $p['status'] === 'Pending'));
+
+        $concernModel     = new PropertyConcernModel();
+        $concerns         = $concernModel->listing($isTeacher ? $userId : null);
+        $openConcernCount = count(array_filter($concerns, static fn ($c) => $c['status'] === 'Open'));
+        $openByProperty   = $concernModel->openCountByProperty();
 
         $unassignedCount = (new RoomPropertyModel())->where('issued_to IS NULL')->countAllResults();
 
@@ -106,9 +120,14 @@ class Properties extends BaseController
             'condStats'       => $condStats,
             'pars'            => $pars,
             'pendingParCount' => $pendingParCount,
+            'concerns'         => $concerns,
+            'openConcernCount' => $openConcernCount,
+            'openByProperty'   => $openByProperty,
+            'concernCategories' => PropertyConcernModel::CATEGORIES,
+            'advisers'        => hasRole('adas') ? RoomPropertyModel::advisersBySection() : [],
             'unassignedCount' => $unassignedCount,
             'unacknowledged'  => $unacknowledged,
-            'canManage'       => hasRole('adas', 'teacher'),
+            'canManage'       => hasRole('adas'),
             'userId'          => $userId,
             'flash'           => session()->getFlashdata('flash'),
         ]);
@@ -120,7 +139,7 @@ class Properties extends BaseController
     public function history(int $id)
     {
         $item = (new RoomPropertyModel())->find($id);
-        if (! $item) {
+        if (! $item || (hasRole('teacher') && (int) $item['issued_to'] !== (int) (currentUser()['id'] ?? 0))) {
             return $this->ajaxError('Item not found.', 404);
         }
 
@@ -174,7 +193,7 @@ class Properties extends BaseController
         $grade     = $this->request->getGet('grade') ?: 'all';
         $section   = $this->request->getGet('section') ?: 'all';
         $condition = $this->request->getGet('condition') ?: 'all';
-        $issued    = $this->request->getGet('issued') ?: 'all';
+        $issued    = hasRole('teacher') ? 'me' : ($this->request->getGet('issued') ?: 'all');
         $search    = trim($this->request->getGet('q') ?? '');
 
         // Always grouped by grade → section → item, whatever the on-screen sort.
@@ -215,7 +234,7 @@ class Properties extends BaseController
         return $this->response->download($tempFile, null)->setFileName('Property Inventory - ' . date('Y-m-d') . '.' . $format);
     }
 
-    private const REPORT_COLUMNS = ['No.', 'Item', 'Qty', 'Condition', 'Acquired As', 'Issued To', 'Date Added'];
+    private const REPORT_COLUMNS = ['No.', 'Item', 'Qty', 'Condition', 'Acquired As', 'Adviser', 'Last Checked'];
 
     /** One report row (same order as REPORT_COLUMNS). */
     private function reportRow(int $n, array $item): array
@@ -227,7 +246,7 @@ class Properties extends BaseController
             $item['condition_status'],
             RoomPropertyModel::acquisitionLabel($item),
             $item['issued_to_name'] ?? '—',
-            date('M d, Y', strtotime($item['created_at'])),
+            date('M d, Y', strtotime($item['last_checked_at'] ?? $item['created_at'])),
         ];
     }
 
@@ -387,14 +406,17 @@ class Properties extends BaseController
         $isAjax = $this->request->isAJAX();
         $fail   = fn (string $msg, int $code = 400) => $isAjax ? $this->ajaxError($msg, $code) : redirect()->to('/property-management');
 
-        if (! hasRole('adas', 'teacher')) {
-            return $fail('You are not authorized to do this.', 403);
-        }
-
         $action  = $this->request->getPost('action');
         $userId  = (int) (currentUser()['id'] ?? 0);
         $message = null;
         $extra   = [];
+
+        // Teachers can only answer their PARs and report concerns; everything
+        // else (inventory, audits, distribution) is the ADAS's job.
+        $teacherActions = ['par_respond', 'report_concern'];
+        if (! hasRole('adas') && ! (hasRole('teacher') && in_array($action, $teacherActions, true))) {
+            return $fail('Only the ADAS can do this.', 403);
+        }
 
         try {
             switch ($action) {
@@ -411,15 +433,17 @@ class Properties extends BaseController
                     $id = (int) $model->insert($data + [
                         'condition_status' => $condition,
                         'uploaded_by'      => currentUser()['name'] ?? null,
+                        'last_checked_at'  => new RawSql('NOW()'),
+                        'last_checked_by'  => currentUser()['name'] ?? null,
                     ]);
                     (new PropertyConditionLogModel())->record($id, null, $condition, 'Item added');
-                    $message = 'Item added successfully.';
+                    $message = 'Item added' . ($data['issued_to'] ? '' : ' (no adviser assigned yet)') . '.';
                     break;
 
                 case 'edit':
-                    $item = $this->findManageable($model);
-                    if (is_string($item)) {
-                        return $fail($item, 403);
+                    $item = $model->find((int) $this->request->getPost('id'));
+                    if (! $item) {
+                        return $fail('Item not found.', 404);
                     }
                     $data = $this->itemFromPost();
                     if (is_string($data)) {
@@ -433,35 +457,116 @@ class Properties extends BaseController
                     $message = 'Item updated.';
                     break;
 
+                // ADAS audit: records the checked condition. The same condition
+                // is allowed — it logs that the item was checked and still is.
                 case 'update_condition':
-                    $item = $this->findManageable($model);
-                    if (is_string($item)) {
-                        return $fail($item, 403);
+                    $item = $model->find((int) $this->request->getPost('id'));
+                    if (! $item) {
+                        return $fail('Item not found.', 404);
                     }
                     $condition = (string) $this->request->getPost('condition_status');
                     $remarks   = trim((string) $this->request->getPost('remarks'));
                     if (! in_array($condition, RoomPropertyModel::CONDITIONS, true)) {
                         return $fail('Please pick a valid condition.');
                     }
-                    if ($condition === $item['condition_status']) {
-                        return $fail('The item is already ' . $condition . '.');
-                    }
-                    if ($condition === 'Non-serviceable' && $remarks === '') {
-                        return $fail('Please describe what happened to the item.');
+                    $changed = $condition !== $item['condition_status'];
+                    if ($changed && $condition === 'Not Working' && $remarks === '') {
+                        return $fail('Please describe what is wrong with the item.');
                     }
 
-                    $model->update((int) $item['id'], ['condition_status' => $condition, 'updated_at' => new RawSql('NOW()')]);
-                    (new PropertyConditionLogModel())->record((int) $item['id'], $item['condition_status'], $condition, $remarks);
-                    $message = 'Condition updated to ' . $condition . '.';
+                    $model->update((int) $item['id'], [
+                        'condition_status' => $condition,
+                        'last_checked_at'  => new RawSql('NOW()'),
+                        'last_checked_by'  => currentUser()['name'] ?? null,
+                        'updated_at'       => new RawSql('NOW()'),
+                    ]);
+                    (new PropertyConditionLogModel())->record(
+                        (int) $item['id'],
+                        $item['condition_status'],
+                        $condition,
+                        $changed ? $remarks : trim('Audited — still ' . $condition . '. ' . $remarks)
+                    );
+                    $message = $changed ? 'Condition updated to ' . $condition . '.' : 'Audit recorded — still ' . $condition . '.';
                     break;
 
                 case 'delete':
-                    $item = $this->findManageable($model);
-                    if (is_string($item)) {
-                        return $fail($item, 403);
+                    $item = $model->find((int) $this->request->getPost('id'));
+                    if (! $item) {
+                        return $fail('Item not found.', 404);
                     }
                     $model->delete((int) $item['id']);
                     $message = 'Item removed.';
+                    break;
+
+                case 'report_concern':
+                    $item = $model->find((int) $this->request->getPost('id'));
+                    if (! $item || (int) $item['issued_to'] !== $userId) {
+                        return $fail('This item is not issued to you.', 403);
+                    }
+                    $category = (string) $this->request->getPost('category');
+                    $details  = trim((string) $this->request->getPost('details'));
+                    if (! in_array($category, PropertyConcernModel::CATEGORIES, true)) {
+                        return $fail('Please pick what the concern is about.');
+                    }
+                    if ($details === '') {
+                        return $fail('Please describe the concern.');
+                    }
+
+                    $concernId = (int) (new PropertyConcernModel())->insert([
+                        'property_id' => (int) $item['id'],
+                        'reported_by' => $userId,
+                        'category'    => $category,
+                        'details'     => $details,
+                        'status'      => 'Open',
+                    ]);
+                    $notifications = new NotificationModel();
+                    foreach ((new UserModel())->active()->select('id')->where('role', 'adas')->findAll() as $adas) {
+                        $notifications->insert([
+                            'user_id'  => (int) $adas['id'],
+                            'type'     => 'property_concern',
+                            'title'    => 'Property concern: ' . $item['item_name'] . ' (' . $item['section'] . ')',
+                            'sub'      => $category . ' — reported by ' . (currentUser()['name'] ?? 'adviser'),
+                            'url'      => base_url('property-management?tab=concerns'),
+                            'ref_type' => 'property_concern',
+                            'ref_id'   => $concernId,
+                        ]);
+                    }
+                    $message = 'Concern sent to the ADAS.';
+                    break;
+
+                case 'resolve_concern':
+                    $concernModel = new PropertyConcernModel();
+                    $concern      = $concernModel->find((int) $this->request->getPost('concern_id'));
+                    if (! $concern) {
+                        return $fail('Concern not found.', 404);
+                    }
+                    if ($concern['status'] !== 'Open') {
+                        return $fail('This concern was already resolved.');
+                    }
+                    $response = trim((string) $this->request->getPost('response'));
+                    if ($response === '') {
+                        return $fail('Please say how the concern was resolved.');
+                    }
+
+                    $concernModel->update((int) $concern['id'], [
+                        'status'      => 'Resolved',
+                        'response'    => $response,
+                        'resolved_by' => $userId ?: null,
+                        'resolved_at' => new RawSql('NOW()'),
+                    ]);
+                    if ($concern['reported_by']) {
+                        $item = $model->find((int) $concern['property_id']);
+                        (new NotificationModel())->insert([
+                            'user_id'  => (int) $concern['reported_by'],
+                            'type'     => 'property_concern',
+                            'title'    => 'Concern resolved: ' . ($item['item_name'] ?? 'property item'),
+                            'sub'      => mb_strimwidth($response, 0, 120, '…'),
+                            'url'      => base_url('property-management?tab=concerns'),
+                            'ref_type' => 'property_concern',
+                            'ref_id'   => (int) $concern['id'],
+                        ]);
+                    }
+                    $message = 'Concern marked as resolved.';
                     break;
 
                 case 'generate_par':
@@ -484,13 +589,13 @@ class Properties extends BaseController
                     (new NotificationModel())->insert([
                         'user_id'  => $teacherId,
                         'type'     => 'property_par',
-                        'title'    => 'PAR for approval: ' . $parNo,
+                        'title'    => 'Confirm receipt: ' . $parNo,
                         'sub'      => count($parItems) . ' ' . (count($parItems) === 1 ? 'item' : 'items') . ' issued to you',
                         'url'      => base_url('property-management?tab=par'),
                         'ref_type' => 'property_par',
                         'ref_id'   => $parId,
                     ]);
-                    $message = $parNo . ' issued to ' . $teacher['name'] . ' for approval.';
+                    $message = $parNo . ' issued to ' . $teacher['name'] . ' to confirm receipt.';
                     $extra   = ['redirect' => base_url('property-management?tab=par')];
                     break;
 
@@ -522,14 +627,14 @@ class Properties extends BaseController
                         (new NotificationModel())->insert([
                             'user_id'  => (int) $par['issued_by'],
                             'type'     => 'property_par',
-                            'title'    => $par['par_no'] . ' ' . strtolower($decision) . ' by ' . (currentUser()['name'] ?? 'teacher'),
+                            'title'    => $par['par_no'] . ' ' . ($decision === 'Approved' ? 'received (confirmed)' : 'returned') . ' by ' . (currentUser()['name'] ?? 'teacher'),
                             'sub'      => $remarks !== '' ? mb_strimwidth($remarks, 0, 120, '…') : null,
                             'url'      => base_url('property-management?tab=par'),
                             'ref_type' => 'property_par',
                             'ref_id'   => (int) $par['id'],
                         ]);
                     }
-                    $message = $par['par_no'] . ($decision === 'Approved' ? ' approved.' : ' returned to the ADAS.');
+                    $message = $decision === 'Approved' ? 'Receipt confirmed for ' . $par['par_no'] . '.' : $par['par_no'] . ' returned to the ADAS.';
                     break;
             }
         } catch (\Throwable $e) {
@@ -576,14 +681,14 @@ class Properties extends BaseController
             return 'Please specify how the item was acquired.';
         }
 
-        // ADAS assigns the accountable teacher; a teacher's own items are issued to them.
-        if (hasRole('adas')) {
-            $issuedTo = (int) $this->request->getPost('issued_to');
-            if ($issuedTo && ! (new UserModel())->where('role', 'teacher')->find($issuedTo)) {
-                return 'Please pick a valid teacher.';
-            }
-        } else {
-            $issuedTo = (int) (currentUser()['id'] ?? 0);
+        // The room's property goes to the section's adviser. ADAS can pick
+        // someone else (e.g. a room with no adviser yet).
+        $issuedTo = (int) $this->request->getPost('issued_to');
+        if ($issuedTo && ! (new UserModel())->where('role', 'teacher')->find($issuedTo)) {
+            return 'Please pick a valid teacher.';
+        }
+        if (! $issuedTo) {
+            $issuedTo = RoomPropertyModel::advisersBySection()[strtolower(trim($section))]['id'] ?? 0;
         }
 
         return [
@@ -596,28 +701,6 @@ class Properties extends BaseController
             'notes'             => $notes !== '' ? $notes : null,
             'issued_to'         => $issuedTo ?: null,
         ];
-    }
-
-    /**
-     * The posted item if the current user may change it, or an error message.
-     * ADAS can change any item; a teacher only the items issued to them (or
-     * unassigned items they added themselves).
-     */
-    private function findManageable(RoomPropertyModel $model): array|string
-    {
-        $item = $model->find((int) $this->request->getPost('id'));
-        if (! $item) {
-            return 'Item not found.';
-        }
-        if (hasRole('adas')) {
-            return $item;
-        }
-
-        $user = currentUser();
-        $mine = (int) $item['issued_to'] === (int) ($user['id'] ?? 0)
-            || ($item['issued_to'] === null && $item['uploaded_by'] === ($user['name'] ?? null));
-
-        return $mine ? $item : 'You can only change items issued to you.';
     }
 
     /**

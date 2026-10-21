@@ -1038,11 +1038,11 @@ a.stat-tile.dashboard-card-link { cursor: pointer; }
 .section-toggle-arrow { transition: transform .2s; }
 .section-toggle-btn.collapsed .section-toggle-arrow { transform: rotate(-90deg); }
 
-/* Property condition badges */
+/* Property condition badges (cond-serviceable = Working, cond-non-serviceable = Not Working) */
 .cond-serviceable     { background: #d1fae5; color: #065f46; }
 .cond-non-serviceable { background: #fee2e2; color: #991b1b; }
 
-/* Property: Serviceable / Non-serviceable picker in the Update Condition modal */
+/* Property: Working / Not Working picker in the Add Item and Audit Condition modals */
 .cond-choice { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
 .cond-choice input { position: absolute; opacity: 0; pointer-events: none; }
 .cond-choice label {
