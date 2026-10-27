@@ -34,12 +34,12 @@ class PropertiesController extends BaseApiController
             'grade'            => $b['grade'] ?? '',
             'item_name'        => $b['item_name'] ?? '',
             'quantity'         => (int) ($b['quantity'] ?? 1),
-            'condition_status' => in_array($b['condition_status'] ?? '', RoomPropertyModel::CONDITIONS, true) ? $b['condition_status'] : 'Serviceable',
+            'condition_status' => in_array($b['condition_status'] ?? '', RoomPropertyModel::CONDITIONS, true) ? $b['condition_status'] : 'Working',
             'acquisition_type' => in_array($b['acquisition_type'] ?? '', RoomPropertyModel::ACQUISITIONS, true) ? $b['acquisition_type'] : 'New',
             'notes'            => $b['notes'] ?? null,
             'uploaded_by'      => $b['uploaded_by'] ?? (currentUser()['name'] ?? null),
         ]);
-        (new PropertyConditionLogModel())->record((int) $id, null, $b['condition_status'] ?? 'Serviceable', 'Item added');
+        (new PropertyConditionLogModel())->record((int) $id, null, $b['condition_status'] ?? 'Working', 'Item added');
 
         return $this->jsonResponse(['id' => $id, 'message' => 'Created.'], 201);
     }
@@ -59,7 +59,7 @@ class PropertiesController extends BaseApiController
             return $this->jsonError('Item not found.', 404);
         }
         if (! in_array($to, RoomPropertyModel::CONDITIONS, true)) {
-            return $this->jsonError('condition_status must be Serviceable or Non-serviceable.', 422);
+            return $this->jsonError('condition_status must be Working or Not Working.', 422);
         }
 
         if ($to !== $item['condition_status']) {

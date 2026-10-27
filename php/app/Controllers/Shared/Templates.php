@@ -5,6 +5,7 @@ namespace App\Controllers\Shared;
 use App\Controllers\BaseController;
 use App\Libraries\OfficeConverter;
 use App\Libraries\OfficeOnlinePreview;
+use App\Libraries\TemplateClassifier;
 use App\Models\TemplateCategoryModel;
 use App\Models\TemplateModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -71,11 +72,31 @@ class Templates extends BaseController
                     } elseif ($categoryModel->where('name', $name)->first()) {
                         $error = 'This category already exists.';
                     } else {
+                        $description = trim($this->request->getPost('description') ?? '');
                         $categoryModel->insert([
-                            'name'       => $name,
-                            'created_by' => currentUser()['name'],
+                            'name'        => $name,
+                            'description' => $description !== '' ? mb_substr($description, 0, 255) : null,
+                            'created_by'  => currentUser()['name'],
                         ]);
-                        $message = 'Category added.';
+                        $message = 'Section added.';
+                    }
+                } elseif ($action === 'edit_category') {
+                    $category    = $categoryModel->find((int) $this->request->getPost('id'));
+                    $name        = trim($this->request->getPost('name') ?? '');
+                    $description = trim($this->request->getPost('description') ?? '');
+
+                    if (! $category) {
+                        $error = 'Section not found.';
+                    } elseif ($name === '') {
+                        $error = 'Please enter a section name.';
+                    } elseif ($categoryModel->where('name', $name)->where('id !=', (int) $category['id'])->first()) {
+                        $error = 'Another section already has this name.';
+                    } else {
+                        $categoryModel->update((int) $category['id'], [
+                            'name'        => $name,
+                            'description' => $description !== '' ? mb_substr($description, 0, 255) : null,
+                        ]);
+                        $message = 'Section updated.';
                     }
                 } elseif ($action === 'delete_category') {
                     $categoryId = (int) $this->request->getPost('id');
@@ -86,26 +107,47 @@ class Templates extends BaseController
                         $categoryModel->delete($categoryId);
                         $message = 'Category deleted.';
                     }
+                } elseif ($action === 'classify') {
+                    // Live suggestion while the ADAS is still filling in the
+                    // upload form: suggested section + tags for each picked file.
+                    $classifier = new TemplateClassifier();
+                    $results    = [];
+                    foreach ($this->request->getFileMultiple('file') ?? [] as $index => $file) {
+                        if ($file === null || ! $file->isValid()) {
+                            continue;
+                        }
+                        $name      = $file->getClientName();
+                        $ext       = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                        $r         = $classifier->analyze($name, pathinfo($name, PATHINFO_FILENAME), $file->getTempName(), $ext);
+                        unset($r['keywords']);
+                        $results[] = ['index' => $index, 'name' => $name, 'size' => $file->getSize()] + $r;
+                    }
+
+                    return $this->response->setJSON(['status' => 'success', 'results' => $results]);
                 } elseif ($action === 'upload') {
+                    $auto       = $this->request->getPost('category_id') === 'auto';
                     $categoryId = (int) $this->request->getPost('category_id');
-                    $category   = $categoryModel->find($categoryId);
+                    $category   = $auto ? null : $categoryModel->find($categoryId);
+                    $classifier = new TemplateClassifier();
 
                     // Client extension is trusted rather than PHP's fileinfo mime-sniff,
                     // which misidentifies some genuine, valid .docx/.xlsx files as
                     // application/octet-stream on this server. This upload is already
                     // gated to admins/ADAS, so that trade-off is acceptable here.
-                    $files = array_values(array_filter(
+                    // Keys stay as the file's position in the form, to match batch_titles[].
+                    $files = array_filter(
                         $this->request->getFileMultiple('file') ?? [],
                         static fn ($f) => $f !== null && $f->isValid(),
-                    ));
+                    );
+                    $batchTitles = (array) ($this->request->getPost('batch_titles') ?? []);
 
-                    if (! $category) {
-                        $error = 'Please choose a valid category.';
+                    if (! $auto && ! $category) {
+                        $error = 'Please choose a valid section.';
                     } elseif ($files === []) {
                         $error = 'Please choose a file to upload.';
                     } elseif (count($files) === 1) {
                         $title = trim($this->request->getPost('title') ?? '');
-                        $file  = $files[0];
+                        $file  = reset($files);
 
                         if ($title === '') {
                             $error = 'Please enter a title.';
@@ -122,8 +164,21 @@ class Templates extends BaseController
                             } elseif (! in_array($ext, self::ALLOWED_EXT, true)) {
                                 $error = 'Unsupported file type.';
                             } else {
-                                $this->storeTemplateFile($templateModel, $file, $categoryId, $title, trim($this->request->getPost('description') ?? ''));
-                                $message = 'Template uploaded successfully.';
+                                $analysis = $classifier->analyze($file->getClientName(), $title, $file->getTempName(), $ext);
+                                if ($auto) {
+                                    $categoryId = (int) $analysis['category_id'];
+                                }
+                                if (! $categoryId) {
+                                    $error = 'This file could not be classified automatically. Please pick its section.';
+                                } else {
+                                    // Tags the ADAS reviewed in the form win over the automatic ones.
+                                    $posted = $this->request->getPost('tags');
+                                    $tags   = $posted !== null ? TemplateClassifier::cleanTags($posted) : $analysis['tags'];
+                                    $this->storeTemplateFile($templateModel, $file, $categoryId, $title, trim($this->request->getPost('description') ?? ''), $tags, $analysis['keywords']);
+                                    $message = $auto
+                                        ? 'Template uploaded to ' . $analysis['category_name'] . '.'
+                                        : 'Template uploaded successfully.';
+                                }
                             }
                         }
                     } else {
@@ -133,8 +188,9 @@ class Templates extends BaseController
                         $description = trim($this->request->getPost('description') ?? '');
                         $skipped     = [];
                         $usedTitles  = [];
+                        $placedIn    = [];
 
-                        foreach ($files as $file) {
+                        foreach ($files as $index => $file) {
                             $fileName = $file->getClientName();
                             $ext      = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
@@ -152,23 +208,76 @@ class Templates extends BaseController
                                 $baseTitle = 'Untitled';
                             }
 
+                            // Each file gets its own section when auto-classifying.
+                            $analysis   = $classifier->analyze($fileName, $baseTitle, $file->getTempName(), $ext);
+                            $fileCatId  = $auto ? (int) $analysis['category_id'] : $categoryId;
+                            if (! $fileCatId) {
+                                $skipped[] = $fileName . ' (could not be classified — upload it with a section picked)';
+                                continue;
+                            }
+
+                            // "scan001.pdf", "IMG_2031.jpg": title it from the document's heading instead.
+                            // A dated document without a year in its name also gets the period added.
+                            if ($analysis['recommended_title']) {
+                                $baseTitle = $analysis['recommended_title'];
+                            }
+                            // The title the ADAS reviewed for this file in the upload form wins.
+                            $reviewed = trim((string) ($batchTitles[$index] ?? ''));
+                            if ($reviewed !== '') {
+                                $baseTitle = mb_substr($reviewed, 0, 255);
+                            }
+
                             $title = $baseTitle;
                             for ($i = 2; in_array($title, $usedTitles, true) || $templateModel->where('title', $title)->first(); $i++) {
                                 $title = $baseTitle . ' (' . $i . ')';
                             }
                             $usedTitles[] = $title;
 
-                            $this->storeTemplateFile($templateModel, $file, $categoryId, $title, $description);
+                            $this->storeTemplateFile($templateModel, $file, $fileCatId, $title, $description, $analysis['tags'], $analysis['keywords']);
+                            $catName            = $auto ? $analysis['category_name'] : $category['name'];
+                            $placedIn[$catName] = ($placedIn[$catName] ?? 0) + 1;
                         }
 
                         if ($usedTitles === []) {
                             $error = 'None of the selected files could be uploaded. Skipped: ' . implode(', ', $skipped);
                         } else {
-                            $message = 'Uploaded ' . count($usedTitles) . ' of ' . count($files) . ' file(s).';
+                            $message = 'Uploaded ' . count($usedTitles) . ' of ' . count($files) . ' file(s)';
+                            if ($auto) {
+                                $message .= ': ' . implode(', ', array_map(static fn ($n, $c) => $c . ' to ' . $n, array_keys($placedIn), $placedIn));
+                            }
+                            $message .= '.';
                             if ($skipped !== []) {
                                 $message .= ' Skipped: ' . implode(', ', $skipped);
                             }
                         }
+                    }
+                } elseif ($action === 'move_template') {
+                    // Drag a template onto another section (or use "Move to…").
+                    $template = $templateModel->find((int) $this->request->getPost('id'));
+                    $target   = $categoryModel->find((int) $this->request->getPost('category_id'));
+
+                    if (! $template) {
+                        $error = 'Template not found.';
+                    } elseif (! $target) {
+                        $error = 'Please choose a valid section.';
+                    } elseif ((int) $template['category_id'] === (int) $target['id']) {
+                        $error = '"' . $template['title'] . '" is already in ' . $target['name'] . '.';
+                    } else {
+                        // Keep files grouped by section on disk too; if the move fails the old path still works.
+                        $path   = $template['file_path'];
+                        $newDir = WRITEPATH . 'uploads/templates/' . (int) $target['id'];
+                        if (is_file($path)) {
+                            if (! is_dir($newDir)) {
+                                mkdir($newDir, 0755, true);
+                            }
+                            $newPath = $newDir . DIRECTORY_SEPARATOR . basename($path);
+                            if (! is_file($newPath) && @rename($path, $newPath)) {
+                                $path = $newPath;
+                            }
+                        }
+                        $from = $categoryModel->find((int) $template['category_id']);
+                        $templateModel->update((int) $template['id'], ['category_id' => (int) $target['id'], 'file_path' => $path]);
+                        $message = '"' . $template['title'] . '" was moved from ' . ($from['name'] ?? 'its section') . ' to ' . $target['name'] . '.';
                     }
                 } elseif ($action === 'delete_template') {
                     $template = $templateModel->find((int) $this->request->getPost('id'));
@@ -211,6 +320,8 @@ class Templates extends BaseController
             $builder->groupStart()
                 ->like('templates.title', $search)
                 ->orLike('templates.file_name', $search)
+                ->orLike('templates.tags', $search)
+                ->orLike('templates.keywords', $search)
                 ->groupEnd();
         }
         if ($catId > 0) {
@@ -244,11 +355,13 @@ class Templates extends BaseController
             'fileType'          => $fileType,
             'sort'              => $sort,
             'fileTypes'         => $templateModel->distinctExtensions(),
+            'ocrAvailable'      => TemplateClassifier::ocrAvailable(),
             'flash'             => session()->getFlashdata('flash'),
         ]);
     }
 
-    private function storeTemplateFile(TemplateModel $templateModel, UploadedFile $file, int $categoryId, string $title, string $description): void
+    /** @param list<string> $tags */
+    private function storeTemplateFile(TemplateModel $templateModel, UploadedFile $file, int $categoryId, string $title, string $description, array $tags = [], string $keywords = ''): void
     {
         $targetDir = WRITEPATH . 'uploads/templates/' . $categoryId;
 
@@ -263,6 +376,8 @@ class Templates extends BaseController
             'category_id' => $categoryId,
             'title'       => $title,
             'description' => $description,
+            'tags'        => $tags !== [] ? implode(', ', $tags) : null,
+            'keywords'    => $keywords !== '' ? $keywords : null,
             'file_path'   => $targetDir . DIRECTORY_SEPARATOR . $newName,
             'file_name'   => $file->getClientName(),
             'file_ext'    => strtolower(pathinfo($file->getClientName(), PATHINFO_EXTENSION)),

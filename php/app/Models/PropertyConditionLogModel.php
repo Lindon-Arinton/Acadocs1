@@ -5,8 +5,8 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * One row per condition change of a property item (Serviceable ⇄
- * Non-serviceable), including the initial condition when the item was added.
+ * One row per condition change or ADAS check of a property item (Working ⇄
+ * Not Working), including the initial condition when the item was added.
  */
 class PropertyConditionLogModel extends Model
 {

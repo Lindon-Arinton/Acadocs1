@@ -11,5 +11,5 @@ class TemplateCategoryModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['name', 'created_by'];
+    protected $allowedFields = ['name', 'description', 'created_by'];
 }
