@@ -64,14 +64,6 @@ CREATE TABLE `announcements` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `announcements`
---
-
-INSERT INTO `announcements` (`id`, `type`, `title`, `content`, `image`, `date`, `status`, `created_by`, `created_at`) VALUES
-(3, 'Announcement', 'Meeting', 'May meeting sa sabado', NULL, '2026-08-01', 'active', NULL, '2026-07-31 04:48:43'),
-(79, 'Announcement', 'Defense na natin bukas', '', '1790926386_a51181ffeb947c6cbb8e.jpg', '2026-10-02', 'active', 10, '2026-10-02 07:33:06');
-
 -- --------------------------------------------------------
 
 --
@@ -161,27 +153,6 @@ CREATE TABLE `conversations` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `conversations`
---
-
-INSERT INTO `conversations` (`id`, `type`, `name`, `created_by`, `created_at`) VALUES
-(1, 'group', 'lindongroup', 10, '2026-07-27 10:04:52'),
-(6, 'direct', NULL, 10, '2026-08-31 07:03:08'),
-(7, 'direct', NULL, 10, '2026-08-31 16:17:32'),
-(8, 'direct', NULL, 8, '2026-09-01 08:45:03'),
-(9, 'direct', NULL, 11, '2026-09-22 06:22:51'),
-(10, 'direct', NULL, 11, '2026-09-22 06:23:11'),
-(11, 'direct', NULL, 48, '2026-09-25 07:49:49'),
-(114, 'direct', NULL, 10, '2026-10-01 13:45:22'),
-(115, 'direct', NULL, 10, '2026-10-01 13:50:26'),
-(116, 'direct', NULL, 26, '2026-10-02 06:48:02'),
-(117, 'direct', NULL, 26, '2026-10-02 06:48:10'),
-(118, 'direct', NULL, 26, '2026-10-02 06:48:12'),
-(119, 'direct', NULL, 26, '2026-10-02 06:48:15'),
-(121, 'direct', NULL, 10, '2026-10-02 07:49:05'),
-(122, 'direct', NULL, 10, '2026-10-02 07:49:07');
-
 -- --------------------------------------------------------
 
 --
@@ -197,39 +168,6 @@ CREATE TABLE `conversation_participants` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `conversation_participants`
---
-
-INSERT INTO `conversation_participants` (`id`, `conversation_id`, `user_id`, `last_read_at`, `muted`, `created_at`) VALUES
-(1, 1, 10, '2026-10-02 07:49:05', 0, '2026-07-27 10:04:52'),
-(19, 6, 20, NULL, 0, '2026-08-31 07:03:08'),
-(21, 7, 20, NULL, 0, '2026-08-31 16:17:32'),
-(22, 8, 8, NULL, 0, '2026-09-01 08:45:03'),
-(23, 8, 9, NULL, 0, '2026-09-01 08:45:03'),
-(24, 9, 11, '2026-09-22 06:23:10', 0, '2026-09-22 06:22:51'),
-(25, 9, 20, NULL, 0, '2026-09-22 06:22:51'),
-(26, 10, 11, '2026-09-22 06:23:44', 0, '2026-09-22 06:23:11'),
-(27, 10, 21, NULL, 0, '2026-09-22 06:23:11'),
-(28, 11, 48, '2026-09-25 07:52:27', 0, '2026-09-25 07:49:49'),
-(29, 11, 20, NULL, 0, '2026-09-25 07:49:49'),
-(576, 114, 10, '2026-10-01 13:49:32', 0, '2026-10-01 13:45:22'),
-(577, 114, 21, NULL, 0, '2026-10-01 13:45:22'),
-(578, 115, 10, '2026-10-02 07:49:03', 0, '2026-10-01 13:50:26'),
-(579, 115, 20, NULL, 0, '2026-10-01 13:50:26'),
-(580, 116, 26, '2026-10-02 06:48:09', 0, '2026-10-02 06:48:02'),
-(581, 116, 20, NULL, 0, '2026-10-02 06:48:02'),
-(582, 117, 26, '2026-10-02 06:48:11', 0, '2026-10-02 06:48:10'),
-(583, 117, 31, NULL, 0, '2026-10-02 06:48:10'),
-(584, 118, 26, '2026-10-02 06:48:13', 0, '2026-10-02 06:48:12'),
-(585, 118, 35, NULL, 0, '2026-10-02 06:48:12'),
-(586, 119, 26, '2026-10-02 06:48:32', 0, '2026-10-02 06:48:15'),
-(587, 119, 27, NULL, 0, '2026-10-02 06:48:15'),
-(590, 121, 10, '2026-10-02 07:49:27', 0, '2026-10-02 07:49:05'),
-(591, 121, 27, NULL, 0, '2026-10-02 07:49:05'),
-(592, 122, 10, '2026-10-02 07:50:00', 0, '2026-10-02 07:49:07'),
-(593, 122, 31, NULL, 0, '2026-10-02 07:49:07');
-
 -- --------------------------------------------------------
 
 --
@@ -242,13 +180,6 @@ CREATE TABLE `conversation_typing` (
   `user_id` int(10) UNSIGNED NOT NULL,
   `updated_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `conversation_typing`
---
-
-INSERT INTO `conversation_typing` (`id`, `conversation_id`, `user_id`, `updated_at`) VALUES
-(1, 1, 10, '2026-08-31 07:01:08');
 
 -- --------------------------------------------------------
 
@@ -368,13 +299,6 @@ CREATE TABLE `document_folders` (
   `name` varchar(200) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `document_folders`
---
-
-INSERT INTO `document_folders` (`id`, `task_id`, `name`, `created_at`) VALUES
-(1, 10, 'DLL - Sep 25, 2026', '2026-09-25 07:26:38');
 
 -- --------------------------------------------------------
 
@@ -509,23 +433,6 @@ CREATE TABLE `messages` (
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `messages`
---
-
-INSERT INTO `messages` (`id`, `conversation_id`, `sender_id`, `reply_to_id`, `body`, `attachment_path`, `attachment_name`, `attachment_ext`, `announcement_id`, `created_at`, `edited_at`, `deleted_at`) VALUES
-(1, 1, 10, NULL, 'huy ano?', NULL, NULL, NULL, NULL, '2026-07-27 10:05:05', NULL, NULL),
-(2, 1, 10, NULL, 'mag sireply naman kayo!', NULL, NULL, NULL, NULL, '2026-07-27 10:05:14', NULL, NULL),
-(3, 1, 10, NULL, 'akoy dina natutuwa!', NULL, NULL, NULL, NULL, '2026-07-27 10:05:21', NULL, NULL),
-(4, 1, 10, NULL, 'sya wag na', NULL, NULL, NULL, NULL, '2026-07-27 10:05:26', NULL, NULL),
-(9, 1, 10, 2, 'dfkdjfpds', NULL, NULL, NULL, NULL, '2026-08-31 07:01:11', NULL, '2026-08-31 09:14:47'),
-(10, 1, 10, NULL, 'edited-body-test', NULL, NULL, NULL, NULL, '2026-08-31 16:24:06', '2026-08-31 09:13:25', '2026-08-31 09:14:43'),
-(11, 1, 10, NULL, 'delete-test-1788196353', NULL, NULL, NULL, NULL, '2026-08-31 17:12:33', NULL, '2026-08-31 09:18:19'),
-(12, 1, 10, NULL, 'unsend-visibility-test-1788197655', NULL, NULL, NULL, NULL, '2026-08-31 17:34:15', NULL, '2026-08-31 09:34:16'),
-(13, 1, 10, NULL, 'CDP test message 1788198182173', NULL, NULL, NULL, NULL, '2026-08-31 17:43:02', NULL, NULL),
-(14, 1, 10, NULL, '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/chat/1\\1788243580_d546de5d430bc2cf4aa8.png', 'matabungkay bg.png', 'png', NULL, '2026-09-01 06:19:40', NULL, NULL),
-(2782, 1, 10, NULL, '📢 Defense na natin bukas', NULL, NULL, NULL, 79, '2026-10-02 07:43:12', NULL, NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -539,13 +446,6 @@ CREATE TABLE `message_reactions` (
   `emoji` varchar(8) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `message_reactions`
---
-
-INSERT INTO `message_reactions` (`id`, `message_id`, `user_id`, `emoji`, `created_at`) VALUES
-(2, 10, 10, '👍', '2026-08-31 16:24:08');
 
 -- --------------------------------------------------------
 
@@ -581,54 +481,6 @@ CREATE TABLE `mps_test_scores` (
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `mps_test_scores`
---
-
-INSERT INTO `mps_test_scores` (`id`, `school_year`, `term`, `grade_level`, `subject`, `section`, `test_period`, `mps`, `created_at`) VALUES
-(1, '2026-2027', 1, 'Grade 7', 'English', NULL, 'Summative Test 1', 56.60, '2026-07-26 08:37:49'),
-(2, '2026-2027', 1, 'Grade 7', 'Filipino', NULL, 'Summative Test 1', 79.37, '2026-07-26 08:37:49'),
-(3, '2026-2027', 1, 'Grade 7', 'Science', NULL, 'Summative Test 1', 64.24, '2026-07-26 08:37:49'),
-(4, '2026-2027', 1, 'Grade 7', 'Mathematics', NULL, 'Summative Test 1', 49.73, '2026-07-26 08:37:49'),
-(5, '2026-2027', 1, 'Grade 7', 'AP', NULL, 'Summative Test 1', 78.49, '2026-07-26 08:37:49'),
-(6, '2026-2027', 1, 'Grade 7', 'TLE', NULL, 'Summative Test 1', 61.14, '2026-07-26 08:37:49'),
-(7, '2026-2027', 1, 'Grade 7', 'MAPEH', NULL, 'Summative Test 1', 59.72, '2026-07-26 08:37:49'),
-(8, '2026-2027', 1, 'Grade 7', 'Music', NULL, 'Summative Test 1', 57.25, '2026-07-26 08:37:49'),
-(9, '2026-2027', 1, 'Grade 7', 'PE', NULL, 'Summative Test 1', 62.19, '2026-07-26 08:37:49'),
-(10, '2026-2027', 1, 'Grade 7', 'ESP', NULL, 'Summative Test 1', 91.00, '2026-07-26 08:37:49'),
-(11, '2026-2027', 1, 'Grade 8', 'English', NULL, 'Summative Test 1', 73.98, '2026-07-26 08:37:49'),
-(12, '2026-2027', 1, 'Grade 8', 'Filipino', NULL, 'Summative Test 1', 85.59, '2026-07-26 08:37:49'),
-(13, '2026-2027', 1, 'Grade 8', 'Science', NULL, 'Summative Test 1', 69.77, '2026-07-26 08:37:49'),
-(14, '2026-2027', 1, 'Grade 8', 'Mathematics', NULL, 'Summative Test 1', 50.19, '2026-07-26 08:37:49'),
-(15, '2026-2027', 1, 'Grade 8', 'AP', NULL, 'Summative Test 1', 78.26, '2026-07-26 08:37:49'),
-(16, '2026-2027', 1, 'Grade 8', 'TLE', NULL, 'Summative Test 1', 74.10, '2026-07-26 08:37:49'),
-(17, '2026-2027', 1, 'Grade 8', 'MAPEH', NULL, 'Summative Test 1', 75.58, '2026-07-26 08:37:49'),
-(18, '2026-2027', 1, 'Grade 8', 'Music', NULL, 'Summative Test 1', 74.71, '2026-07-26 08:37:49'),
-(19, '2026-2027', 1, 'Grade 8', 'PE', NULL, 'Summative Test 1', 76.45, '2026-07-26 08:37:49'),
-(20, '2026-2027', 1, 'Grade 8', 'ESP', NULL, 'Summative Test 1', 90.95, '2026-07-26 08:37:49'),
-(21, '2026-2027', 1, 'Grade 9', 'English', NULL, 'Summative Test 1', 74.00, '2026-07-26 08:37:49'),
-(22, '2026-2027', 1, 'Grade 9', 'Filipino', NULL, 'Summative Test 1', 82.70, '2026-07-26 08:37:49'),
-(23, '2026-2027', 1, 'Grade 9', 'Science', NULL, 'Summative Test 1', 53.80, '2026-07-26 08:37:49'),
-(24, '2026-2027', 1, 'Grade 9', 'Mathematics', NULL, 'Summative Test 1', 72.13, '2026-07-26 08:37:49'),
-(25, '2026-2027', 1, 'Grade 9', 'AP', NULL, 'Summative Test 1', 47.52, '2026-07-26 08:37:49'),
-(26, '2026-2027', 1, 'Grade 9', 'TLE', NULL, 'Summative Test 1', 75.75, '2026-07-26 08:37:49'),
-(27, '2026-2027', 1, 'Grade 9', 'MAPEH', NULL, 'Summative Test 1', 88.50, '2026-07-26 08:37:49'),
-(28, '2026-2027', 1, 'Grade 9', 'Music', NULL, 'Summative Test 1', 88.33, '2026-07-26 08:37:49'),
-(29, '2026-2027', 1, 'Grade 9', 'PE', NULL, 'Summative Test 1', 89.16, '2026-07-26 08:37:49'),
-(30, '2026-2027', 1, 'Grade 9', 'ESP', NULL, 'Summative Test 1', 95.51, '2026-07-26 08:37:49'),
-(31, '2026-2027', 1, 'Grade 10', 'English', NULL, 'Summative Test 1', 80.47, '2026-07-26 08:37:49'),
-(32, '2026-2027', 1, 'Grade 10', 'Filipino', NULL, 'Summative Test 1', 90.16, '2026-07-26 08:37:49'),
-(33, '2026-2027', 1, 'Grade 10', 'Science', NULL, 'Summative Test 1', 71.93, '2026-07-26 08:37:49'),
-(34, '2026-2027', 1, 'Grade 10', 'Mathematics', NULL, 'Summative Test 1', 38.45, '2026-07-26 08:37:49'),
-(35, '2026-2027', 1, 'Grade 10', 'AP', NULL, 'Summative Test 1', 71.74, '2026-07-26 08:37:49'),
-(36, '2026-2027', 1, 'Grade 10', 'TLE', NULL, 'Summative Test 1', 78.09, '2026-07-26 08:37:49'),
-(37, '2026-2027', 1, 'Grade 10', 'MAPEH', NULL, 'Summative Test 1', 90.07, '2026-07-26 08:37:49'),
-(38, '2026-2027', 1, 'Grade 10', 'Music', NULL, 'Summative Test 1', 89.84, '2026-07-26 08:37:49'),
-(39, '2026-2027', 1, 'Grade 10', 'PE', NULL, 'Summative Test 1', 90.30, '2026-07-26 08:37:49'),
-(3798, '2026-2027', 1, 'Grade 8', 'English', 'Maagap', 'Summative Test 1', 0.00, '2026-10-01 03:14:16'),
-(3799, '2026-2027', 1, 'Grade 8', 'English', 'Matipid', 'Summative Test 1', 0.00, '2026-10-01 03:14:16'),
-(3800, '2026-2027', 1, 'Grade 8', 'English', 'Matiyaga', 'Summative Test 1', 0.00, '2026-10-01 03:14:16');
-
 -- --------------------------------------------------------
 
 --
@@ -648,118 +500,6 @@ CREATE TABLE `notifications` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `user_id`, `type`, `title`, `sub`, `url`, `ref_type`, `ref_id`, `is_read`, `created_at`, `updated_at`) VALUES
-(73, 4, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(74, 31, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(75, 14, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(76, 23, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(77, 11, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 1, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(78, 39, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(79, 12, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(80, 25, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(81, 18, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(82, 29, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(83, 13, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(84, 37, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(85, 40, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(86, 32, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(87, 33, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(88, 24, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(89, 16, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(90, 17, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(91, 26, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 1, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(92, 38, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(93, 30, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(94, 41, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(95, 35, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(96, 15, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(97, 21, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(98, 20, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(99, 34, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(100, 22, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(101, 19, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(102, 8, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(103, 9, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 1, '2026-07-31 04:48:43', '2026-10-01 15:07:05'),
-(104, 28, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(105, 27, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(106, 36, 'announcement', 'New announcement: Meeting', 'Announcement', 'http://localhost:8080/announcements?id=3', 'announcement', 3, 0, '2026-07-31 04:48:43', '2026-09-02 12:44:19'),
-(337, 8, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(338, 9, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(339, 11, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(340, 12, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(341, 13, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(342, 14, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(343, 15, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(344, 16, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(345, 17, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(346, 18, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(347, 19, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(348, 20, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(349, 21, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(350, 22, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(351, 23, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(352, 24, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(353, 25, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(354, 27, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(355, 28, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(356, 29, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(357, 30, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(358, 31, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 1, '2026-09-24 18:42:05', '2026-10-01 14:35:45'),
-(359, 32, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(360, 33, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(361, 34, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(362, 35, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(363, 36, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(364, 37, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(365, 38, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(366, 39, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(367, 40, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(368, 41, 'task_assigned', 'New Task: DLL', 'Due Sep 25, 2026 11:59 PM', 'http://localhost:8080/submit-documents', 'task_assigned', 10, 0, '2026-09-24 18:42:05', '2026-09-24 18:42:05'),
-(369, 10, 'task_submission', 'Angelique Piscal and 1 other submitted', 'Task: DLL', 'http://localhost:8080/tasks/10', 'task_submission', 10, 1, '2026-09-24 18:42:32', '2026-10-01 14:15:11'),
-(370, 48, 'task_submission', 'Angelique Piscal and 1 other submitted', 'Task: DLL', 'http://localhost:8080/tasks/10', 'task_submission', 10, 0, '2026-09-24 18:42:32', '2026-10-01 14:14:51'),
-(371, 15, 'task_feedback', 'Your upload was reviewed: DLL', 'Status: Reviewed', 'http://localhost:8080/submit-documents', 'task_feedback', 6, 0, '2026-09-27 09:19:06', '2026-09-27 09:19:06'),
-(8226, 26, 'task_submission', 'Angelique Piscal and 1 other submitted', 'Task: DLL', 'http://localhost:8080/tasks/10', 'task_submission', 10, 0, '2026-10-01 14:14:51', '2026-10-01 14:14:51'),
-(8227, 31, 'task_feedback', 'Your file was marked up: DLL', 'Jorge Bautista added notes on FORM-06 (1).pdf', 'http://localhost:8080/submit-documents', 'task_feedback', 5128, 1, '2026-10-01 14:17:00', '2026-10-01 14:30:07'),
-(8263, 4, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8264, 8, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8265, 9, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8266, 11, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8267, 12, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8268, 13, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8269, 14, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8270, 15, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8271, 16, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8272, 17, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8273, 18, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8274, 19, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8275, 20, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8276, 21, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8277, 22, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8278, 23, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8279, 24, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8280, 25, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8281, 26, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8282, 27, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8283, 28, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8284, 29, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8285, 30, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8286, 31, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8287, 32, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8288, 33, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8289, 34, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8290, 35, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8291, 36, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8292, 37, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8293, 38, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8294, 39, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8295, 40, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8296, 41, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06'),
-(8297, 48, 'announcement', 'Defense na natin bukas', 'Announcement · Oct 02', 'http://localhost:8080/announcements?id=79', 'announcement', 79, 0, '2026-10-02 07:33:06', '2026-10-02 07:33:06');
 
 -- --------------------------------------------------------
 
@@ -795,17 +535,6 @@ CREATE TABLE `password_resets` (
   `created_at` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `password_resets`
---
-
-INSERT INTO `password_resets` (`id`, `user_id`, `code_hash`, `attempts`, `expires_at`, `used_at`, `created_at`) VALUES
-(2, 48, '$2y$10$OD.YN1CCob5vhIHk/Y.iNuSsmRE66JF70KjfjuI5.Lt4wT6RxVLIq', 0, '2026-09-25 08:14:23', '2026-09-25 08:02:07', '2026-09-25 07:59:23'),
-(3, 48, '$2y$10$Ze5Ng2XjwJcFKq7c3I/BHuCXeE7BD4G4VHoj7G3kfYZgTf9X2Sb6C', 0, '2026-09-25 08:17:07', '2026-09-25 08:05:42', '2026-09-25 08:02:07'),
-(4, 48, '$2y$10$q4CwXEzwFw9/FqRXDXSahukR3P3rIRUa1dQa5OJNfw5ayUgWNV01G', 0, '2026-09-25 08:20:43', '2026-09-25 08:08:44', '2026-09-25 08:05:43'),
-(5, 48, '$2y$10$AwcXWpoAr7DnZCbgAXjGduW8I2.bsbe/toURMtIi65V7l05prra3a', 0, '2026-09-25 08:23:45', '2026-09-25 08:26:54', '2026-09-25 08:08:45'),
-(6, 48, '$2y$10$EWV2gX/EwO42Dt24qLYy/u7BPUq5kyX.8Nde.WBwlliRoxO7Q.oMS', 0, '2026-09-25 08:41:54', '2026-09-25 08:28:12', '2026-09-25 08:26:54');
-
 -- --------------------------------------------------------
 
 --
@@ -820,16 +549,6 @@ CREATE TABLE `performance_by_level` (
   `mps` decimal(5,2) NOT NULL,
   `nds` decimal(5,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `performance_by_level`
---
-
-INSERT INTO `performance_by_level` (`id`, `school_year`, `term`, `grade_level`, `mps`, `nds`) VALUES
-(1, '2026-2027', 1, 'Grade 7', 65.97, NULL),
-(2, '2026-2027', 1, 'Grade 8', 69.41, NULL),
-(3, '2026-2027', 1, 'Grade 9', 76.74, NULL),
-(4, '2026-2027', 1, 'Grade 10', 77.89, NULL);
 
 -- --------------------------------------------------------
 
@@ -846,51 +565,6 @@ CREATE TABLE `performance_by_subject` (
   `instructor` varchar(100) NOT NULL,
   `mps` decimal(5,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `performance_by_subject`
---
-
-INSERT INTO `performance_by_subject` (`id`, `school_year`, `term`, `subject`, `grade_level`, `instructor`, `mps`) VALUES
-(1, '2026-2027', 1, 'English', 'Grade 7', '—', 56.60),
-(2, '2026-2027', 1, 'Filipino', 'Grade 7', '—', 79.37),
-(3, '2026-2027', 1, 'Science', 'Grade 7', '—', 64.24),
-(4, '2026-2027', 1, 'Mathematics', 'Grade 7', '—', 49.73),
-(5, '2026-2027', 1, 'AP', 'Grade 7', '—', 78.49),
-(6, '2026-2027', 1, 'TLE', 'Grade 7', '—', 61.14),
-(7, '2026-2027', 1, 'MAPEH', 'Grade 7', '—', 59.72),
-(8, '2026-2027', 1, 'Music', 'Grade 7', '—', 57.25),
-(9, '2026-2027', 1, 'PE', 'Grade 7', '—', 62.19),
-(10, '2026-2027', 1, 'ESP', 'Grade 7', '—', 91.00),
-(11, '2026-2027', 1, 'English', 'Grade 8', '—', 18.50),
-(12, '2026-2027', 1, 'Filipino', 'Grade 8', '—', 85.59),
-(13, '2026-2027', 1, 'Science', 'Grade 8', '—', 69.77),
-(14, '2026-2027', 1, 'Mathematics', 'Grade 8', '—', 50.19),
-(15, '2026-2027', 1, 'AP', 'Grade 8', '—', 78.26),
-(16, '2026-2027', 1, 'TLE', 'Grade 8', '—', 74.10),
-(17, '2026-2027', 1, 'MAPEH', 'Grade 8', '—', 75.58),
-(18, '2026-2027', 1, 'Music', 'Grade 8', '—', 74.71),
-(19, '2026-2027', 1, 'PE', 'Grade 8', '—', 76.45),
-(20, '2026-2027', 1, 'ESP', 'Grade 8', '—', 90.95),
-(21, '2026-2027', 1, 'English', 'Grade 9', '—', 74.00),
-(22, '2026-2027', 1, 'Filipino', 'Grade 9', '—', 82.70),
-(23, '2026-2027', 1, 'Science', 'Grade 9', '—', 53.80),
-(24, '2026-2027', 1, 'Mathematics', 'Grade 9', '—', 72.13),
-(25, '2026-2027', 1, 'AP', 'Grade 9', '—', 47.52),
-(26, '2026-2027', 1, 'TLE', 'Grade 9', '—', 75.75),
-(27, '2026-2027', 1, 'MAPEH', 'Grade 9', '—', 88.50),
-(28, '2026-2027', 1, 'Music', 'Grade 9', '—', 88.33),
-(29, '2026-2027', 1, 'PE', 'Grade 9', '—', 89.16),
-(30, '2026-2027', 1, 'ESP', 'Grade 9', '—', 95.51),
-(31, '2026-2027', 1, 'English', 'Grade 10', '—', 80.47),
-(32, '2026-2027', 1, 'Filipino', 'Grade 10', '—', 90.16),
-(33, '2026-2027', 1, 'Science', 'Grade 10', '—', 71.93),
-(34, '2026-2027', 1, 'Mathematics', 'Grade 10', '—', 38.45),
-(35, '2026-2027', 1, 'AP', 'Grade 10', '—', 71.74),
-(36, '2026-2027', 1, 'TLE', 'Grade 10', '—', 78.09),
-(37, '2026-2027', 1, 'MAPEH', 'Grade 10', '—', 90.07),
-(38, '2026-2027', 1, 'Music', 'Grade 10', '—', 89.84),
-(39, '2026-2027', 1, 'PE', 'Grade 10', '—', 90.30);
 
 -- --------------------------------------------------------
 
@@ -928,6 +602,26 @@ CREATE TABLE `property_acknowledgement_items` (
   `condition_status` varchar(30) NOT NULL,
   `acquisition` varchar(170) NOT NULL,
   `date_acquired` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `property_concerns`
+-- (problems teachers report about issued property)
+--
+
+CREATE TABLE `property_concerns` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `property_id` int(10) UNSIGNED NOT NULL,
+  `reported_by` int(10) UNSIGNED DEFAULT NULL,
+  `category` varchar(50) NOT NULL,
+  `details` text NOT NULL,
+  `status` enum('Open','Resolved') NOT NULL DEFAULT 'Open',
+  `response` varchar(255) DEFAULT NULL,
+  `resolved_by` int(10) UNSIGNED DEFAULT NULL,
+  `resolved_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -988,13 +682,6 @@ CREATE TABLE `tasks` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `tasks`
---
-
-INSERT INTO `tasks` (`id`, `title`, `description`, `assigned_role`, `deadline`, `status`, `created_by`, `created_at`) VALUES
-(10, 'DLL', '', 'teacher', '2026-09-25', 'Open', 'Lindon Arinton', '2026-09-24 18:42:05');
-
 -- --------------------------------------------------------
 
 --
@@ -1022,13 +709,6 @@ CREATE TABLE `task_feedback` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `task_feedback`
---
-
-INSERT INTO `task_feedback` (`id`, `task_submission_id`, `comment`, `author_id`, `date`, `created_at`) VALUES
-(1716, 5128, 'may mali dito', NULL, '2026-10-01', '2026-10-01 14:17:00');
-
 -- --------------------------------------------------------
 
 --
@@ -1042,20 +722,12 @@ CREATE TABLE `task_submissions` (
   `file_path` varchar(255) DEFAULT NULL,
   `file_name` varchar(255) DEFAULT NULL,
   `notes` text DEFAULT NULL,
-  `status` enum('Pending','Reviewed','Returned') DEFAULT 'Pending',
+  `status` enum('Pending','Approved','Returned') DEFAULT 'Pending',
   `reviewed_by` int(10) UNSIGNED DEFAULT NULL,
   `reviewed_at` datetime DEFAULT NULL,
   `submitted_at` datetime NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `task_submissions`
---
-
-INSERT INTO `task_submissions` (`id`, `task_id`, `user_id`, `file_path`, `file_name`, `notes`, `status`, `reviewed_by`, `reviewed_at`, `submitted_at`, `created_at`) VALUES
-(6, 10, 15, NULL, NULL, '', 'Reviewed', NULL, NULL, '2026-09-24 18:42:32', '2026-09-24 18:42:32'),
-(5128, 10, 31, NULL, NULL, '', 'Reviewed', NULL, NULL, '2026-10-01 14:14:51', '2026-10-01 14:14:51');
 
 -- --------------------------------------------------------
 
@@ -1070,14 +742,6 @@ CREATE TABLE `task_submission_files` (
   `file_name` varchar(255) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `task_submission_files`
---
-
-INSERT INTO `task_submission_files` (`id`, `task_submission_id`, `file_path`, `file_name`, `created_at`) VALUES
-(6, 6, 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/tasks/10\\1790275352_676028f082342cb73f26.bin', 'KEY-PERFORMANCE-INDICATOR-2023-2024-blank (1) (4).docx', '2026-09-24 18:42:32'),
-(6071, 5128, 'C:\\Users\\Huawei Matebook\\Documents\\GitHub\\Acadocs1\\php\\writable\\uploads/tasks/10\\1790864091_12efa56320f5c63f6f72.pdf', 'FORM-06 (1).pdf', '2026-10-01 14:14:51');
 
 -- --------------------------------------------------------
 
@@ -1338,94 +1002,6 @@ CREATE TABLE `templates` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `templates`
---
-
-INSERT INTO `templates` (`id`, `category_id`, `title`, `description`, `file_path`, `file_name`, `file_ext`, `file_size`, `uploaded_by`, `date_added`, `created_at`) VALUES
-(2, 3, 'BAC1-F-038-NOTICE-OF-BID-RECEIVED', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127428_fda9b226769d381a2c15.docx', 'BAC1-F-038-NOTICE-OF-BID-RECEIVED.docx', 'docx', 103953, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:43:48'),
-(3, 3, 'BAC1-F-037-BAC-RESOLUTION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127438_526c7071164676911271.docx', 'BAC1-F-037-BAC-RESOLUTION.docx', 'docx', 121586, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:43:58'),
-(4, 3, 'BAC1-F-033-PUBLIC-BIDDING-CHECKLIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127467_1b1525da7381a3b2969e.docx', 'BAC1-F-033-PUBLIC-BIDDING-CHECKLIST.docx', 'docx', 109059, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:44:27'),
-(5, 3, 'BAC1-F-026-NOTICE-TO-PROCEED-AMP', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127483_893ec7563bc7f837d7fc.docx', 'BAC1-F-026-NOTICE-TO-PROCEED-AMP.docx', 'docx', 105730, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:44:43'),
-(6, 3, 'BAC1-F-025-NOTICE-OF-AWARD-AMP', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127492_aea9f7b1bf0f1c259293.docx', 'BAC1-F-025-NOTICE-OF-AWARD-AMP.docx', 'docx', 105544, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:44:52'),
-(7, 3, 'BAC1-F-024-ABSTRACT-OF-QUOTATIONS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127507_d79cb591668170b1cb00.docx', 'BAC1-F-024-ABSTRACT-OF-QUOTATIONS.docx', 'docx', 107713, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:45:07'),
-(8, 3, 'BAC1-F-024-ABSTRACT-OF-QUOTATION-AS-READ', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127521_7ac8dc8255a711a48535.docx', 'BAC1-F-024-ABSTRACT-OF-QUOTATION-AS-READ.docx', 'docx', 107587, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:45:21'),
-(9, 3, 'BAC1-F-023-REQUEST-FOR-QUOTATION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127547_2a786b027641c1fc41c7.docx', 'BAC1-F-023-REQUEST-FOR-QUOTATION.docx', 'docx', 107043, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:45:47'),
-(10, 3, 'BAC1-F-019-NOTICE-TO-PROCEED-Public-Bidding', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127585_e587badf12d32d965970.docx', 'BAC1-F-019-NOTICE-TO-PROCEED-Public-Bidding.docx', 'docx', 105743, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:46:25'),
-(11, 3, 'BAC1-F-020-TRANSMITTAL-COA', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127630_d764f9423c82baa2b1ed.docx', 'BAC1-F-020-TRANSMITTAL-COA.docx', 'docx', 106547, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:47:10'),
-(12, 3, 'BAC1-F-015-NOTICE-OF-AWARD-Public-Bidding-Goods-and-Services', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127656_0f6675f14316d6b5b882.docx', 'BAC1-F-015-NOTICE-OF-AWARD-Public-Bidding-Goods-and-Services.docx', 'docx', 106231, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:47:36'),
-(13, 3, 'BAC1-F-013-NOTICE-OF-POST-QUALIFICATION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127670_a96d78abd7a4af82d865.docx', 'BAC1-F-013-NOTICE-OF-POST-QUALIFICATION.docx', 'docx', 103207, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:47:50'),
-(14, 3, 'BAC1-F-009-ELIGIBILITY-CHECKLIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127684_e9f120a5d29779e89e29.docx', 'BAC1-F-009-ELIGIBILITY-CHECKLIST.docx', 'docx', 119145, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:48:04'),
-(15, 3, 'BAC1-F-012-POST-QUALIFICATION-REPORT', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127705_54682e6a82b6db0adf5b.docx', 'BAC1-F-012-POST-QUALIFICATION-REPORT.docx', 'docx', 120328, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:48:25'),
-(16, 3, 'BAC1-F-006-NOTIFICATION-LETTER-FOR-OBSERVER', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127736_60086178c1620e8b6e2d.docx', 'BAC1-F-006-NOTIFICATION-LETTER-FOR-OBSERVER.docx', 'docx', 104657, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:48:56'),
-(17, 3, 'BAC1-F-007-SUPPLEMENTAL-BID-BULLETIN', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127747_d95c8cd7e110aedf1743.docx', 'BAC1-F-007-SUPPLEMENTAL-BID-BULLETIN.docx', 'docx', 103297, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:49:07'),
-(18, 3, 'BAC1-F-002-ATTENDANCE-SHEET', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127766_ffbcef78ddde8a83f176.docx', 'BAC1-F-002-ATTENDANCE-SHEET.docx', 'docx', 110622, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:49:26'),
-(19, 3, 'BAC1-F-003-CONFERENCE-MINUTES', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127784_f4155bc0e8df48c315f1.docx', 'BAC1-F-003-CONFERENCE-MINUTES.docx', 'docx', 106962, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:49:44'),
-(20, 3, 'BAC1-F-001-NOTIFICATION-LETTER-FOR-BAC-MEMBERS-END-USER', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/3\\1785127795_f7164256f5fb31111408.doc', 'BAC1-F-001-NOTIFICATION-LETTER-FOR-BAC-MEMBERS-END-USER.doc', 'doc', 126464, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 04:49:55'),
-(21, 4, 'WORK-PLAN', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_d1bcb10615a44ed91a32.docx', 'WORK-PLAN.docx', 'docx', 1115080, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:04:55'),
-(22, 4, 'SLE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_4dfb0160ee4e70d44a5b.docx', 'SLE.docx', 'docx', 1113308, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:04:55'),
-(23, 4, 'PROJECT-COMPLETION-2', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_132758342698bd264923.docx', 'PROJECT-COMPLETION-2.docx', 'docx', 1115770, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:04:55'),
-(24, 4, 'REGISTRATION-FORM', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_152521a4a0a471a9736c.docx', 'REGISTRATION-FORM.docx', 'docx', 1114264, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:04:55'),
-(25, 4, 'PROJECT-COMPLETION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128695_32680a8d6c01c06a1049.docx', 'PROJECT-COMPLETION.docx', 'docx', 1115769, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:04:55'),
-(26, 4, 'PROCESS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_255961384b47c672cce7.docx', 'PROCESS.docx', 'docx', 1112948, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:15'),
-(27, 4, 'LOG-SHEET', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_2867480677d2d8227c16.docx', 'LOG-SHEET.docx', 'docx', 1113262, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:15'),
-(28, 4, 'LIST-OF-PARTCICIPANTS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_20365a6c9a584a617c4c.docx', 'LIST-OF-PARTCICIPANTS.docx', 'docx', 1114274, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:15'),
-(29, 4, 'l-and-d-plan', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_24ec5409fe96fa656ffb.docx', 'l-and-d-plan.docx', 'docx', 1119636, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:15'),
-(30, 4, 'l-and-d-survey', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128715_4b4c2d8c037479f9398f.docx', 'l-and-d-survey.docx', 'docx', 1116633, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:15'),
-(31, 4, 'l-and-d-design', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_0d75a2625024db503f9d.docx', 'l-and-d-design.docx', 'docx', 1118502, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(32, 4, 'INDIVIDUAL-DEVELOPMENT-PLAN', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_82f8f05128433eab6c98.docx', 'INDIVIDUAL-DEVELOPMENT-PLAN.docx', 'docx', 1112202, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(33, 4, 'GAWAD-BALISONG-MANAHIS', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_0dc2f9b98e9c66200112.docx', 'GAWAD-BALISONG-MANAHIS.docx', 'docx', 1112772, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(34, 4, 'GAWAD-BALISONG-MANAHIS-2', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_f5d9503a02788bc37068.docx', 'GAWAD-BALISONG-MANAHIS-2.docx', 'docx', 1113101, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(35, 4, 'END-OF-TERM-BEST-EMPLOYEE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_5db9e5ed4ac084dea2c3.docx', 'END-OF-TERM-BEST-EMPLOYEE.docx', 'docx', 1118405, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(36, 4, 'DISTRIBUTION-LIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_d3ddcbadd0740b0e36e6.docx', 'DISTRIBUTION-LIST.docx', 'docx', 1114813, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(37, 4, 'Daily-Attendance-Sheet (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_9f68f54e100265200a99.docx', 'Daily-Attendance-Sheet (1).docx', 'docx', 700189, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(38, 4, 'COMPLETION-REPORT-INDIVIDUAL', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_a84f28e74c61ce3a6733.docx', 'COMPLETION-REPORT-INDIVIDUAL.docx', 'docx', 1114882, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(39, 4, 'CHECKLIST', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_28af281d8f51af7df22b.docx', 'CHECKLIST.docx', 'docx', 1114729, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(40, 4, 'CERTIFICATE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_9c330a56305b99ddb3c8.docx', 'CERTIFICATE.docx', 'docx', 1114356, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(41, 4, 'CERTIFICATE-OF-RECOGNITION', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_1202fd4e87450d4ef470.docx', 'CERTIFICATE-OF-RECOGNITION.docx', 'docx', 1111704, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(42, 4, 'CERTIFICATE-2', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_4a392ecc809ac5bd465d.docx', 'CERTIFICATE-2.docx', 'docx', 1114568, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(43, 4, 'ATTENDANCE (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_d879782d47d18f6365fa.docx', 'ATTENDANCE (1).docx', 'docx', 1117540, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(44, 4, 'APPEARANCE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/4\\1785128751_8dac8a1ef9d409eaf7f9.docx', 'APPEARANCE.docx', 'docx', 1114488, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:05:51'),
-(45, 5, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_6586074b1bb7f7434ff3.xlsx', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE.xlsx', 'xlsx', 25949, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(46, 5, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (2)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_da0b1224e3843dac5620.xls', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE.xls', 'xls', 40448, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(47, 5, 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_d31d9cb709cb350a067c.xlsx', 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY.xlsx', 'xlsx', 23010, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(48, 5, 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_4761a2600b067143d1da.xlsx', 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY.xlsx', 'xlsx', 79255, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(49, 5, 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_23c333f4957b9fb3af50.xlsx', 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED.xlsx', 'xlsx', 22100, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(50, 5, 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_453dcf0962db4a43ee5d.xlsx', 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY.xlsx', 'xlsx', 21235, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(51, 5, 'Annex-A.5-INVENTORY-TRANFER-REPORT', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_c9a47f970ebbb72d55cf.xlsx', 'Annex-A.5-INVENTORY-TRANFER-REPORT.xlsx', 'xlsx', 23111, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(52, 5, 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_4deca2e6907510bfe4ea.xlsx', 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED.xlsx', 'xlsx', 23314, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(53, 5, 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_6b6c20de6f75422530a4.xlsx', 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP.xlsx', 'xlsx', 20226, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(54, 5, 'Annex-A.2-PROPERTY-LEDGER-CARD', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_317f318b8a02a990d6fb.xlsx', 'Annex-A.2-PROPERTY-LEDGER-CARD.xlsx', 'xlsx', 23370, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(55, 5, 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_8d6676146ee13248c675.xlsx', 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY.xlsx', 'xlsx', 82596, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(56, 5, 'Annex-A.1-PROPERTY-CARD', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/5\\1785128816_d3b63fe66951fa7dcad4.xlsx', 'Annex-A.1-PROPERTY-CARD.xlsx', 'xlsx', 23080, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:06:56'),
-(57, 6, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_e786620e650ac5c6a994.xls', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1).xls', 'xls', 40448, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(58, 6, 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1) (2)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_10528ddfcfd86d34b141.xlsx', 'RECEIPT-OF-RETURNED-PROPERTY-PLANT-AND-EQUIPMENT-PPE (1).xlsx', 'xlsx', 25949, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(59, 6, 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_d54e8f54db4be58da303.xlsx', 'Annex-A.9-REPORT-OF-LOST-STOLEN-DAMAGED-OR-DESTROYED-SEMI-EXPENDBLE-PROPERTY (1).xlsx', 'xlsx', 23010, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(60, 6, 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_b4304f591f2afebb7f81.xlsx', 'Annex-A.8-REPORT-ON-THE-PHYSICAL-COUNT-OF-SEMI-EXPENDABLE-PROPERTY (1).xlsx', 'xlsx', 79255, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(61, 6, 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_2fc97c4fcc6c20ff744b.xlsx', 'Annex-A.7-REPORT-OF-SEMI-EXPENDABLE-PROPERTY-ISSUED (1).xlsx', 'xlsx', 22100, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(62, 6, 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_565e7aa3d75f3347d009.xlsx', 'Annex-A.6-RECEIPT-OF-RETURED-SEMI-EXPENDABLE-PROPERTY (1).xlsx', 'xlsx', 21235, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(63, 6, 'Annex-A.5-INVENTORY-TRANFER-REPORT (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_a64460bb178afe7e7655.xlsx', 'Annex-A.5-INVENTORY-TRANFER-REPORT (1).xlsx', 'xlsx', 23111, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(64, 6, 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_59cbf366b2c1f364065e.xlsx', 'Annex-A.4-REGISTRY-SEMI-EXPENDABLE-PROPERTY-ISSUED (1).xlsx', 'xlsx', 23314, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(65, 6, 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_9642affc1646b6be2d18.xlsx', 'Annex-A.3-INVENTORY-CUSTODIAN-SLIP (1).xlsx', 'xlsx', 20226, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(66, 6, 'Annex-A.2-PROPERTY-LEDGER-CARD (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_f96ad4802d32342a64b0.xlsx', 'Annex-A.2-PROPERTY-LEDGER-CARD (1).xlsx', 'xlsx', 23370, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(67, 6, 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_707d923cee796baf8524.xlsx', 'Annex-A.10-INVENTORY-AND-INSPECTION-REPORT-OF-UNSERVICEABLE-SEMI-EXPENDABLE-PROPERTY (1).xlsx', 'xlsx', 82596, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(68, 6, 'Annex-A.1-PROPERTY-CARD (1)', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/6\\1785128880_d7cd039a0560af3af328.xlsx', 'Annex-A.1-PROPERTY-CARD (1).xlsx', 'xlsx', 23080, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:08:00'),
-(69, 7, 'Request-CTC-or-Non-CTC-Checklist-of-Requirements', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_3e04f288b7e7a5fb4279.docx', 'Request-CTC-or-Non-CTC-Checklist-of-Requirements.docx', 'docx', 254856, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(70, 7, 'RECORDS-CUSTODIAN-LIAISON-OFFICER-2025', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_0ae597f68efb513a90aa.docx', 'RECORDS-CUSTODIAN-LIAISON-OFFICER-2025.docx', 'docx', 218711, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(71, 7, 'Checklist-of-Requirements-Request-for-CAV', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_e455bb35a6c0f13d2688.docx', 'Checklist-of-Requirements-Request-for-CAV.docx', 'docx', 226410, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(72, 7, '6-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-RECOMMENDING-AUTHORITIES', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_5e6cbd90bb902deed44c.docx', '6-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-RECOMMENDING-AUTHORITIES.docx', 'docx', 42838, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(73, 7, '5-OFFICIAL-FOREIGN-TRAVEL-2023-RM388s2023', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_bca7e01313e79df665c1.docx', '5-OFFICIAL-FOREIGN-TRAVEL-2023-RM388s2023.docx', 'docx', 27295, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(74, 7, '4-LOCATOR-SLIP-2025', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_2ade5cc53ca2e24edfab.docx', '4-LOCATOR-SLIP-2025.docx', 'docx', 240309, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(75, 7, '3-PERSONAL-FOREIGN-TRAVEL-2023-RM338s2023', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_75005c815a24179a011e.docx', '3-PERSONAL-FOREIGN-TRAVEL-2023-RM338s2023.docx', 'docx', 43111, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(76, 7, '2-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-EMPLOYEES', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_442c0329a79a1925ad7f.docx', '2-OFFICIAL-LOCAL-TRAVEL-2023-VARIOUS-EMPLOYEES.docx', 'docx', 22315, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(77, 7, '1-OFFICIAL-LOCAL-TRAVEL-2023', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/7\\1785128953_5c8597e13600b5b63918.docx', '1-OFFICIAL-LOCAL-TRAVEL-2023.docx', 'docx', 26869, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:09:13'),
-(78, 8, 'SDO-SGOD-F081_Research-implementation-Monitoring-Tool-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_23059aa015b5cd432e8d.docx', 'SDO-SGOD-F081_Research-implementation-Monitoring-Tool-Template.docx', 'docx', 253404, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:10:11'),
-(79, 8, 'SDO-SGOD-F080_Research-Dissemination-and-Utilization-template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_66a4a3e58146922f346b.docx', 'SDO-SGOD-F080_Research-Dissemination-and-Utilization-template.docx', 'docx', 257813, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:10:11'),
-(80, 8, 'SDO-SGOD-F079_QCC-Basic-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_0b171833c7708d94ccee.docx', 'SDO-SGOD-F079_QCC-Basic-Research-Template.docx', 'docx', 262059, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:10:11'),
-(81, 8, 'SDO-SGOD-F078_QCC-Action-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_1181bac31c61a783c29b.docx', 'SDO-SGOD-F078_QCC-Action-Research-Template.docx', 'docx', 261811, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:10:11'),
-(82, 8, 'SDO-SGOD-F077_Basic-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_58804701412f308d6029.docx', 'SDO-SGOD-F077_Basic-Research-Template.docx', 'docx', 251658, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:10:11'),
-(83, 8, 'SDO-SGOD-F076_Action-Research-Template', '', 'C:\\xampp\\htdocs\\Acadocs1\\php\\writable\\uploads/templates/8\\1785129011_078d6397d14523de5666.docx', 'SDO-SGOD-F076_Action-Research-Template.docx', 'docx', 251793, 'Rhonnel Magyaya', '2026-07-27', '2026-07-27 05:10:11');
-
 -- --------------------------------------------------------
 
 --
@@ -1438,18 +1014,6 @@ CREATE TABLE `template_categories` (
   `created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `template_categories`
---
-
-INSERT INTO `template_categories` (`id`, `name`, `created_by`, `created_at`) VALUES
-(3, 'BAC Forms', 'Rhonnel Magyaya', '2026-07-27 04:43:33'),
-(4, 'HRD Forms', 'Rhonnel Magyaya', '2026-07-27 05:03:28'),
-(5, 'COA Forms', 'Rhonnel Magyaya', '2026-07-27 05:06:41'),
-(6, 'CURRICULUM IMPLEMENTATION DIVISION-CID', 'Rhonnel Magyaya', '2026-07-27 05:07:30'),
-(7, 'TRAVEL-RECORDS CHECKLIST', 'Rhonnel Magyaya', '2026-07-27 05:08:58'),
-(8, 'Research Templates', 'Rhonnel Magyaya', '2026-07-27 05:09:44');
 
 -- --------------------------------------------------------
 
@@ -7565,6 +7129,16 @@ ALTER TABLE `property_acknowledgement_items`
   ADD KEY `property_id` (`property_id`);
 
 --
+-- Indexes for table `property_concerns`
+--
+ALTER TABLE `property_concerns`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `property_id` (`property_id`),
+  ADD KEY `status` (`status`),
+  ADD KEY `property_concerns_reporter_fk` (`reported_by`),
+  ADD KEY `property_concerns_resolver_fk` (`resolved_by`);
+
+--
 -- Indexes for table `property_condition_logs`
 --
 ALTER TABLE `property_condition_logs`
@@ -7679,7 +7253,7 @@ ALTER TABLE `academic_breaks`
 -- AUTO_INCREMENT for table `announcements`
 --
 ALTER TABLE `announcements`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `api_tokens`
@@ -7709,19 +7283,19 @@ ALTER TABLE `biometric_punches`
 -- AUTO_INCREMENT for table `conversations`
 --
 ALTER TABLE `conversations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=123;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `conversation_participants`
 --
 ALTER TABLE `conversation_participants`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=594;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `conversation_typing`
 --
 ALTER TABLE `conversation_typing`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `deped_documents`
@@ -7739,31 +7313,31 @@ ALTER TABLE `deped_kpi_reports`
 -- AUTO_INCREMENT for table `documents`
 --
 ALTER TABLE `documents`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=770;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `document_feedback`
 --
 ALTER TABLE `document_feedback`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=290;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `document_files`
 --
 ALTER TABLE `document_files`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `document_folders`
 --
 ALTER TABLE `document_folders`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=242;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `document_links`
 --
 ALTER TABLE `document_links`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `enrollment_by_level`
@@ -7787,13 +7361,13 @@ ALTER TABLE `kpi_snapshots`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2783;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `message_reactions`
 --
 ALTER TABLE `message_reactions`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1103;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `migrations`
@@ -7805,37 +7379,37 @@ ALTER TABLE `migrations`
 -- AUTO_INCREMENT for table `mps_test_scores`
 --
 ALTER TABLE `mps_test_scores`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3807;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8298;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `parent_meetings`
 --
 ALTER TABLE `parent_meetings`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `performance_by_level`
 --
 ALTER TABLE `performance_by_level`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `performance_by_subject`
 --
 ALTER TABLE `performance_by_subject`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=337;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `property_acknowledgements`
@@ -7850,6 +7424,12 @@ ALTER TABLE `property_acknowledgement_items`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `property_concerns`
+--
+ALTER TABLE `property_concerns`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `property_condition_logs`
 --
 ALTER TABLE `property_condition_logs`
@@ -7859,37 +7439,37 @@ ALTER TABLE `property_condition_logs`
 -- AUTO_INCREMENT for table `room_properties`
 --
 ALTER TABLE `room_properties`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=472;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=251;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `task_assignees`
 --
 ALTER TABLE `task_assignees`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=366;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `task_feedback`
 --
 ALTER TABLE `task_feedback`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1717;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `task_submissions`
 --
 ALTER TABLE `task_submissions`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5129;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `task_submission_files`
 --
 ALTER TABLE `task_submission_files`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6072;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `teachers`
@@ -7907,13 +7487,13 @@ ALTER TABLE `teacher_subjects`
 -- AUTO_INCREMENT for table `templates`
 --
 ALTER TABLE `templates`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `template_categories`
 --
 ALTER TABLE `template_categories`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `time_records`
@@ -8069,6 +7649,14 @@ ALTER TABLE `property_acknowledgements`
 ALTER TABLE `property_acknowledgement_items`
   ADD CONSTRAINT `property_ack_items_par_fk` FOREIGN KEY (`par_id`) REFERENCES `property_acknowledgements` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `property_ack_items_property_fk` FOREIGN KEY (`property_id`) REFERENCES `room_properties` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `property_concerns`
+--
+ALTER TABLE `property_concerns`
+  ADD CONSTRAINT `property_concerns_property_fk` FOREIGN KEY (`property_id`) REFERENCES `room_properties` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `property_concerns_reporter_fk` FOREIGN KEY (`reported_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `property_concerns_resolver_fk` FOREIGN KEY (`resolved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `property_condition_logs`

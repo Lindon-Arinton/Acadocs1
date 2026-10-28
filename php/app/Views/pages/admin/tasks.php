@@ -529,7 +529,7 @@ function renderTaskDetailSubmissions(submissions) {
     }
 
     document.getElementById('taskDetailSubmissions').innerHTML = submissions.map(function (s, i) {
-        const statusClass = ({ Reviewed: 'badge-reviewed', Returned: 'badge-returned' })[s.status] || 'badge-pending';
+        const statusClass = ({ Approved: 'badge-reviewed', Returned: 'badge-returned' })[s.status] || 'badge-pending';
         const notesHtml = s.notes
             ? '<p class=\"small text-muted mb-3\">' + taskEscapeHtml(s.notes).replace(/\\n/g, '<br>') + '</p>'
             : '';
@@ -570,7 +570,7 @@ function viewSubmission(index) {
     const submissionIdEl = document.getElementById('viewSubmissionId'); // absent for ADAS (no feedback form)
     if (submissionIdEl) submissionIdEl.value = data.id;
     document.getElementById('viewSubmittedMeta').innerHTML = '<span><i class=\"bi bi-clock me-1\"></i>Submitted ' + taskEscapeHtml(data.submittedAt) + '</span>' + timingBadgeHtml(data.late, data.lateBy)
-        + (data.reviewerName ? '<span><i class=\"bi bi-person-check me-1\"></i>Reviewed by ' + taskEscapeHtml(data.reviewerName) + (data.reviewedAt ? ' · ' + taskEscapeHtml(data.reviewedAt) : '') + '</span>' : '');
+        + (data.reviewerName && data.status !== 'Pending' ? '<span><i class=\"bi bi-person-check me-1\"></i>' + taskEscapeHtml(data.status) + ' by ' + taskEscapeHtml(data.reviewerName) + (data.reviewedAt ? ' · ' + taskEscapeHtml(data.reviewedAt) : '') + '</span>' : '');
 
     document.getElementById('viewFilesList').innerHTML = data.files.map(function (f) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)

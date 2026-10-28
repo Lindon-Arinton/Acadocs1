@@ -170,7 +170,8 @@ class Tasks extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
 
-            // Feedback marks the submission Reviewed — the principal's call only.
+            // Feedback is the principal's call only. It doesn't change the status:
+            // an upload stays Pending until it is Approved or Returned.
             if (! hasRole('admin')) {
                 return $isAjax ? $this->ajaxError('Only the principal can review submissions.', 403) : redirect()->to('/tasks/' . $id);
             }
@@ -186,12 +187,6 @@ class Tasks extends BaseController
                         'author_id'           => currentUser()['id'],
                         'date'                => date('Y-m-d'),
                     ]);
-                    $submissionModel->update($submissionId, [
-                        'status'      => 'Reviewed',
-                        'reviewed_by' => currentUser()['id'],
-                        'reviewed_at' => date('Y-m-d H:i:s'),
-                    ]);
-
                     $submission = $submissionModel->find($submissionId);
                     if ($submission) {
                         $submitter = (new UserModel())->find((int) $submission['user_id']);

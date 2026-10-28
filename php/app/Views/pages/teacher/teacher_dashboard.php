@@ -95,7 +95,7 @@ $taskStatusAlpha = ['completed' => 1, 'pending' => .55, 'overdue' => .25];
             <tr>
               <td class="fw-semibold"><?= e($a['title']) ?></td>
               <td class="text-muted"><?= date('M d, Y', strtotime($a['submitted_at'])) ?></td>
-              <td><span class="status-pill <?= submissionBadge($a['status']) ?>"><?= e($a['status']) ?></span></td>
+              <td><?= submissionStatusPill($a) ?></td>
             </tr>
             <?php endforeach; ?>
             <?php if (empty($recentActivity)): ?>

@@ -68,18 +68,7 @@ $monthEnd   = date('Y-m-t');
           <i class="bi bi-send me-1"></i>Posted <?= date('M d, Y', strtotime($t['created_at'])) ?>
         </span>
       </div>
-      <?php if ($submission): ?>
-      <span class="status-pill <?= submissionBadge($submission['status']) ?>">
-        <?= e($submission['status'] === 'Returned' ? 'Returned - please revise' : $submission['status']) ?>
-      </span>
-      <?php if ($submission['status'] !== 'Pending' && ! empty($submission['reviewer_name'])): ?>
-      <span class="small text-muted">by <?= e($submission['reviewer_name']) ?></span>
-      <?php endif; ?>
-      <?php elseif ($t['status'] === 'Closed'): ?>
-      <span class="status-pill badge-returned">Missed</span>
-      <?php else: ?>
-      <span class="status-pill badge-pending">Not Submitted</span>
-      <?php endif; ?>
+      <?= submissionStatusPill($submission, $t['status']) ?>
     </div>
 
     <div class="task-section mb-2">
@@ -103,6 +92,7 @@ $monthEnd   = date('Y-m-t');
     <?php endif; ?>
 
     <?php if ($submission): ?>
+    <?= submissionStatusBanner($submission) ?>
     <div class="p-3 rounded-3 mb-3 task-section" style="background:var(--surface-hover);">
       <div class="task-kicker mb-2" style="color:var(--primary-light);">
         <i class="bi bi-paperclip me-1"></i><?= count($t['files']) ?> file<?= count($t['files']) !== 1 ? 's' : '' ?> submitted
@@ -145,7 +135,7 @@ $monthEnd   = date('Y-m-t');
 
     <?php if ($t['status'] === 'Open'): ?>
     <button class="btn btn-sm btn-maroon" type="button" id="taskSubmitToggle-<?= $t['id'] ?>" onclick="toggleTaskSubmitCard(<?= $t['id'] ?>)">
-      <i class="bi bi-upload me-1"></i><?= $submission ? 'Replace Submission' : 'Submit Document' ?>
+      <i class="bi bi-upload me-1"></i><?= ! $submission ? 'Submit Document' : ($submission['status'] === 'Returned' ? 'Resubmit' : 'Replace Submission') ?>
     </button>
 
     <!-- Inline "New Submission" card -->

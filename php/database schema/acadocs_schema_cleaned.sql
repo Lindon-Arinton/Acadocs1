@@ -592,7 +592,7 @@ CREATE TABLE `task_submissions` (
   `file_path` varchar(255) DEFAULT NULL,
   `file_name` varchar(255) DEFAULT NULL,
   `notes` text DEFAULT NULL,
-  `status` enum('Pending','Reviewed','Returned') DEFAULT 'Pending',
+  `status` enum('Pending','Approved','Returned') DEFAULT 'Pending',
   `reviewed_by` int(10) unsigned DEFAULT NULL,
   `reviewed_at` datetime DEFAULT NULL,
   `submitted_at` datetime NOT NULL,

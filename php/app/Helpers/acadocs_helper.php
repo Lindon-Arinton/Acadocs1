@@ -26,14 +26,58 @@ if (! function_exists('e')) {
 if (! function_exists('submissionBadge')) {
     /**
      * Status-pill class for a task submission status (Pending until an
-     * admin marks it Reviewed or Returned).
+     * admin marks it Approved or Returned).
      */
     function submissionBadge(?string $status): string
     {
         return [
-            'Reviewed' => 'badge-reviewed',
+            'Approved' => 'badge-reviewed',
             'Returned' => 'badge-returned',
         ][$status] ?? 'badge-pending';
+    }
+}
+
+if (! function_exists('submissionStatusPill')) {
+    /**
+     * Status pill (with icon) for the uploader's own view of a task:
+     * Pending / Approved / Returned once uploaded, else Not Submitted / Missed.
+     */
+    function submissionStatusPill(?array $submission, string $taskStatus = 'Open'): string
+    {
+        if (! $submission) {
+            return $taskStatus === 'Closed'
+                ? '<span class="status-pill badge-returned"><i class="bi bi-x-circle me-1"></i>Missed</span>'
+                : '<span class="status-pill badge-pending"><i class="bi bi-circle me-1"></i>Not Submitted</span>';
+        }
+
+        [$icon, $label] = [
+            'Approved' => ['bi-check-circle-fill', 'Approved'],
+            'Returned' => ['bi-arrow-return-left', 'Returned'],
+        ][$submission['status']] ?? ['bi-hourglass-split', 'Pending'];
+
+        return '<span class="status-pill ' . submissionBadge($submission['status']) . '"><i class="bi ' . $icon . ' me-1"></i>' . $label . '</span>';
+    }
+}
+
+if (! function_exists('submissionStatusBanner')) {
+    /**
+     * One line telling the uploader what the principal decided and what to do next.
+     */
+    function submissionStatusBanner(array $submission): string
+    {
+        $by = '';
+        if (! empty($submission['reviewer_name'])) {
+            $by = ' by ' . e($submission['reviewer_name'])
+                . (! empty($submission['reviewed_at']) ? ' on ' . date('M d, Y', strtotime($submission['reviewed_at'])) : '');
+        }
+
+        [$class, $icon, $text] = match ($submission['status']) {
+            'Approved' => ['alert-success', 'bi-check-circle-fill', '<strong>Approved</strong>' . $by . '. No further action needed.'],
+            'Returned' => ['alert-danger', 'bi-arrow-return-left', '<strong>Returned</strong>' . $by . '. Please revise your file and upload it again.'],
+            default    => ['alert-warning', 'bi-hourglass-split', '<strong>Pending</strong>. Waiting for the principal to approve or return your upload.'],
+        };
+
+        return '<div class="alert ' . $class . ' d-flex align-items-center gap-2 py-2 px-3 mb-3 small"><i class="bi ' . $icon . '"></i><span>' . $text . '</span></div>';
     }
 }
 

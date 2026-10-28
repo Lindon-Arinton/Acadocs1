@@ -77,7 +77,8 @@
                         'ext'  => strtolower(pathinfo($f['file_name'], PATHINFO_EXTENSION)),
                         'annotated' => \App\Models\TaskSubmissionFileModel::hasAnnotation($f),
                     ], $s['files']),
-                    'reviewerName'  => $s['reviewer_name'] ?? null,
+                    'status'        => $s['status'],
+                    'reviewerName'  => $s['status'] !== 'Pending' ? ($s['reviewer_name'] ?? null) : null,
                     'reviewedAt'    => $s['reviewed_at'] ? date('M d, Y h:i A', strtotime($s['reviewed_at'])) : null,
                     'feedback'      => array_map(static fn ($fb) => [
                         'comment' => $fb['comment'],
@@ -179,7 +180,7 @@ function viewSubmission(data) {
     const submissionIdEl = document.getElementById("viewSubmissionId"); // absent for ADAS (no feedback form)
     if (submissionIdEl) submissionIdEl.value = data.id;
     document.getElementById("viewSubmittedMeta").innerHTML = \'<span><i class="bi bi-clock me-1"></i>Submitted \' + escapeHtml(data.submittedAt) + "</span>" + timingBadgeHtml(data.late, data.lateBy)
-        + (data.reviewerName ? \'<span><i class="bi bi-person-check me-1"></i>Reviewed by \' + escapeHtml(data.reviewerName) + (data.reviewedAt ? " · " + escapeHtml(data.reviewedAt) : "") + "</span>" : "");
+        + (data.reviewerName ? \'<span><i class="bi bi-person-check me-1"></i>\' + escapeHtml(data.status) + \' by \' + escapeHtml(data.reviewerName) + (data.reviewedAt ? " · " + escapeHtml(data.reviewedAt) : "") + "</span>" : "");
 
     document.getElementById("viewFilesList").innerHTML = data.files.map(function (f) {
         const previewBtn = PREVIEWABLE_EXT.includes(f.ext)

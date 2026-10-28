@@ -16,7 +16,7 @@
 <?php endif; ?>
 
 <?php
-// Only the principal approves (Reviewed/Returned) and annotates; ADAS can view.
+// Only the principal approves/returns and annotates; ADAS can view.
 $canReview = hasRole('admin');
 ?>
 
@@ -32,7 +32,7 @@ $statusCounts = array_count_values(array_column($submissions, 'status'));
     </div>
     <div class="tab-pills" id="uploadStatusPills">
       <button type="button" class="tab-pill active" data-status="all">All <span class="text-muted">(<?= count($submissions) ?>)</span></button>
-      <?php foreach (['Pending', 'Reviewed', 'Returned'] as $st): ?>
+      <?php foreach (['Pending', 'Approved', 'Returned'] as $st): ?>
       <button type="button" class="tab-pill" data-status="<?= $st ?>"><?= $st ?> <span class="text-muted">(<?= $statusCounts[$st] ?? 0 ?>)</span></button>
       <?php endforeach; ?>
     </div>
@@ -112,16 +112,16 @@ $statusCounts = array_count_values(array_column($submissions, 'status'));
           ?>
           <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
             <div class="d-flex gap-2">
-              <?php if ($status !== 'Reviewed'): ?>
+              <?php if ($status !== 'Approved'): ?>
               <button type="button" class="btn btn-sm btn-outline-success" title="Approve this upload"
-                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Reviewed', '<?= $submitter ?>')">
-                <i class="bi bi-check-circle me-1"></i><?= $status === 'Returned' ? 'Mark Reviewed instead' : 'Mark Reviewed' ?>
+                      onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Approved', '<?= $submitter ?>')">
+                <i class="bi bi-check-circle me-1"></i><?= $status === 'Returned' ? 'Approve instead' : 'Approve' ?>
               </button>
               <?php endif; ?>
               <?php if ($status !== 'Returned'): ?>
               <button type="button" class="btn btn-sm btn-outline-danger" title="Send back to the uploader for revision"
                       onclick="reviewUpload(<?= (int) $submission['id'] ?>, 'Returned', '<?= $submitter ?>')">
-                <i class="bi bi-arrow-return-left me-1"></i><?= $status === 'Reviewed' ? 'Return instead' : 'Return' ?>
+                <i class="bi bi-arrow-return-left me-1"></i><?= $status === 'Approved' ? 'Return instead' : 'Return' ?>
               </button>
               <?php endif; ?>
             </div>
@@ -208,7 +208,7 @@ document.getElementById('filePreviewModal').addEventListener('hidden.bs.modal', 
 
 function reviewUpload(id, status, submitter) {
     const copy = {
-        Reviewed: { title: 'Mark as Reviewed', label: 'Comment (optional)', placeholder: 'Any notes for the uploader...', btn: 'Mark Reviewed', confirm: 'The uploader will be told their upload was reviewed.' },
+        Approved: { title: 'Approve Upload', label: 'Comment (optional)', placeholder: 'Any notes for the uploader...', btn: 'Approve', confirm: 'The uploader will be told their upload was approved.' },
         Returned: { title: 'Return for Revision', label: 'What needs to be fixed?', placeholder: 'Explain what does not meet the requirements...', btn: 'Return Upload', confirm: 'The upload will be sent back to the uploader for revision.' },
     }[status];
     const form    = document.getElementById('reviewForm');

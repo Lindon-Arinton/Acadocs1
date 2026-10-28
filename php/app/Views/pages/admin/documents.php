@@ -80,7 +80,7 @@ $folderMenu = static function (array $folder, bool $floating) use ($canManage): 
         <select id="docStatusFilter" class="maroon-select-native">
           <option value="all">All Statuses</option>
           <option value="Pending">Pending</option>
-          <option value="Reviewed">Reviewed</option>
+          <option value="Approved">Approved</option>
           <option value="Returned">Returned</option>
         </select>
         <button type="button" class="maroon-select-display"><span class="maroon-select-label"></span><span class="maroon-select-caret"></span></button>
@@ -171,9 +171,6 @@ $folderMenu = static function (array $folder, bool $floating) use ($canManage): 
       <?php endif; ?>
     </button>
     <div class="d-flex align-items-center gap-1 flex-shrink-0">
-      <a href="<?= base_url('documents?folder=' . $folder['id']) ?>" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-clipboard-check me-1"></i>Review
-      </a>
       <?php $folderMenu($folder, false); ?>
     </div>
   </div>
@@ -202,6 +199,22 @@ $folderMenu = static function (array $folder, bool $floating) use ($canManage): 
             </p>
           </div>
           <div class="d-flex gap-2 flex-shrink-0">
+            <?php if ($canReview):
+              // Both always show and stay clickable; the one matching the current
+              // status is dimmed and just says it's already done.
+              $reviewArgs = (int) $folder['id'] . ', ' . (int) $f['submission_id'] . ', %s, ' . e(json_encode($f['submitter_name'])) . ", '" . e($f['status']) . "'";
+            ?>
+            <button type="button" class="btn btn-sm btn-outline-success<?= $f['status'] === 'Approved' ? ' opacity-50' : '' ?>"
+                    title="<?= $f['status'] === 'Approved' ? 'Already approved' : 'Approve this upload' ?>"
+                    onclick="reviewDocUpload(<?= sprintf($reviewArgs, "'Approved'") ?>)">
+              <i class="bi bi-check-circle me-1"></i>Approve
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger<?= $f['status'] === 'Returned' ? ' opacity-50' : '' ?>"
+                    title="<?= $f['status'] === 'Returned' ? 'Already returned' : 'Send back to the uploader for revision' ?>"
+                    onclick="reviewDocUpload(<?= sprintf($reviewArgs, "'Returned'") ?>)">
+              <i class="bi bi-arrow-return-left me-1"></i>Return
+            </button>
+            <?php endif; ?>
             <a href="<?= base_url('task-submissions/' . (int) $f['id'] . '/preview') ?>" target="_blank" rel="noopener"
                class="btn btn-sm" style="border:1.5px solid <?= $tc ?>;color:var(--text);background:transparent;">
               <i class="bi bi-eye me-1"></i>Preview
@@ -221,6 +234,33 @@ $folderMenu = static function (array $folder, bool $floating) use ($canManage): 
 <?php endforeach; ?>
 <?php endif; ?>
 </div>
+
+<?php if ($canReview && $taskFolders): ?>
+<!-- Review / Return an upload (same handler as the task folder page) -->
+<div class="modal fade" id="docReviewModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--maroon);color:#fff;">
+        <h6 class="modal-title fw-bold"><i class="bi bi-clipboard-check me-2"></i><span id="docReviewTitle">Review Upload</span></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="<?= base_url('documents') ?>" class="ajax-form" id="docReviewForm" data-confirm-action="update">
+        <div class="modal-body">
+          <input type="hidden" name="submission_id" id="docReviewSubmissionId">
+          <input type="hidden" name="status" id="docReviewStatus">
+          <p class="text-muted small mb-3">Upload by: <strong id="docReviewSubmitter"></strong></p>
+          <label class="form-label fw-semibold small" id="docReviewCommentLabel">Comment</label>
+          <textarea name="comment" id="docReviewComment" class="form-control" rows="4"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-maroon" id="docReviewSubmitBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php if ($canManage): ?>
 <!-- New Folder -->
@@ -441,6 +481,55 @@ initLiveSearch('docSearchInput', 'filterForm');
         toggleAll.dataset.state = expand ? 'open' : '';
         toggleAll.innerHTML = expand ? '<i class="bi bi-arrows-collapse me-1"></i>Collapse all' : '<i class="bi bi-arrows-expand me-1"></i>Expand all';
     });
+
+    // Review / Return straight from the list. The page reloads afterwards,
+    // so remember which section was open and reopen it.
+    const REOPEN_KEY = 'docReopenSection';
+    try {
+        const reopen = sessionStorage.getItem(REOPEN_KEY);
+        sessionStorage.removeItem(REOPEN_KEY);
+        const section = reopen && document.getElementById('doc-section-' + reopen);
+        if (section) bootstrap.Collapse.getOrCreateInstance(section, { toggle: false }).show();
+    } catch (e) {}
+
+    document.getElementById('docReviewForm')?.addEventListener('submit', e => {
+        try { sessionStorage.setItem(REOPEN_KEY, e.currentTarget.dataset.folderId || ''); } catch (err) {}
+    });
+
+    window.reviewDocUpload = function (folderId, submissionId, status, submitter, current) {
+        if (status === current) {
+            Swal.fire({
+                icon: 'info',
+                title: status === 'Approved' ? 'Already approved' : 'Already returned',
+                text: status === 'Approved'
+                    ? 'This upload is already approved. Use Return if it needs to be sent back.'
+                    : 'This upload is already returned and is waiting for the uploader to resubmit. Use Approve if it is fine after all.',
+                confirmButtonColor: '#800000',
+            });
+            return;
+        }
+        const copy = {
+            Approved: { title: 'Approve Upload', label: 'Comment (optional)', placeholder: 'Any notes for the uploader...', btn: 'Approve', confirm: 'The uploader will be told their upload was approved.' },
+            Returned: { title: 'Return for Revision', label: 'What needs to be fixed?', placeholder: 'Explain what does not meet the requirements...', btn: 'Return Upload', confirm: 'The upload will be sent back to the uploader for revision.' },
+        }[status];
+        const form    = document.getElementById('docReviewForm');
+        const comment = document.getElementById('docReviewComment');
+        // The review handler checks the upload belongs to this task folder.
+        form.action = form.action.split('?')[0] + '?folder=' + folderId;
+        document.getElementById('docReviewSubmissionId').value = submissionId;
+        document.getElementById('docReviewStatus').value = status;
+        document.getElementById('docReviewSubmitter').textContent = submitter;
+        document.getElementById('docReviewTitle').textContent = copy.title;
+        document.getElementById('docReviewCommentLabel').textContent = copy.label;
+        document.getElementById('docReviewSubmitBtn').textContent = copy.btn;
+        comment.placeholder = copy.placeholder;
+        comment.required = status === 'Returned';
+        comment.value = '';
+        form.dataset.confirmTitle = copy.title + '?';
+        form.dataset.confirmText = copy.confirm;
+        form.dataset.folderId = folderId;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('docReviewModal')).show();
+    };
 
     window.openRenameFolder = function (id) {
         document.getElementById('renameFolderId').value = id;

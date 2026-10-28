@@ -20,7 +20,7 @@ use App\Models\UserModel;
 class Documents extends BaseController
 {
     // Uploads start as Pending; these are the decisions an admin can make.
-    private const REVIEW_STATUSES = ['Reviewed', 'Returned'];
+    private const REVIEW_STATUSES = ['Approved', 'Returned'];
 
     private const FOLDER_ACTIONS = ['create_folder', 'rename_folder', 'move_folder', 'delete_folder'];
 
@@ -63,7 +63,7 @@ class Documents extends BaseController
         $filesByTask  = [];
         if ($taskIds) {
             $fileRows = (new TaskSubmissionFileModel())
-                ->select('task_submission_files.id, task_submission_files.file_name, task_submissions.task_id, task_submissions.status, task_submissions.submitted_at, users.name AS submitter_name')
+                ->select('task_submission_files.id, task_submission_files.file_name, task_submissions.id AS submission_id, task_submissions.task_id, task_submissions.status, task_submissions.submitted_at, users.name AS submitter_name')
                 ->join('task_submissions', 'task_submissions.id = task_submission_files.task_submission_id')
                 ->join('users', 'users.id = task_submissions.user_id')
                 ->whereIn('task_submissions.task_id', $taskIds)
@@ -90,6 +90,8 @@ class Documents extends BaseController
             'fileTypes'  => array_values(array_filter($fileTypes)),
             'search'     => $search,
             'canManage'  => hasRole('admin', 'adas'),
+            // Only the principal marks uploads Approved / Returned.
+            'canReview'  => hasRole('admin'),
             // Every folder, for the "Move to…" picker.
             'allFolders' => array_values(array_map(static fn ($f) => [
                 'id'     => $f['id'],
@@ -252,7 +254,7 @@ class Documents extends BaseController
     }
 
     /**
-     * Marks one upload in the folder Reviewed or Returned. A comment
+     * Marks one upload in the folder Approved or Returned. A comment
      * is required when returning it so the submitter knows what to fix.
      */
     private function review(int $folderId)
@@ -261,7 +263,7 @@ class Documents extends BaseController
         $backUrl = '/documents' . ($folderId ? '?folder=' . $folderId : '');
 
         // Approving teachers' work is the principal's call; ADAS can view
-        // submissions but not mark them Reviewed/Returned.
+        // submissions but not mark them Approved/Returned.
         if (! hasRole('admin')) {
             return $isAjax ? $this->ajaxError('Only the principal can review submissions.', 403) : redirect()->to($backUrl);
         }
@@ -311,7 +313,7 @@ class Documents extends BaseController
             $task      = (new TaskModel())->find($submission['task_id']);
             $submitter = (new UserModel())->find((int) $submission['user_id']);
             $headline  = [
-                'Reviewed' => 'Your upload was reviewed: ',
+                'Approved' => 'Your upload was approved: ',
                 'Returned' => 'Your upload was returned: ',
             ][$status];
 
