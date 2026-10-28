@@ -7,6 +7,7 @@ use App\Libraries\OfficeConverter;
 use App\Libraries\OfficeOnlinePreview;
 use App\Libraries\TemplateClassifier;
 use App\Models\TemplateCategoryModel;
+use App\Models\TemplateFolderModel;
 use App\Models\TemplateModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\Files\UploadedFile;
@@ -51,6 +52,7 @@ class Templates extends BaseController
     {
         $categoryModel = new TemplateCategoryModel();
         $templateModel = new TemplateModel();
+        $folderModel   = new TemplateFolderModel();
 
         if ($this->request->getMethod() === 'POST') {
             $isAjax = $this->request->isAJAX();
@@ -59,12 +61,64 @@ class Templates extends BaseController
                 return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to('/templates');
             }
 
-            $action  = $this->request->getPost('action');
-            $message = null;
-            $error   = null;
+            $action   = $this->request->getPost('action');
+            $message  = null;
+            $error    = null;
+            $redirect = null;
 
             try {
-                if ($action === 'add_category') {
+                if ($action === 'add_folder') {
+                    // Optional folders inside a section; a parent folder makes it a subfolder.
+                    $category = $categoryModel->find((int) $this->request->getPost('category_id'));
+                    $parentId = (int) $this->request->getPost('parent_id');
+                    $parent   = $parentId ? $folderModel->find($parentId) : null;
+                    $name     = mb_substr(trim($this->request->getPost('name') ?? ''), 0, 150);
+
+                    if (! $category) {
+                        $error = 'Please choose a valid section.';
+                    } elseif ($parentId && (! $parent || (int) $parent['category_id'] !== (int) $category['id'])) {
+                        $error = 'The parent folder was not found in this section.';
+                    } elseif ($name === '') {
+                        $error = 'Please enter a folder name.';
+                    } elseif ($this->siblingFolderExists($folderModel, (int) $category['id'], $parentId ?: null, $name)) {
+                        $error = 'A folder named "' . $name . '" already exists here.';
+                    } else {
+                        $folderModel->insert([
+                            'category_id' => (int) $category['id'],
+                            'parent_id'   => $parentId ?: null,
+                            'name'        => $name,
+                            'created_by'  => currentUser()['name'],
+                        ]);
+                        $message = 'Folder "' . $name . '" added.';
+                    }
+                } elseif ($action === 'rename_folder') {
+                    $folder = $folderModel->find((int) $this->request->getPost('id'));
+                    $name   = mb_substr(trim($this->request->getPost('name') ?? ''), 0, 150);
+
+                    if (! $folder) {
+                        $error = 'Folder not found.';
+                    } elseif ($name === '') {
+                        $error = 'Please enter a folder name.';
+                    } elseif ($this->siblingFolderExists($folderModel, (int) $folder['category_id'], $folder['parent_id'] ? (int) $folder['parent_id'] : null, $name, (int) $folder['id'])) {
+                        $error = 'A folder named "' . $name . '" already exists here.';
+                    } else {
+                        $folderModel->update((int) $folder['id'], ['name' => $name]);
+                        $message = 'Folder renamed.';
+                    }
+                } elseif ($action === 'delete_folder') {
+                    $folder = $folderModel->find((int) $this->request->getPost('id'));
+
+                    if (! $folder) {
+                        $error = 'Folder not found.';
+                    } elseif ($templateModel->where('folder_id', (int) $folder['id'])->countAllResults() > 0
+                        || $folderModel->where('parent_id', (int) $folder['id'])->countAllResults() > 0) {
+                        $error = 'This folder is not empty. Move or remove what is inside it first.';
+                    } else {
+                        $folderModel->delete((int) $folder['id']);
+                        $message  = 'Folder deleted.';
+                        $redirect = base_url('templates?category=' . (int) $folder['category_id'] . ($folder['parent_id'] ? '&folder=' . (int) $folder['parent_id'] : ''));
+                    }
+                } elseif ($action === 'add_category') {
                     $name = trim($this->request->getPost('name') ?? '');
 
                     if ($name === '') {
@@ -140,6 +194,10 @@ class Templates extends BaseController
                         static fn ($f) => $f !== null && $f->isValid(),
                     );
                     $batchTitles = (array) ($this->request->getPost('batch_titles') ?? []);
+                    // Uploading from inside a folder: files that land in that folder's section go in it.
+                    $folderId     = (int) $this->request->getPost('folder_id');
+                    $folder       = $folderId ? $folderModel->find($folderId) : null;
+                    $folderFor    = static fn (int $catId): ?int => $folder && (int) $folder['category_id'] === $catId ? (int) $folder['id'] : null;
 
                     if (! $auto && ! $category) {
                         $error = 'Please choose a valid section.';
@@ -174,7 +232,7 @@ class Templates extends BaseController
                                     // Tags the ADAS reviewed in the form win over the automatic ones.
                                     $posted = $this->request->getPost('tags');
                                     $tags   = $posted !== null ? TemplateClassifier::cleanTags($posted) : $analysis['tags'];
-                                    $this->storeTemplateFile($templateModel, $file, $categoryId, $title, trim($this->request->getPost('description') ?? ''), $tags, $analysis['keywords']);
+                                    $this->storeTemplateFile($templateModel, $file, $categoryId, $title, trim($this->request->getPost('description') ?? ''), $tags, $analysis['keywords'], $folderFor($categoryId));
                                     $message = $auto
                                         ? 'Template uploaded to ' . $analysis['category_name'] . '.'
                                         : 'Template uploaded successfully.';
@@ -233,7 +291,7 @@ class Templates extends BaseController
                             }
                             $usedTitles[] = $title;
 
-                            $this->storeTemplateFile($templateModel, $file, $fileCatId, $title, $description, $analysis['tags'], $analysis['keywords']);
+                            $this->storeTemplateFile($templateModel, $file, $fileCatId, $title, $description, $analysis['tags'], $analysis['keywords'], $folderFor($fileCatId));
                             $catName            = $auto ? $analysis['category_name'] : $category['name'];
                             $placedIn[$catName] = ($placedIn[$catName] ?? 0) + 1;
                         }
@@ -252,21 +310,27 @@ class Templates extends BaseController
                         }
                     }
                 } elseif ($action === 'move_template') {
-                    // Drag a template onto another section (or use "Move to…").
-                    $template = $templateModel->find((int) $this->request->getPost('id'));
-                    $target   = $categoryModel->find((int) $this->request->getPost('category_id'));
+                    // Drag a template onto another section or folder (or use "Move to…").
+                    $template       = $templateModel->find((int) $this->request->getPost('id'));
+                    $target         = $categoryModel->find((int) $this->request->getPost('category_id'));
+                    $targetFolderId = (int) $this->request->getPost('folder_id');
+                    $targetFolder   = $targetFolderId ? $folderModel->find($targetFolderId) : null;
+                    $paths          = $folderModel->allWithPaths();
+                    $placeName      = static fn (array $section, ?int $fid): string => $section['name'] . ($fid && isset($paths[$fid]) ? ' / ' . $paths[$fid]['path'] : '');
 
                     if (! $template) {
                         $error = 'Template not found.';
                     } elseif (! $target) {
                         $error = 'Please choose a valid section.';
-                    } elseif ((int) $template['category_id'] === (int) $target['id']) {
-                        $error = '"' . $template['title'] . '" is already in ' . $target['name'] . '.';
+                    } elseif ($targetFolderId && (! $targetFolder || (int) $targetFolder['category_id'] !== (int) $target['id'])) {
+                        $error = 'That folder was not found in ' . $target['name'] . '.';
+                    } elseif ((int) $template['category_id'] === (int) $target['id'] && (int) $template['folder_id'] === $targetFolderId) {
+                        $error = '"' . $template['title'] . '" is already in ' . $placeName($target, $targetFolderId ?: null) . '.';
                     } else {
                         // Keep files grouped by section on disk too; if the move fails the old path still works.
-                        $path   = $template['file_path'];
-                        $newDir = WRITEPATH . 'uploads/templates/' . (int) $target['id'];
-                        if (is_file($path)) {
+                        $path = $template['file_path'];
+                        if ((int) $template['category_id'] !== (int) $target['id'] && is_file($path)) {
+                            $newDir = WRITEPATH . 'uploads/templates/' . (int) $target['id'];
                             if (! is_dir($newDir)) {
                                 mkdir($newDir, 0755, true);
                             }
@@ -275,9 +339,14 @@ class Templates extends BaseController
                                 $path = $newPath;
                             }
                         }
-                        $from = $categoryModel->find((int) $template['category_id']);
-                        $templateModel->update((int) $template['id'], ['category_id' => (int) $target['id'], 'file_path' => $path]);
-                        $message = '"' . $template['title'] . '" was moved from ' . ($from['name'] ?? 'its section') . ' to ' . $target['name'] . '.';
+                        $from     = $categoryModel->find((int) $template['category_id']);
+                        $fromName = $from ? $placeName($from, $template['folder_id'] ? (int) $template['folder_id'] : null) : 'its section';
+                        $templateModel->update((int) $template['id'], [
+                            'category_id' => (int) $target['id'],
+                            'folder_id'   => $targetFolderId ?: null,
+                            'file_path'   => $path,
+                        ]);
+                        $message = '"' . $template['title'] . '" was moved from ' . $fromName . ' to ' . $placeName($target, $targetFolderId ?: null) . '.';
                     }
                 } elseif ($action === 'delete_template') {
                     $template = $templateModel->find((int) $this->request->getPost('id'));
@@ -299,7 +368,7 @@ class Templates extends BaseController
             }
 
             if ($isAjax) {
-                return $message ? $this->ajaxSuccess($message) : $this->ajaxError('Unknown action.');
+                return $message ? $this->ajaxSuccess($message, $redirect ? ['redirect' => $redirect] : []) : $this->ajaxError('Unknown action.');
             }
 
             session()->setFlashdata('flash', ['type' => 'success', 'msg' => $message ?? '']);
@@ -311,6 +380,18 @@ class Templates extends BaseController
         $catId    = (int) ($this->request->getGet('category') ?? 0);
         $fileType = $this->request->getGet('type') ?? 'all';
         $sort     = $this->request->getGet('sort') ?? 'date_desc';
+
+        // An open folder implies its section; a folder that no longer exists falls back to the section's top level.
+        $folders  = $folderModel->allWithPaths();
+        $folderId = (int) ($this->request->getGet('folder') ?? 0);
+        if ($folderId && ! isset($folders[$folderId])) {
+            $folderId = 0;
+        }
+        if ($folderId) {
+            $catId = (int) $folders[$folderId]['category_id'];
+        }
+        // Browsing a section shows one folder level at a time; a search or file-type filter lists everything that matches.
+        $browsing = $catId > 0 && $search === '' && $fileType === 'all';
 
         $builder = $templateModel
             ->select('templates.*, template_categories.name AS category_name')
@@ -326,6 +407,9 @@ class Templates extends BaseController
         }
         if ($catId > 0) {
             $builder->where('templates.category_id', $catId);
+        }
+        if ($browsing) {
+            $folderId ? $builder->where('templates.folder_id', $folderId) : $builder->where('templates.folder_id', null);
         }
         if ($fileType !== 'all') {
             $builder->where('templates.file_ext', $fileType);
@@ -346,10 +430,40 @@ class Templates extends BaseController
         }
         unset($c);
 
+        // What each folder directly holds, for the folder tiles.
+        $folderTemplateCounts = array_column(
+            $templateModel->select('folder_id, COUNT(*) AS n')->where('folder_id IS NOT NULL')->groupBy('folder_id')->findAll(),
+            'n',
+            'folder_id',
+        );
+        foreach ($folders as $id => $f) {
+            $folders[$id]['templates'] = (int) ($folderTemplateCounts[$id] ?? 0);
+            $folders[$id]['folders']   = 0;
+        }
+        foreach ($folders as $f) {
+            if ($f['parent_id'] && isset($folders[(int) $f['parent_id']])) {
+                $folders[(int) $f['parent_id']]['folders']++;
+            }
+        }
+
+        // The open folder's trail (top-level folder first) and the folders shown inside it.
+        $trail = [];
+        for ($cur = $folderId ? $folders[$folderId] : null, $guard = 0; $cur && $guard < 50; $cur = $folders[(int) $cur['parent_id']] ?? null, $guard++) {
+            array_unshift($trail, $cur);
+        }
+        $subfolders = $browsing
+            ? array_values(array_filter($folders, static fn ($f) => (int) $f['category_id'] === $catId && (int) $f['parent_id'] === $folderId))
+            : [];
+
         return view('pages/shared/templates', [
             'pageTitle'         => 'Templates',
             'templates'         => $templates,
             'categories'        => $categories,
+            'folders'           => $folders,
+            'folderId'          => $folderId,
+            'folderTrail'       => $trail,
+            'subfolders'        => $subfolders,
+            'browsing'          => $browsing,
             'search'            => $search,
             'catId'             => $catId,
             'fileType'          => $fileType,
@@ -360,8 +474,20 @@ class Templates extends BaseController
         ]);
     }
 
+    /** Whether a folder with this name already sits at this level of the section (the column's collation ignores letter case). */
+    private function siblingFolderExists(TemplateFolderModel $folderModel, int $categoryId, ?int $parentId, string $name, ?int $exceptId = null): bool
+    {
+        $builder = $folderModel->where('category_id', $categoryId)->where('name', $name);
+        $parentId ? $builder->where('parent_id', $parentId) : $builder->where('parent_id', null);
+        if ($exceptId) {
+            $builder->where('id !=', $exceptId);
+        }
+
+        return $builder->countAllResults() > 0;
+    }
+
     /** @param list<string> $tags */
-    private function storeTemplateFile(TemplateModel $templateModel, UploadedFile $file, int $categoryId, string $title, string $description, array $tags = [], string $keywords = ''): void
+    private function storeTemplateFile(TemplateModel $templateModel, UploadedFile $file, int $categoryId, string $title, string $description, array $tags = [], string $keywords = '', ?int $folderId = null): void
     {
         $targetDir = WRITEPATH . 'uploads/templates/' . $categoryId;
 
@@ -374,6 +500,7 @@ class Templates extends BaseController
 
         $templateModel->insert([
             'category_id' => $categoryId,
+            'folder_id'   => $folderId,
             'title'       => $title,
             'description' => $description,
             'tags'        => $tags !== [] ? implode(', ', $tags) : null,

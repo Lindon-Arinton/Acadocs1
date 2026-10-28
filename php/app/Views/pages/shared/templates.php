@@ -40,6 +40,12 @@ foreach (array_values($categories) as $i => $c) {
 }
 $canManage       = hasRole('adas');
 $formatLabels    = ['pdf' => 'PDF', 'docx' => 'Word'];
+// Optional folders inside sections: "Section / Folder / Subfolder" labels and folder counts per section.
+$sectionNames  = array_column($categories, 'name', 'id');
+$placeLabel    = static fn (int $sectionId, ?int $fid): string => ($sectionNames[$sectionId] ?? 'Section') . ($fid && isset($folders[$fid]) ? ' / ' . $folders[$fid]['path'] : '');
+$sectionFolderCount = array_count_values(array_map(static fn ($f) => (int) $f['category_id'], $folders));
+$currentFolder = $folderId ? ($folders[$folderId] ?? null) : null;
+$countLabel    = static fn (int $n, string $one, string $many): string => $n . ' ' . ($n === 1 ? $one : $many);
 
 include APPPATH . 'Views/layout/header.php';
 ?>
@@ -113,7 +119,6 @@ include APPPATH . 'Views/layout/header.php';
         <div class="maroon-select-panel"></div>
       </div>
 
-      <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-search me-1"></i>Search</button>
       <?php if ($search !== '' || $catId !== 0 || $fileType !== 'all' || $sort !== 'date_desc'): ?>
       <a href="<?= base_url('templates') ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
       <?php endif; ?>
@@ -168,7 +173,7 @@ include APPPATH . 'Views/layout/header.php';
           <?php endif; ?>
         </div>
         <?php endif; ?>
-        <span class="tpl-section-total"><i class="bi bi-file-earmark-text me-1"></i><?= $count ?> <?= $count === 1 ? 'template' : 'templates' ?></span>
+        <span class="tpl-section-total"><i class="bi bi-file-earmark-text me-1"></i><?= $count ?> <?= $count === 1 ? 'template' : 'templates' ?><?php if (! empty($sectionFolderCount[(int) $cat['id']])): ?> · <i class="bi bi-folder2 me-1"></i><?= $countLabel($sectionFolderCount[(int) $cat['id']], 'folder', 'folders') ?><?php endif; ?></span>
       </div>
       <?php if ($canManage): ?><div class="tpl-drop-hint" aria-hidden="true"><i class="bi bi-box-arrow-in-down me-1"></i><span>Drop to add to <?= e($cat['name']) ?></span></div><?php endif; ?>
     </div>
@@ -188,6 +193,20 @@ include APPPATH . 'Views/layout/header.php';
     <?php if (! empty($openSection['description'])): ?><div class="text-muted" style="font-size:.78rem;"><?= e($openSection['description']) ?></div><?php endif; ?>
   </div>
 </div>
+<?php if ($folderTrail): ?>
+<!-- Where we are inside the section's folders; each step goes back up -->
+<nav class="tpl-crumbs mb-3" aria-label="Folder path">
+  <a href="<?= base_url('templates?category=' . (int) $openSection['id']) ?>"><i class="bi bi-folder2 me-1"></i><?= e($openSection['name']) ?></a>
+  <?php foreach ($folderTrail as $i => $step): $isLast = $i === count($folderTrail) - 1; ?>
+  <i class="bi bi-chevron-right tpl-crumb-sep" aria-hidden="true"></i>
+  <?php if ($isLast): ?>
+  <span aria-current="page"><i class="bi bi-folder2-open me-1"></i><?= e($step['name']) ?></span>
+  <?php else: ?>
+  <a href="<?= base_url('templates?category=' . (int) $openSection['id'] . '&folder=' . (int) $step['id']) ?>"><?= e($step['name']) ?></a>
+  <?php endif; ?>
+  <?php endforeach; ?>
+</nav>
+<?php endif; ?>
 <?php elseif ($hasActiveFilter): ?>
 <div class="mb-3"><a href="<?= base_url('templates') ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>All sections</a></div>
 <?php endif; ?>
@@ -206,8 +225,8 @@ include APPPATH . 'Views/layout/header.php';
   <div class="tpl-dock-folders" role="navigation" aria-label="Template folders">
     <?php foreach ($categories as $cat): $isOpen = $openSection && (int) $cat['id'] === (int) $openSection['id']; ?>
     <a href="<?= base_url('templates?category=' . (int) $cat['id']) ?>" class="tpl-dock-folder<?= $isOpen ? ' is-current' : '' ?>"
-       data-section-id="<?= (int) $cat['id'] ?>" data-section-name="<?= e($cat['name']) ?>"
-       <?php if ($canManage): ?>data-drop-section="<?= (int) $cat['id'] ?>"<?php endif; ?>
+       data-section-id="<?= (int) $cat['id'] ?>" data-section-name="<?= e($cat['name']) ?>"<?= $isOpen && $folderId ? ' data-in-folder="1"' : '' ?>
+       <?php if ($canManage): ?>data-drop-section="<?= (int) $cat['id'] ?>" data-drop-folder="0"<?php endif; ?>
        <?= $isOpen ? 'aria-current="page"' : '' ?> title="<?= e($cat['name']) . ($isOpen ? ' (open)' : '') ?>">
       <?= $folderIcon($sectionColor[(int) $cat['id']], 'tpl-folder-xs' . ($isOpen ? ' is-open' : '')) ?>
       <span class="tpl-dock-name"><?= e($cat['name']) ?></span>
@@ -229,6 +248,10 @@ include APPPATH . 'Views/layout/header.php';
       continue;
   }
   $rendered++;
+  // Browsing a section: this card shows one folder level (the section's top level, or the open folder).
+  $inFolder   = $browsing && $currentFolder;
+  $hereLabel  = $inFolder ? $placeLabel((int) $cat['id'], $folderId) : $cat['name'];
+  $shownFolders = $browsing ? $subfolders : [];
 ?>
 <div class="card mb-4">
   <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
@@ -236,18 +259,37 @@ include APPPATH . 'Views/layout/header.php';
             data-bs-toggle="collapse" data-bs-target="#section-body-<?= $cat['id'] ?>"
             aria-expanded="true" aria-controls="section-body-<?= $cat['id'] ?>">
       <i class="bi bi-chevron-down section-toggle-arrow me-2 text-muted"></i>
-      <span class="fw-semibold"><i class="bi bi-folder2 me-2 text-muted"></i><?= e($cat['name']) ?></span>
+      <span class="fw-semibold"><i class="bi <?= $inFolder ? 'bi-folder2-open' : 'bi-folder2' ?> me-2 text-muted"></i><?= e($inFolder ? $currentFolder['name'] : $cat['name']) ?></span>
       <span class="badge badge-secondary ms-2"><?= count($items) ?></span>
     </button>
     <?php if ($canManage): ?>
     <div class="d-flex align-items-center gap-1">
-      <button type="button" class="btn btn-ghost btn-sm" title="Upload to this section"
-              onclick="openUploadModal(<?= $cat['id'] ?>)">
+      <?php if ($browsing): ?>
+      <button type="button" class="btn btn-ghost btn-sm" title="<?= $inFolder ? 'New folder inside ' . e($currentFolder['name']) : 'New folder in this section' ?>"
+              onclick='openAddFolder(<?= json_encode(['category' => (int) $cat['id'], 'parent' => $folderId, 'where' => $hereLabel], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+        <i class="bi bi-folder-plus"></i>
+      </button>
+      <?php endif; ?>
+      <button type="button" class="btn btn-ghost btn-sm" title="Upload to <?= $inFolder ? 'this folder' : 'this section' ?>"
+              onclick='openUploadModal(<?= (int) $cat['id'] ?>, <?= $inFolder ? json_encode(['id' => $folderId, 'label' => $hereLabel], JSON_HEX_APOS | JSON_HEX_QUOT) : 'null' ?>)'>
         <i class="bi bi-cloud-upload"></i>
       </button>
-      <?php if (count($items) === 0): ?>
+      <?php if ($inFolder): ?>
+      <button type="button" class="btn btn-ghost btn-sm" title="Rename folder"
+              onclick='openRenameFolder(<?= json_encode(['id' => $folderId, 'name' => $currentFolder['name']], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+        <i class="bi bi-pencil"></i>
+      </button>
+      <?php if (count($items) === 0 && $shownFolders === []): ?>
       <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
-            data-confirm-title="Delete this section?" data-confirm-text="This section has no templates and will be removed.">
+            data-confirm-title="Delete this folder?" data-confirm-text="This folder is empty and will be removed.">
+        <input type="hidden" name="action" value="delete_folder">
+        <input type="hidden" name="id" value="<?= $folderId ?>">
+        <button class="btn btn-ghost btn-sm text-danger" title="Delete empty folder"><i class="bi bi-trash"></i></button>
+      </form>
+      <?php endif; ?>
+      <?php elseif ((int) $cat['count'] === 0): ?>
+      <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
+            data-confirm-title="Delete this section?" data-confirm-text="This section has no templates and will be removed<?= empty($sectionFolderCount[(int) $cat['id']]) ? '' : ', along with its empty folders' ?>.">
         <input type="hidden" name="action" value="delete_category">
         <input type="hidden" name="id" value="<?= $cat['id'] ?>">
         <button class="btn btn-ghost btn-sm text-danger" title="Delete empty section"><i class="bi bi-trash"></i></button>
@@ -258,9 +300,26 @@ include APPPATH . 'Views/layout/header.php';
   </div>
   <div class="collapse show" id="section-body-<?= $cat['id'] ?>">
   <div class="card-body">
-    <?php if (empty($items)): ?>
-    <p class="text-muted mb-0 text-center py-3"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No templates uploaded in this section yet.</p>
-    <?php else: ?>
+    <?php if ($shownFolders !== []): ?>
+    <!-- Folders at this level: open one to go inside; the ADAS can drop templates or files on them -->
+    <div class="tpl-subfolders<?= empty($items) ? '' : ' mb-3' ?>">
+      <?php foreach ($shownFolders as $sf): ?>
+      <a href="<?= base_url('templates?category=' . (int) $cat['id'] . '&folder=' . (int) $sf['id']) ?>" class="tpl-subfolder"
+         title="Open <?= e($sf['name']) ?>" data-section-name="<?= e($placeLabel((int) $cat['id'], (int) $sf['id'])) ?>"
+         <?php if ($canManage): ?>data-drop-section="<?= (int) $cat['id'] ?>" data-drop-folder="<?= (int) $sf['id'] ?>"<?php endif; ?>>
+        <?= $folderIcon($sectionColor[(int) $cat['id']] ?? '#7f1d1d', 'tpl-folder-xs') ?>
+        <span class="tpl-subfolder-main">
+          <span class="tpl-subfolder-name"><?= e($sf['name']) ?></span>
+          <span class="tpl-subfolder-meta"><?= $countLabel($sf['templates'], 'template', 'templates') ?><?= $sf['folders'] ? ' · ' . $countLabel($sf['folders'], 'folder', 'folders') : '' ?></span>
+        </span>
+        <i class="bi bi-chevron-right text-muted"></i>
+      </a>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <?php if (empty($items) && $shownFolders === []): ?>
+    <p class="text-muted mb-0 text-center py-3"><i class="bi bi-inbox fs-4 d-block mb-2"></i><?= $inFolder ? 'This folder is empty.' : 'No templates uploaded in this section yet.' ?></p>
+    <?php elseif (! empty($items)): ?>
     <div class="list-group list-group-flush">
       <?php foreach ($items as $t):
         [$icon, $tc, $bg] = fileTypeStyle($t['file_ext']);
@@ -269,8 +328,10 @@ include APPPATH . 'Views/layout/header.php';
         // switches to the brand red — a plain Download (no conversions)
         // isn't a dropdown, so it keeps its file-type color.
         $downloadColor    = ! empty($conversions) ? 'var(--primary)' : $tc;
+        $tFolderId        = $t['folder_id'] ? (int) $t['folder_id'] : null;
+        $tPlace           = $placeLabel((int) $t['category_id'], $tFolderId);
       ?>
-      <div class="list-group-item d-flex align-items-center gap-3 flex-wrap py-3<?= $canManage ? ' tpl-draggable' : '' ?>"<?php if ($canManage): ?> draggable="true" data-template-id="<?= (int) $t['id'] ?>" data-template-title="<?= e($t['title']) ?>" data-from-id="<?= (int) $t['category_id'] ?>" data-from-name="<?= e($t['category_name']) ?>" title="Drag onto a folder to move it"<?php endif; ?>>
+      <div class="list-group-item d-flex align-items-center gap-3 flex-wrap py-3<?= $canManage ? ' tpl-draggable' : '' ?>"<?php if ($canManage): ?> draggable="true" data-template-id="<?= (int) $t['id'] ?>" data-template-title="<?= e($t['title']) ?>" data-from-id="<?= (int) $t['category_id'] ?>" data-from-folder="<?= (int) $tFolderId ?>" data-from-name="<?= e($tPlace) ?>" title="Drag onto a folder to move it"<?php endif; ?>>
         <div style="width:40px;height:40px;border-radius:10px;background:<?= $bg ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <i class="bi <?= $icon ?>" style="color:<?= $tc ?>;font-size:1.1rem;"></i>
         </div>
@@ -284,6 +345,11 @@ include APPPATH . 'Views/layout/header.php';
           <p class="text-muted mb-1 text-truncate" style="font-size:.75rem;" title="<?= e($t['file_name']) ?>">
             <?= e($t['file_name']) ?> · <?= tplFormatBytes((int) $t['file_size']) ?>
           </p>
+          <?php if (! $browsing && $tFolderId && isset($folders[$tFolderId])): ?>
+          <a href="<?= base_url('templates?category=' . (int) $t['category_id'] . '&folder=' . $tFolderId) ?>" class="tpl-folder-path" title="Open this folder">
+            <i class="bi bi-folder2 me-1"></i><?= e($folders[$tFolderId]['path']) ?>
+          </a>
+          <?php endif; ?>
           <?php if (! empty($t['description'])): ?>
           <p class="text-muted mb-1 text-truncate" style="font-size:.72rem;" title="<?= e($t['description']) ?>">
             <?= e($t['description']) ?>
@@ -307,7 +373,7 @@ include APPPATH . 'Views/layout/header.php';
                       'title'       => $t['title'],
                       'description' => $t['description'],
                       'ext'         => $t['file_ext'],
-                      'category'    => $t['category_name'],
+                      'category'    => $tPlace,
                       'uploader'    => $t['uploaded_by'],
                       'date'        => date('M d, Y', strtotime($t['date_added'])),
                       'fileName'    => $t['file_name'],
@@ -340,7 +406,7 @@ include APPPATH . 'Views/layout/header.php';
             <?php endif; ?>
           </div>
           <?php if ($canManage): ?>
-          <button type="button" class="btn btn-sm btn-outline-secondary" title="Move to another section"
+          <button type="button" class="btn btn-sm btn-outline-secondary" title="Move to another section or folder"
                   onclick="openMoveTemplate(this.closest('[data-template-id]'))"><i class="bi bi-folder-symlink"></i></button>
           <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
                 data-confirm-title="Delete this template?">
@@ -369,7 +435,8 @@ include APPPATH . 'Views/layout/header.php';
 <?php endif; /* gridMode */ ?>
 
 <?php if ($canManage): ?>
-<div id="tplSectionsData" class="d-none" data-url="<?= base_url('templates') ?>" data-sections="<?= e(json_encode(array_map(static fn ($c) => ['id' => (int) $c['id'], 'name' => $c['name']], array_values($categories)))) ?>"></div>
+<div id="tplSectionsData" class="d-none" data-url="<?= base_url('templates') ?>" data-sections="<?= e(json_encode(array_map(static fn ($c) => ['id' => (int) $c['id'], 'name' => $c['name']], array_values($categories)))) ?>"
+     data-folders="<?= e(json_encode(array_map(static fn ($f) => ['id' => (int) $f['id'], 'section' => (int) $f['category_id'], 'path' => $f['path']], array_values($folders)))) ?>"></div>
 <!-- Add Category Modal -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1">
   <div class="modal-dialog">
@@ -433,7 +500,9 @@ include APPPATH . 'Views/layout/header.php';
       <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form" enctype="multipart/form-data"
             data-confirm-title="Upload this template?">
         <input type="hidden" name="action" value="upload">
+        <input type="hidden" name="folder_id" id="uploadFolderId" value="">
         <div class="modal-body">
+          <div id="uploadFolderNote" class="tpl-suggest mb-3 d-none"></div>
           <div class="mb-3">
             <label class="form-label">Section</label>
             <div class="maroon-select" style="width:100%;">
@@ -721,13 +790,41 @@ function openEditSectionModal(section) {
     bootstrap.Modal.getOrCreateInstance(document.getElementById('editSectionModal')).show();
 }
 
-function openUploadModal(categoryId) {
+// folder: {id, label} when uploading from inside a folder, otherwise null.
+function openUploadModal(categoryId, folder) {
+    const folderInput = document.getElementById('uploadFolderId');
+    if (folderInput) {
+        folderInput.value = folder ? folder.id : '';
+        folderInput.dataset.section = folder ? String(categoryId) : '';
+        folderInput.dataset.label = folder ? folder.label : '';
+    }
     const select = document.getElementById('uploadCategorySelect');
     if (select && categoryId) {
         select.value = categoryId;
         select.dispatchEvent(new Event('change'));
     }
+    renderUploadFolderNote();
     bootstrap.Modal.getOrCreateInstance(document.getElementById('uploadModal')).show();
+}
+
+// Says which folder the upload goes into; the folder only applies to files filed in its own section.
+function renderUploadFolderNote() {
+    const input  = document.getElementById('uploadFolderId');
+    const note   = document.getElementById('uploadFolderNote');
+    const select = document.getElementById('uploadCategorySelect');
+    if (!input || !note || !select) return;
+    if (!input.value) { note.classList.add('d-none'); note.innerHTML = ''; return; }
+    const label = '<strong>' + escapeHtml(input.dataset.label) + '</strong>';
+    let html;
+    if (select.value === input.dataset.section) {
+        html = '<i class=\"bi bi-folder2-open me-1\"></i>Saving into folder ' + label + '.';
+    } else if (select.value === 'auto') {
+        html = '<i class=\"bi bi-folder2-open me-1\"></i>Files filed in this folder’s section go into ' + label + '; files filed in other sections go to their top level.';
+    } else {
+        html = '<i class=\"bi bi-info-circle me-1\"></i>' + label + ' is not in the chosen section, so the files go to that section’s top level.';
+    }
+    note.innerHTML = html;
+    note.classList.remove('d-none');
 }
 
 function handleTemplateFilesChange(fileInput) {
@@ -853,6 +950,7 @@ function renderTemplateSuggestions() {
     if (!select || !box) return;
     const isAuto  = select.value === 'auto';
     hint.classList.toggle('d-none', !isAuto);
+    renderUploadFolderNote();
 
     TEMPLATE_SUGGESTIONS.forEach(function (s, i) {
         const el = document.getElementById('tplSuggest' + i);
@@ -1085,6 +1183,8 @@ function pickTemplateSection(id) {
 
 // Opening the Upload button fresh goes back to auto-classify.
 document.getElementById('uploadModal')?.addEventListener('hidden.bs.modal', function () {
+    const folderInput = document.getElementById('uploadFolderId');
+    if (folderInput) folderInput.value = '';
     const select = document.getElementById('uploadCategorySelect');
     if (select) { select.value = 'auto'; const root = select.closest('.maroon-select'); if (root && root.maroonSelectSync) root.maroonSelectSync(); }
     renderTemplateSuggestions();
@@ -1110,7 +1210,7 @@ function discardTemplateFiles() {
    - A template row dragged onto another folder: asks, then moves it.
    - Files dragged from the computer onto a folder: opens Upload with that folder picked.
    The folder flap opens while something is held over it (see .tpl-folder in app.css). */
-var TPL_DRAG_TEMPLATE = null; // the template being dragged: {id, title, fromId, fromName}
+var TPL_DRAG_TEMPLATE = null; // the template being dragged: {id, title, fromId, fromFolder, fromName}
 
 function tplDragKind(e) {
     if (TPL_DRAG_TEMPLATE) return 'template';
@@ -1123,7 +1223,7 @@ function initTemplateDragDrop() {
 
     document.querySelectorAll('.tpl-draggable').forEach(function (row) {
         row.addEventListener('dragstart', function (e) {
-            TPL_DRAG_TEMPLATE = { id: row.dataset.templateId, title: row.dataset.templateTitle, fromId: row.dataset.fromId, fromName: row.dataset.fromName };
+            TPL_DRAG_TEMPLATE = { id: row.dataset.templateId, title: row.dataset.templateTitle, fromId: row.dataset.fromId, fromFolder: row.dataset.fromFolder || '0', fromName: row.dataset.fromName };
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', row.dataset.templateTitle);
             row.classList.add('is-dragging');
@@ -1144,7 +1244,9 @@ function initTemplateDragDrop() {
             if (!kind) return;
             e.preventDefault();
             depth++;
-            const same = kind === 'template' && String(TPL_DRAG_TEMPLATE.fromId) === target.dataset.dropSection;
+            // Section chips mean the section's top level (folder 0); folder tiles carry their folder id.
+            const same = kind === 'template' && String(TPL_DRAG_TEMPLATE.fromId) === target.dataset.dropSection
+                && String(TPL_DRAG_TEMPLATE.fromFolder) === (target.dataset.dropFolder || '0');
             target.classList.add(same ? 'is-drop-same' : 'is-dragover');
             if (hint) hint.textContent = same ? 'Already in this folder' : (kind === 'template' ? 'Drop to move here' : 'Drop to add to ' + target.dataset.sectionName);
         });
@@ -1174,10 +1276,10 @@ function initTemplateDragDrop() {
             if (kind === 'template') {
                 const t = TPL_DRAG_TEMPLATE;
                 TPL_DRAG_TEMPLATE = null;
-                setTimeout(function () { confirmMoveTemplate(t, target.dataset.dropSection, target.dataset.sectionName); }, 350);
+                setTimeout(function () { confirmMoveTemplate(t, target.dataset.dropSection, target.dataset.sectionName, target.dataset.dropFolder); }, 350);
             } else {
                 const files = Array.from(e.dataTransfer.files || []);
-                setTimeout(function () { uploadDroppedFiles(files, target.dataset.dropSection, target.dataset.sectionName); }, 350);
+                setTimeout(function () { uploadDroppedFiles(files, target.dataset.dropSection, target.dataset.sectionName, target.dataset.dropFolder); }, 350);
             }
         });
     });
@@ -1195,10 +1297,58 @@ function initTemplateDragDrop() {
     }
 }
 
-// Do you want to transfer “doc” to “folder” from “folder”?
-function confirmMoveTemplate(t, toId, toName) {
-    if (!t) return;
+// Posts one ADAS action to the Templates page, then shows the result and refreshes.
+function postTemplateAction(fields) {
     const url = document.getElementById('tplSectionsData').dataset.url;
+    const fd = new FormData();
+    Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
+    return fetch(url, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.json().catch(function () { return { status: 'error', message: 'Unexpected server response.' }; }); })
+        .then(handleAjaxFormResult)
+        .catch(function () { Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server. Please try again.' }); });
+}
+
+// New folder at the section's top level (parent 0) or inside the open folder.
+function openAddFolder(o) {
+    Swal.fire({
+        title: 'New folder',
+        html: '<div style=\"font-size:.85rem\">Inside <strong>' + escapeHtml(o.where) + '</strong></div>',
+        input: 'text',
+        inputPlaceholder: 'e.g. Leave Forms, 2026, Term 1',
+        inputAttributes: { maxlength: 150 },
+        showCancelButton: true,
+        confirmButtonText: '<i class=\"bi bi-folder-plus me-1\"></i>Create folder',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        inputValidator: function (v) { return v && v.trim() ? null : 'Please enter a folder name.'; },
+    }).then(function (r) {
+        if (!r.isConfirmed) return;
+        postTemplateAction({ action: 'add_folder', category_id: o.category, parent_id: o.parent || 0, name: r.value.trim() });
+    });
+}
+
+function openRenameFolder(o) {
+    Swal.fire({
+        title: 'Rename folder',
+        input: 'text',
+        inputValue: o.name,
+        inputAttributes: { maxlength: 150 },
+        showCancelButton: true,
+        confirmButtonText: 'Save',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        inputValidator: function (v) { return v && v.trim() ? null : 'Please enter a folder name.'; },
+    }).then(function (r) {
+        if (!r.isConfirmed || r.value.trim() === o.name) return;
+        postTemplateAction({ action: 'rename_folder', id: o.id, name: r.value.trim() });
+    });
+}
+
+// Do you want to transfer “doc” to “folder” from “folder”? toFolder 0/empty = the section's top level.
+function confirmMoveTemplate(t, toId, toName, toFolder) {
+    if (!t) return;
     Swal.fire({
         icon: 'question',
         title: 'Transfer document?',
@@ -1214,23 +1364,34 @@ function confirmMoveTemplate(t, toId, toName) {
     }).then(function (result) {
         if (!result.isConfirmed) return;
         Swal.fire({ title: 'Transferring…', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, didOpen: function () { Swal.showLoading(); } });
-        const fd = new FormData();
-        fd.append('action', 'move_template');
-        fd.append('id', t.id);
-        fd.append('category_id', toId);
-        fetch(url, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.json().catch(function () { return { status: 'error', message: 'Unexpected server response.' }; }); })
-            .then(handleAjaxFormResult)
-            .catch(function () { Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not reach the server. Please try again.' }); });
+        postTemplateAction({ action: 'move_template', id: t.id, category_id: toId, folder_id: toFolder || 0 });
     });
 }
 
-// Keyboard / touch alternative to dragging: pick the folder from a list.
+// Keyboard / touch alternative to dragging: pick the section or folder from a list
+// (a section with folders becomes a group: its top level, then each folder by path).
 function openMoveTemplate(row) {
     if (!row) return;
-    const sections = JSON.parse(document.getElementById('tplSectionsData').dataset.sections || '[]');
-    const options = {};
-    sections.forEach(function (s) { if (String(s.id) !== row.dataset.fromId) options[s.id] = s.name; });
+    const data     = document.getElementById('tplSectionsData').dataset;
+    const sections = JSON.parse(data.sections || '[]');
+    const folders  = JSON.parse(data.folders || '[]');
+    const here     = row.dataset.fromId + ':' + (row.dataset.fromFolder || '0');
+    const options  = {};
+    const labels   = {};
+    sections.forEach(function (s) {
+        const inside = folders.filter(function (f) { return f.section === s.id; });
+        if (!inside.length) {
+            if (s.id + ':0' !== here) { options[s.id + ':0'] = s.name; labels[s.id + ':0'] = s.name; }
+            return;
+        }
+        const group = {};
+        if (s.id + ':0' !== here) { group[s.id + ':0'] = s.name + ' (top level)'; labels[s.id + ':0'] = s.name; }
+        inside.forEach(function (f) {
+            const key = s.id + ':' + f.id;
+            if (key !== here) { group[key] = f.path; labels[key] = s.name + ' / ' + f.path; }
+        });
+        if (Object.keys(group).length) options[s.name] = group;
+    });
     Swal.fire({
         title: 'Move to which folder?',
         html: '<div style=\"font-size:.85rem\">“' + escapeHtml(row.dataset.templateTitle) + '” is in <strong>' + escapeHtml(row.dataset.fromName) + '</strong>.</div>',
@@ -1245,13 +1406,14 @@ function openMoveTemplate(row) {
         inputValidator: function (v) { return v ? null : 'Please choose a folder.'; },
     }).then(function (r) {
         if (!r.isConfirmed) return;
-        confirmMoveTemplate({ id: row.dataset.templateId, title: row.dataset.templateTitle, fromId: row.dataset.fromId, fromName: row.dataset.fromName }, r.value, options[r.value]);
+        const parts = r.value.split(':');
+        confirmMoveTemplate({ id: row.dataset.templateId, title: row.dataset.templateTitle, fromId: row.dataset.fromId, fromName: row.dataset.fromName }, parts[0], labels[r.value], parts[1]);
     });
 }
 
-// Files from the computer dropped on a folder: open Upload with that folder picked
+// Files from the computer dropped on a section or folder: open Upload with it picked
 // (titles, tags and the section check still run there).
-function uploadDroppedFiles(files, sectionId, sectionName) {
+function uploadDroppedFiles(files, sectionId, sectionName, folderId) {
     const input = document.getElementById('uploadFileInput');
     if (!input || !files.length) return;
     const accept = (input.getAttribute('accept') || '').split(',').map(function (a) { return a.trim().toLowerCase(); }).filter(Boolean);
@@ -1259,7 +1421,7 @@ function uploadDroppedFiles(files, sectionId, sectionName) {
     if (ok.length < files.length) showToast((files.length - ok.length) + ' file(s) skipped — that file type isn’t allowed for templates.', 'danger');
     if (!ok.length) return;
 
-    openUploadModal(sectionId);
+    openUploadModal(sectionId, folderId && folderId !== '0' ? { id: folderId, label: sectionName } : null);
     const dt = new DataTransfer();
     ok.forEach(function (f) { dt.items.add(f); });
     input.files = dt.files;
@@ -1329,7 +1491,11 @@ function openSectionFolder(e) {
     // A section card, or a folder in the dock above a section's templates.
     const card = link.closest('.tpl-section-card, .tpl-dock-folder');
     e.preventDefault();
-    if (card && card.classList.contains('is-current')) return; // already open
+    if (card && card.classList.contains('is-current')) {
+        // Already open — but from inside one of its folders, go back to its top level.
+        if (card.dataset.inFolder) loadPage(link.href);
+        return;
+    }
     if (card && card.classList.contains('tpl-dock-folder')) {
         document.querySelectorAll('.tpl-dock-folder.is-current').forEach(function (c) {
             c.classList.remove('is-current');

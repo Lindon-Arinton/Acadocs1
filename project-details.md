@@ -18,6 +18,39 @@ The system has three user roles:
 
 ---
 
+## Summary
+
+ACADOCS replaces the school's scattered spreadsheets, printed forms, USB
+drives and group chats with **one shared system**. Every staff member logs in
+with their own account, and what they see depends on their role.
+
+In simple terms, the system does five big jobs:
+
+1. **Collects work** — teachers and staff submit required documents online
+   against tasks with deadlines, and the principal reviews them.
+2. **Collects data** — enrollment sheets, DepEd KPI reports, MPS score sheets
+   and biometric attendance are fed into the system from the files the school
+   already uses (or pulled straight from the biometric scanner).
+3. **Turns data into information** — the system computes totals, averages and
+   rates, draws the dashboard charts, and writes plain-language **insights**
+   and **alerts** (e.g. "Math · Grade 8 is below mastery").
+4. **Keeps everyone informed** — announcements, notifications, reminders and a
+   built-in chat connect the principal, teachers and ADAS.
+5. **Keeps school records in order** — templates, resource links, property
+   inventory with acknowledgment receipts, staff attendance, and user
+   accounts.
+
+Each role has a clear job inside this loop: **teachers supply** academic data
+and submissions, the **ADAS processes** records and runs daily operations, and
+the **principal monitors, reviews and decides**. Because all three work on the
+same data, one person's action immediately shows up for the others — a
+teacher's MPS entry appears on the principal's dashboard, an ADAS biometric
+import appears on each teacher's attendance count, and a principal's review
+appears in the teacher's To Do List. Sections 8 and 9 explain these connections in
+detail, including who monitors what.
+
+---
+
 ## 1. Objectives of the System
 
 ### General Objective
@@ -59,7 +92,8 @@ decision-making.
 9. **Improve school communication** — provide announcements, in-app
    notifications and a built-in chat (direct and group messages).
 10. **Keep an inventory of school property** — record room and section
-    assets and their condition.
+    assets and their condition, issue them to advisers with a Property
+    Acknowledgment Receipt, and handle reported concerns.
 11. **Secure access by role** — make sure each user only sees and does what
     their role allows.
 
@@ -82,7 +116,7 @@ in one database:
 | **Staff attendance** | Daily time-in / time-out and status for every employee, plus the school's holiday list |
 | **Templates** | The school's document and form templates, grouped by category |
 | **Resource links** | External links to DepEd forms, guidelines, and questionnaires |
-| **Property inventory** | Items per grade and section with their condition |
+| **Property inventory** | Items per grade and section, their condition (Working / Not Working) and audit history, who each item is issued to, acknowledgment receipts, and reported concerns |
 | **Communication** | Chat conversations, attachments, and notifications |
 | **User accounts** | All staff accounts, roles, biometric numbers, and teacher subject loads |
 | **Reports** | Printable school performance reports generated from the same data as the dashboard |
@@ -125,8 +159,9 @@ has a **downloadable blank template** in the expected format.
 | Data feed | Who imports | File | What the system does automatically | Output it produces |
 |-----------|-------------|------|-------------------------------------|--------------------|
 | **Add Enrollment** | Admin, ADAS | Excel (.xlsx / .xls / .csv) — the school's per-section enrollment sheet | Reads every sheet (one per count date), finds the GRADE 7–10 blocks, adds up male/female per section, counts sections, uses the latest count of each month, and checks the sums against the sheet's own TOTAL rows | **Enrollment chart** (per grade, male vs female), **Total Enrollees** tile with year-over-year change and sparkline |
-| **Import KPI Report** | Admin, ADAS | Word (.docx) — DepEd "Key Performance Indicator" report | Finds the Indicator table and reads each rate; asks which school year the data is for (YYYY – YYYY prompt) | **Drop-Out Rate** tile, **KPI trend chart**, historical KPI table |
-| **Enter / Import MPS Scores** | Teacher | Excel (.xlsx / .xls) — the school's MPS workbook, or typed in on the form | Reads Summative Test 1, Summative Test 2 and Term Examination grids, accepts only the teacher's own subjects/grades, then **computes MPS per subject and per grade level** | **Average MPS** tile, **Performance chart** per grade level, subject ranking, lowest-subject alert |
+| **Import KPI Report** | Admin, ADAS | Word (.docx) — DepEd "Key Performance Indicator" report | Finds the Indicator table and reads each rate; asks which school year the data is for (YYYY – YYYY prompt) | **Drop-Out Rate** tile (with the 0% target), **KPI trend chart**, historical KPI table |
+| **Enter / Import MPS Scores** | Teacher | Excel (.xlsx / .xls) — the school's MPS workbook, or typed in on the form | Reads Summative Test 1, Summative Test 2 and Term Examination grids, accepts only the teacher's own subjects/grades, then **computes MPS per subject and per grade level** | **Average MPS** tile (with the 75% target), **Performance chart** per grade level, subject ranking, lowest-subject alert |
+| **Biometric Sync (automatic)** | Nobody — runs by itself | Connects to the school's biometric scanner over the network every few minutes | Reads only the new punches since the last sync and rebuilds those days' attendance using the same rules as an import; the ADAS can also press **Sync** to pull right away | Time Records stay current through the day without anyone importing a file |
 | **Import Time Records** | Admin, ADAS | Excel — biometric scanner export (punch log or daily record) | Groups punches per employee per day, takes earliest time-in and latest time-out, marks **Late** after 7:30 AM, marks **Absent** when there's no punch, skips weekends and holidays, matches employees by AC-No and ties each record to the person's account (so history stays with them even if their number changes) | Daily attendance table, **personal Present/Absent counts** on the Teacher dashboard |
 
 ### Automatic Insights (decision support)
@@ -136,11 +171,11 @@ short, plain-language findings computed from the fed data, sorted most
 urgent first (danger → warning → success → info) and capped at five:
 
 **Admin dashboard insights**
-- Lowest-performing subject (when its MPS is below 80%), with its grade level and — when on record — the teacher who handles it (recorded automatically when a teacher saves or imports MPS scores); the teacher's name is clickable and opens their profile
+- Lowest-performing subject (when its MPS is below the **75% MPS target**), with its grade level and — when on record — the teacher who handles it (recorded automatically when a teacher saves or imports MPS scores); the teacher's name is clickable and opens their profile
 - Submission compliance compared with the 85% target (critical below 60%)
-- Drop-out rate increase or decrease compared with the previous school year
+- Drop-out rate compared with the school's **0% drop-out target**, and its increase or decrease compared with the previous school year
 - Average MPS improvement or decline compared with the previous school year
-- Top-performing subject (MPS of 85% or higher)
+- Top-performing subject (when it meets the 75% MPS target)
 - Enrollment rise or fall compared with the previous school year
 - Number of documents still awaiting review
 
@@ -150,6 +185,44 @@ urgent first (danger → warning → success → info) and capped at five:
 - New feedback on a submission, naming who wrote it
 - Personal task completion rate
 - Absences this month, or perfect attendance
+
+### Learner Performance Alerts
+
+Whenever a teacher saves or imports MPS scores, the system checks each class.
+If a class's MPS falls **below 75% (mastery level)**, both the **principal**
+and **the subject teacher** get a notification naming the class and its
+descriptor (e.g. *Developing* or *Emerging*). The alert updates if the class
+drops further, and disappears by itself once the class reaches 75% again — so
+the notification list always reflects the current situation.
+
+### Template Auto-Classification and Auto-Tagging
+
+When the ADAS uploads a template, the system **reads the document's own
+text** (Word, Excel, PowerPoint, PDF) along with its file name and title, then
+**suggests which section it belongs to** and **adds tags** such as
+*Certificate*, *Report*, *Checklist* or *Procurement*, plus the document's key
+words. It learns from the templates already filed, so suggestions get better
+the more the library is used. Several files can be uploaded at once and each
+is filed on its own. The tags and key words make the library searchable by
+content, not just by file name. All of this runs on the school's own server —
+no outside service sees the files.
+
+### Automations (work the system does by itself)
+
+Some jobs happen without anyone clicking anything. They run on a schedule
+(Windows Task Scheduler) and, as a backup, during normal page visits:
+
+| Automation | What happens |
+|------------|--------------|
+| **Scheduled announcements** | An announcement can be set to publish on a future date (everyone is notified then) and to archive itself when it expires. |
+| **Term reminders** | When the end-of-term period starts, teachers are reminded to enter MPS scores; the day after the term ends, those still missing scores get a follow-up. |
+| **Report pack notices** | The day after a term (or the school year) ends, the principal and ADAS are told the end-of-term / end-of-year report pack is ready. |
+| **Biometric pull** | New scanner punches are copied into Time Records every few minutes. |
+| **Daily cleanup** | Removes used password-reset codes, old notifications, abandoned chats and files, and leftover import files, keeping the system tidy. |
+
+The system also follows the **DepEd school calendar** (school years, terms,
+and academic breaks), so it knows which term today falls in, how many class
+days are left, and when term-based reminders and reports are due.
 
 ---
 
@@ -161,6 +234,7 @@ urgent first (danger → warning → success → info) and capped at five:
 |----------|--------------|
 | **Admin Dashboard** | One-page overview of the school: Total Enrollees, Drop-Out Rate, Average MPS and Submission Compliance tiles (each with a trend sparkline and change vs last year); KPI trend chart; enrollment chart by grade level and month; MPS chart per grade level; subject MPS ranking (average or full per-grade/teacher view); document status chart; and the **Insights** panel. The **School Year** filter switches every figure, and its **Custom…** option shows a year range — the last 5 years, the last 10 years, or any range (e.g. 2014–2022) — for the trend chart, the DepEd history, and the insights. |
 | **Generate Report** | Opens a pop-up that pre-selects the school year (or year range) the dashboard is filtered to and lists checkboxes for each section: key figures, insights, enrollment by grade level, total enrollees, drop-out rate, average MPS, performance by learning area, DepEd historical KPIs, and document submission status. Produces a printable A4 report with the DepEd letterhead, charts and tables matching the dashboard, the insights, and a signature block — ready to print or save as PDF. Available to the principal and ADAS. |
+| **End-of-Term / End-of-Year Report Pack** | A ready-made report for one term (or the whole school year) on the DepEd calendar: enrollment, staff attendance, MPS by learning area, classes below mastery, and task compliance. The system announces when it is ready. Available to the principal and ADAS. |
 | **Add Enrollment** | Uploads the enrollment Excel sheet (data feed). Can download a blank sheet in the school's layout with section names pre-filled from teachers' subject loads. |
 | **Import KPI Report** | Uploads the DepEd KPI Word report (data feed) and enters its school year. Can download the blank KPI template. |
 | **Announcements** | Posts announcements, forms, and questionnaires (only the title is required; content and a **photo** are optional); every user gets a notification. Opening one shows a pop-up with the photo (or the type's icon), title, date, **posted by**, and content, closed with **I Understand**; the photo can be viewed full size. Any announcement can be **shared to chat** (people or group chats), where it appears as a card. Can filter, search, sort, and delete. |
@@ -168,8 +242,8 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Tasks & Assignments** | Creates tasks with title, description, and deadline, assigned to **all Teachers**, **all ADAS**, or **specific people** (filterable by department). Sees how many submitted out of how many are expected, who hasn't submitted yet, and whether each submission was **on time or late** (and by how much). Opens a task to **review submissions**, **leave feedback**, and **annotate files** — drawing, highlighting, and writing notes directly on a file and saving a marked-up copy the teacher can open (the original is never changed). These approvals are principal-only, and each one records who did it and when. **Open in Manage Documents** jumps to the task's folder. Can close, reopen, or delete tasks. Assignees are notified. |
 | **Time Records** | Views daily attendance of all staff (filter by date/status, search, sort), imports biometric exports, edits a record (time in/out, status, remarks), and manages the holiday list. Employee names open their profile. |
 | **Document Links** | Adds and deletes links to external resources (category: Forms, Guidelines, Questionnaires, Templates; access level: All Users, Teachers, Admin). |
-| **Templates** | Views, previews, and downloads templates (with an optional "Convert to PDF" download). |
-| **Property Management** | Views the property inventory (view-only), filtered by grade, section, and condition. |
+| **Templates** | Views, previews, searches (by title, tag, or content key words), and downloads templates (with an optional "Convert to PDF" download). |
+| **Property Management** | Views the property inventory, acknowledgment receipts, and concerns (view-only), filtered by grade, section, and condition — to see the state of school assets without changing them. |
 | **User Management** | Adds, edits, and deletes accounts of **any** role (including other admins) and resets passwords. For teachers, also sets advisory, grade level, and subjects. Sets each person's **Biometric No. (AC-No)** — the number they use on the scanner — which links their time records to their account (numbers must be unique; unlinked scanner numbers are suggested). |
 | **Chat** | Direct messages **and creating group chats**; manages group members. |
 | **Profile / Notifications** | Updates personal info, photo, and password; receives notifications (e.g. new submissions). |
@@ -184,7 +258,7 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Announcements** | Reads announcements, forms, and questionnaires (read-only). |
 | **Document Links** | Opens shared resource links (read-only). |
 | **Templates** | Views, previews, and downloads templates. |
-| **Property Management** | **Adds and deletes** property items for a grade and section, with item name, quantity, and condition (Excellent / Good / Fair / Poor), and filters the list by grade, section, and condition. Teachers are the only role that can add or delete items. |
+| **Property Management** | Sees **only the items issued to them** as adviser. **Confirms receipt** by approving the Property Acknowledgment Receipt (PAR) the ADAS sends — or returns it if something is wrong — and **reports concerns** about an item (e.g. broken, missing), which notifies the ADAS. |
 | **Chat** | Direct messages (start new conversations, reply, react, edit, unsend, send attachments). Can take part in groups but cannot create them. |
 | **Profile** | Updates personal info, photo, and password, and manages their **Subject Load** (subjects, grade levels, sections), which controls their MPS entry form. Shows their **Biometric No.** (read-only; set in User Management). |
 
@@ -198,9 +272,10 @@ urgent first (danger → warning → success → info) and capped at five:
 | **Tasks & Assignments** | Creates tasks for teachers, ADAS, or specific people and tracks who has and hasn't submitted. Can open, preview, and download every submission and see the principal's marked-up copies and feedback, but **reviewing, feedback, and annotating are reserved for the principal**. |
 | **Announcements** | Posts and deletes announcements, forms, and questionnaires. |
 | **Document Links** | Adds and deletes resource links. |
-| **Time Records** | Imports biometric exports (data feed), edits records, and manages holidays — the main role responsible for attendance encoding. |
-| **Templates (manager)** | The **only role that manages the template library**: creates and deletes categories, uploads and deletes templates. |
-| **Property Management** | Views the inventory (view-only), filtered by grade, section, and condition. |
+| **Generate Report / Report Pack** | Produces the printable school report and the end-of-term / end-of-year report pack, same as the principal. |
+| **Time Records** | Watches the automatic biometric sync (and can press **Sync** to pull now), imports biometric exports when needed (data feed), edits records, and manages holidays — the main role responsible for attendance. |
+| **Templates (manager)** | The **only role that manages the template library**: creates and deletes sections, adds optional **folders inside a section** (and folders within folders) to organize large sections, uploads, moves and deletes templates. The system suggests each template's section and tags from its content; the ADAS confirms or changes them. |
+| **Property Management (manager)** | The **only role that runs the inventory**: adds, edits and removes items; **audits** each item's condition (Working / Not Working, with remarks and a history of changes); **issues** a room's items to the section adviser with a **Property Acknowledgment Receipt (PAR)**; **resolves concerns** teachers report; and exports the inventory to Excel. |
 | **User Management** | Adds, edits, deletes, and resets passwords of **teacher and ADAS** accounts, including their **Biometric No. (AC-No)**; cannot create or modify admin accounts. |
 | **Chat** | Direct messages; can take part in groups but cannot create them. |
 | **Profile** | Updates personal info, photo, and password. |
@@ -237,8 +312,11 @@ urgent first (danger → warning → success → info) and capped at five:
 | Read announcements / document links | ✓ | ✓ | ✓ |
 | View / download templates | ✓ | ✓ | ✓ |
 | Manage templates | | | ✓ |
-| Add / delete property items | | ✓ | |
-| View property inventory | ✓ | ✓ | ✓ |
+| End-of-term / end-of-year report pack | ✓ | | ✓ |
+| Run property inventory (add, audit, issue PAR, resolve concerns) | | | ✓ |
+| Confirm PAR / report property concern | | ✓ (own items) | |
+| View property inventory | ✓ | ✓ (own items) | ✓ |
+| Receive learner performance (MPS) alerts | ✓ | ✓ (own classes) | |
 | Manage user accounts | ✓ (all roles) | | ✓ (teacher & ADAS only) |
 | Create chat groups | ✓ | | |
 | Direct chat | ✓ | ✓ | ✓ |
@@ -269,7 +347,7 @@ reviews, and decides**.
 2. Opens the **To Do List**, uploads the required files for each task before the deadline, and resubmits if a file is **Returned**.
 3. At the end of each test period, opens **Enter MPS Scores** and types in or **imports** the MPS sheet for their sections. The computed MPS feeds directly into the principal's dashboard.
 4. Keeps their **Subject Load** in the profile up to date so the MPS form shows the right subjects and sections.
-5. Records classroom **property** items and their condition.
+5. Confirms the **property** issued to their advisory class (approves the PAR) and reports any concerns about it.
 6. Reads announcements, uses document links and templates, and chats with colleagues.
 
 *Focus:* their own tasks and classes. Teachers see only their own data and cannot see other teachers' submissions or the school-wide dashboard.
@@ -280,8 +358,9 @@ reviews, and decides**.
 2. **Imports the biometric export** into Time Records; the system marks Present / Late / Absent automatically. Corrects records and keeps the **holiday list** current.
 3. Maintains the **template library** — categories, uploads, and removals — so everyone works from the current forms.
 4. Helps the principal by **posting announcements and links**, **creating tasks**, and **tracking who hasn't submitted**. Approving the work itself is left to the principal.
-5. Creates and maintains **teacher and ADAS accounts**.
-6. Submits their own assigned work under **My Tasks**.
+5. Runs the **property inventory**: audits item condition, issues items to advisers with a PAR, and resolves reported concerns.
+6. Creates and maintains **teacher and ADAS accounts**.
+7. Submits their own assigned work under **My Tasks**.
 
 *Focus:* operational and clerical processing, plus keeping the school dashboard's data up to date. ADAS sees the same dashboard as the principal but cannot manage admin accounts.
 
@@ -294,6 +373,7 @@ reviews, and decides**.
 | **Data they feed** | Enrollment, DepEd KPI report | MPS scores | Enrollment, DepEd KPI report, biometric attendance |
 | **Tasks** | Creates, reviews, and approves | Receives and submits | Creates, tracks, and also submits |
 | **Documents** | Reviews, returns, and annotates submissions | Uploads own files; sees feedback and marked-up copies | Views submissions (no reviewing); manages templates |
+| **Property** | Views only | Confirms receipt of own items; reports concerns | Runs the whole inventory |
 | **Scope of data seen** | Whole school | Only their own | Whole school, plus operational records (attendance, users, templates) |
 
 ---
@@ -313,11 +393,159 @@ reviews, and decides**.
 | Posting notices on boards or group chats | Announcements reach every user with an in-app notification |
 | Searching folders for the right form or template | One searchable template library with in-browser preview and PDF download |
 | Reading spreadsheets to spot problems | The Insights panel points out the lowest subject, compliance gaps, and drop-out changes automatically |
-| Paper property inventory per room | Digital inventory per grade and section with condition status, searchable and sortable |
+| Paper property inventory per room and handwritten acknowledgment receipts | Digital inventory per grade and section with condition history; PARs issued and confirmed online; concerns reported and tracked to resolution |
+| Remembering to remind teachers about MPS at the end of each term | Term reminders and follow-ups are sent automatically from the school calendar |
+| Manually copying the biometric log every day | The system pulls new punches from the scanner every few minutes |
+| Deciding which folder a new form belongs in | The template library suggests the section and tags from the document's content |
 
 ---
 
-## 8. Technology Used
+## 8. How the Parts Work Together
+
+ACADOCS is not a set of separate tools — it is **one system made of
+interrelated parts**. Each part takes something in, does its job, and passes
+its result to another part. Remove one and the others lose information they
+depend on.
+
+### 8.1 The parts of the system
+
+| Part | Its job | What it receives | What it gives to other parts |
+|------|---------|------------------|------------------------------|
+| **User accounts & roles** | Decides who can see and do what | Accounts made by the principal / ADAS; teachers' subject loads; Biometric Nos. | Identity for every other part: who submitted, who reviewed, whose attendance, whose classes |
+| **Tasks & submissions** | Collects required work by a deadline | Tasks from principal / ADAS; files from teachers and ADAS | Submission counts → dashboard compliance tile and insights; files → Manage Documents |
+| **Document review** | Checks the quality of submitted work | Submitted files | Status (Reviewed / Returned), feedback and marked-up copies → back to the submitter; notifications |
+| **Data feeds** (enrollment, KPI, MPS, attendance) | Turns the school's own files into stored figures | Excel / Word files; the biometric scanner | Clean numbers → dashboard, insights, alerts, reports |
+| **Dashboards & insights** | Shows where the school stands and what needs attention | Figures from every data feed and from tasks | What the principal acts on; content for reports |
+| **Reports** (Generate Report, Report Pack) | Produces printable documents for the division and records | Same figures as the dashboard | Printed / PDF reports |
+| **School calendar & automations** | Keeps time-based work moving | DepEd calendar, holidays, academic breaks | Reminders, report-pack notices, scheduled announcements, biometric pulls, cleanup |
+| **Notifications** | Tells the right person that something happened | Events from every other part | A bell alert that links straight to the right page |
+| **Announcements & chat** | Day-to-day communication | Posts and messages from users | Shared information; announcements can be shared into chats |
+| **Templates & document links** | Gives everyone the correct, current forms | Uploads by ADAS (auto-tagged); links by principal / ADAS | Forms used to prepare task submissions |
+| **Property management** | Keeps track of school assets | Items, audits and PARs from ADAS; confirmations and concerns from teachers | Accountability record of who holds what and in what condition |
+
+### 8.2 How information flows
+
+```
+         TEACHERS                    ADAS                     PRINCIPAL
+     (supply data & work)    (process & operate)       (monitor & decide)
+            │                         │                         ▲
+   MPS scores, submissions   Enrollment, KPI report,            │
+   PAR confirmations,        biometric attendance,              │
+   property concerns         templates, inventory               │
+            │                         │                         │
+            ▼                         ▼                         │
+     ┌──────────────────────────────────────────────┐           │
+     │          ONE SHARED SCHOOL DATABASE          │           │
+     └──────────────────────────────────────────────┘           │
+            │                         │                         │
+            ▼                         ▼                         │
+   Computations & checks      Calendar & automations            │
+   (MPS, rates, totals,       (reminders, sync, pack            │
+    attendance status)         notices, cleanup)                │
+            │                         │                         │
+            └──────────┬──────────────┘                         │
+                       ▼                                        │
+     Dashboards · Insights · Alerts · Reports · Notifications ──┘
+                       │
+                       ▼
+     Principal's decisions → new tasks, feedback, announcements
+                       │
+                       └──────────► back to Teachers and ADAS
+```
+
+The cycle repeats every term: **data comes in → the system computes → people
+are informed → the principal acts → new work goes out**.
+
+### 8.3 Examples of interdependence
+
+- **MPS scores → dashboard → alert → follow-up.** A teacher enters MPS for
+  their sections. The dashboard's Average MPS tile and subject ranking update
+  at once. If a class is below 75%, both the teacher and the principal are
+  alerted, and the insight names the teacher handling the lowest subject. The
+  principal can click that name, open the profile, and chat with the teacher.
+  *Depends on:* the teacher's subject load in their profile — without it, the
+  MPS form would not know which classes to show.
+- **Biometric scanner → time records → teacher dashboard.** The scanner's
+  punches are pulled automatically and matched to each person by their
+  Biometric No. Present / Late / Absent is decided using the holiday list and
+  the school calendar. Each teacher's own dashboard then shows their
+  attendance count and an absence insight. *Depends on:* the ADAS or principal
+  setting each person's Biometric No. in User Management, and the ADAS keeping
+  the holiday list current.
+- **Task → submission → review → notification.** The principal or ADAS posts
+  a task; assignees are notified. A teacher submits; the principal and ADAS
+  are notified, and the file lands in the task's folder. The principal
+  reviews or returns it with feedback; the teacher is notified and sees the
+  marked-up copy. Meanwhile the submission count feeds the **Submission
+  Compliance** tile and insight on the dashboard.
+- **Templates → submissions.** The ADAS keeps the template library current
+  (helped by auto-tagging), so teachers download the right form before
+  submitting a task — fewer submissions get returned.
+- **Calendar → automations → reports.** The DepEd school calendar tells the
+  system when a term ends. Teachers are reminded to finish MPS entries, and
+  the next day the principal and ADAS are told the report pack is ready —
+  which itself is built from enrollment, attendance, MPS and task data.
+- **Inventory → PAR → concern → resolution.** The ADAS issues a room's items
+  to its adviser. The teacher confirms receipt (or returns the PAR). Later the
+  teacher reports a broken item; the ADAS is notified, audits it, marks it
+  *Not Working*, and resolves the concern — the teacher is notified, and the
+  principal can see the whole history.
+- **User accounts → everything.** Every record carries *who* did it — who
+  submitted, who reviewed and when, who posted, who handles a subject. This is
+  what makes accountability and the profile cards possible across the system.
+
+---
+
+## 9. Monitoring: Who Watches What
+
+Each role monitors a different slice of the same system.
+
+### Principal (Admin) monitors the whole school
+
+| What is monitored | Where | What signals a problem |
+|-------------------|-------|------------------------|
+| Learner performance | Dashboard MPS tile, performance chart, subject ranking, MPS alerts | Subject MPS below the 75% target (insight); class below 75% (alert) |
+| Enrollment and drop-out | Total Enrollees and Drop-Out Rate tiles, KPI trend chart | Falling enrollment or rising drop-out vs. last year |
+| Staff compliance | Submission Compliance tile, task pages | Below 85% target (critical below 60%); late or missing submissions |
+| Quality of submitted work | Manage Documents, task review | Documents still pending review |
+| Staff attendance | Time Records | Late or absent entries |
+| School assets | Property Management (view-only) | Items *Not Working*, open concerns, unconfirmed PARs |
+| Long-term trends | School Year filter with year ranges; reports | Multi-year decline in any KPI |
+
+### ADAS monitors operations
+
+| What is monitored | Where | What signals a problem |
+|-------------------|-------|------------------------|
+| Biometric sync | Time Records (last sync status) | Sync failed or no recent punches |
+| Attendance accuracy | Time Records | Unmatched scanner numbers; missing holidays |
+| Who hasn't submitted | Tasks & Assignments | Missing or late submissions to follow up on |
+| Template library | Templates | Low-confidence section suggestions to double-check |
+| Property | Property Management | Open concerns; returned or pending PARs; items needing audit |
+| Data feeds for the dashboard | Dashboard | Missing enrollment months or KPI years |
+| User accounts | User Management | New staff without accounts or Biometric No. |
+
+### Teacher monitors their own work
+
+| What is monitored | Where | What signals a problem |
+|-------------------|-------|------------------------|
+| Tasks and deadlines | My Dashboard, To Do List | Overdue tasks; task due soon |
+| Feedback on submissions | To Do List, notifications | A **Returned** submission needing a fix |
+| Their classes' performance | Enter MPS Scores, MPS alerts | A class below 75% mastery |
+| Own attendance | My Dashboard | Absences this month |
+| Issued property | Property Management | A PAR waiting for confirmation; condition of their items |
+
+### How monitoring connects the roles
+
+The monitoring is **layered**: teachers watch their own tasks and classes,
+the ADAS watches day-to-day operations and data quality, and the principal
+watches the overall results. Problems surface at the level that can fix them
+first — a teacher sees a returned file before it becomes a compliance issue,
+the ADAS sees a failed sync before attendance figures go wrong — and only
+what remains reaches the principal's dashboard as an insight.
+
+---
+
+## 10. Technology Used
 
 | Layer | Technology |
 |-------|------------|
@@ -328,3 +556,5 @@ reviews, and decides**.
 | File reading/writing | PhpSpreadsheet (Excel), PhpWord (Word) |
 | File preview | docx-preview, LibreOffice (optional), Office Online viewer (deployed sites) |
 | Annotation | PDF.js (renders files), pdf-lib (saves the marked-up copy) |
+| Biometric connection | Direct network link to the ZKTeco scanner |
+| Scheduling | Windows Task Scheduler (`php spark acadocs:automate`), with page visits as a backup |

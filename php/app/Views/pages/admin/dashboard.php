@@ -121,6 +121,7 @@ $insightTone = [
         <div class="dash-kpi-value" id="kpiCardValue-dropout">—</div>
         <div class="dash-vs" id="kpiCardYearNote-dropout"></div>
         <?= $deltaRow($dropoutDelta, false, ' pts') ?>
+        <div class="dash-vs">Target: <?= number_format(\App\Controllers\Admin\Dashboard::DROPOUT_TARGET) ?>%</div>
       </div>
       <?= $sparklineSvg($dropoutSparkline, '#800000') ?>
     </div>
@@ -132,6 +133,7 @@ $insightTone = [
       <div>
         <div class="dash-kpi-value"><?= $mpsOverallAvg !== null ? number_format($mpsOverallAvg, 2) . '%' : 'No data' ?></div>
         <?= $deltaRow($mpsDelta, true, ' pts') ?: '<div class="dash-vs">SY ' . e($mpsSourceYear) . '</div>' ?>
+        <div class="dash-vs">Target: <?= number_format(\App\Controllers\Admin\Dashboard::MPS_TARGET) ?>%</div>
       </div>
       <?= $sparklineSvg($mpsSparkline, '#800000') ?>
     </div>
@@ -416,7 +418,7 @@ $insightTone = [
               <td class="text-end"><?= $fmt($k['graduation_rate']) ?></td>
               <td class="text-end"><?= $fmt($k['completion_rate']) ?></td>
               <td class="text-end"><?= $fmt($k['transition_rate']) ?></td>
-              <td class="text-end <?= (float) $k['dropout_rate'] > 1.5 ? 'text-danger fw-semibold' : '' ?>"><?= $fmt($k['dropout_rate']) ?></td>
+              <td class="text-end <?= $k['dropout_rate'] !== null && (float) $k['dropout_rate'] > \App\Controllers\Admin\Dashboard::DROPOUT_TARGET ? 'text-danger fw-semibold' : '' ?>"><?= $fmt($k['dropout_rate']) ?></td>
             </tr>
             <?php endforeach; ?>
           </tbody>

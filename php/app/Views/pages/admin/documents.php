@@ -20,6 +20,14 @@
 $plainFolders = array_values(array_filter($folders, static fn ($f) => ! $f['is_task']));
 $taskFolders  = array_values(array_filter($folders, static fn ($f) => $f['is_task']));
 
+// Same paper-folder icon as Templates: the flap opens on hover and while a folder is dragged over it.
+$folderIcon = static function (string $color, string $extra = ''): string {
+    return '<div class="tpl-folder ' . $extra . '" style="--folder:' . $color . '" aria-hidden="true">'
+        . '<span class="tpl-folder-back"></span><span class="tpl-folder-paper"></span><span class="tpl-folder-paper tpl-folder-paper-2"></span><span class="tpl-folder-front"></span></div>';
+};
+// Plain folders get colours in turn (Templates' palette); task-upload folders stay maroon.
+$folderPalette = ['#2f4a7a', '#2f7d4f', '#8e5ba8', '#ea7a1e', '#1f6f7a', '#d4a72c', '#be185d', '#475569', '#0e7490', '#7f1d1d'];
+
 // Rename / Move to… / Delete menu, shared by folder cards and task sections.
 $folderMenu = static function (array $folder, bool $floating) use ($canManage): void {
     if (! $canManage) {
@@ -106,14 +114,14 @@ $folderMenu = static function (array $folder, bool $floating) use ($canManage): 
 <!-- Plain folders: open to browse, drop folders onto them to move -->
 <h6 class="fw-bold text-muted small text-uppercase mb-2" style="letter-spacing:.04em;"><i class="bi bi-folder2 me-1"></i>Folders</h6>
 <div class="row g-3 mb-4">
-  <?php foreach ($plainFolders as $folder): ?>
+  <?php foreach ($plainFolders as $i => $folder): ?>
   <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
     <div class="card doc-folder-card doc-folder-plain h-100 position-relative"
          <?php if ($canManage): ?>draggable="true"<?php endif; ?>
          data-folder-id="<?= (int) $folder['id'] ?>" data-folder-name="<?= e($folder['name']) ?>"
          data-drop-target="<?= (int) $folder['id'] ?>" data-drop-name="<?= e($folder['name']) ?>">
       <div class="card-body d-flex gap-3 align-items-start">
-        <i class="bi bi-folder-fill doc-folder-icon doc-folder-icon-plain"></i>
+        <?= $folderIcon($folderPalette[$i % count($folderPalette)]) ?>
         <div class="min-w-0 flex-grow-1 pe-3">
           <div class="fw-semibold text-truncate" style="color:var(--text);" title="<?= e($folder['name']) ?>"><?= e($folder['name']) ?></div>
           <?php if (! empty($folder['path'])): ?>
@@ -150,7 +158,7 @@ $folderMenu = static function (array $folder, bool $floating) use ($canManage): 
     <button type="button" class="btn section-toggle-btn collapsed flex-grow-1 d-flex align-items-center text-start p-0 border-0 bg-transparent" style="min-width:0;"
             data-bs-toggle="collapse" data-bs-target="#doc-section-<?= (int) $folder['id'] ?>" aria-expanded="false">
       <i class="bi bi-chevron-down section-toggle-arrow me-2 text-muted"></i>
-      <i class="bi bi-folder-fill doc-folder-icon me-2" style="font-size:1.1rem;"></i>
+      <?= $folderIcon('#7f1d1d', 'tpl-folder-sm me-2') ?>
       <span class="min-w-0">
         <span class="fw-semibold d-block text-truncate" title="<?= e($folder['name']) ?>"><?= e($folder['name']) ?></span>
         <?php if (! empty($folder['path'])): ?>

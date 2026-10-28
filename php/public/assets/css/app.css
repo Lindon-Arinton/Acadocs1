@@ -2187,6 +2187,16 @@ body.doc-dragging .doc-task-section:not(.dragging) { opacity: .6; }
 }
 .doc-folder-card.drop-hover .doc-folder-icon-plain { transform: scale(1.15); }
 .doc-folder-icon-plain { transition: transform .15s; }
+/* Paper-folder icons (shared with Templates): flap lifts on hover, opens while a folder is dragged over */
+.doc-folder-card:hover:not(.drop-hover) .tpl-folder .tpl-folder-front,
+.doc-task-section > .card-header:hover .tpl-folder .tpl-folder-front { transform: rotateX(-22deg); }
+.doc-folder-card:hover:not(.drop-hover) .tpl-folder .tpl-folder-paper,
+.doc-task-section > .card-header:hover .tpl-folder .tpl-folder-paper { transform: translateY(-14%); }
+.doc-folder-card.drop-hover .tpl-folder .tpl-folder-front { transform: rotateX(-52deg); background: #f8fafc; }
+.doc-folder-card.drop-hover .tpl-folder .tpl-folder-paper { transform: translateY(-34%); }
+.doc-folder-card.drop-hover .tpl-folder .tpl-folder-paper-2 { transform: translateY(-48%) rotate(6deg); }
+.doc-folder-card.drop-hover .tpl-folder { animation: tplFolderWiggle .9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .doc-folder-card .tpl-folder > span, .doc-task-section .tpl-folder > span { transform: none !important; } }
 
 /* Breadcrumb in the page header; crumbs are drop targets while dragging. */
 .doc-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; font-size: .8rem; position: relative; z-index: 1; }
@@ -3063,6 +3073,26 @@ a.tpl-tag:hover { border-color: var(--highlight-tx); color: var(--highlight-tx);
 .tpl-dock-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tpl-dock-folder.is-dragover { border: 1.5px dashed var(--primary-light); background: var(--highlight-bg); transform: translateY(-2px); }
 .tpl-dock-folder.is-drop-same { opacity: .5; }
+/* Optional folders inside a section: path trail, folder tiles, and a template's folder in search results */
+.tpl-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .8rem; }
+.tpl-crumbs a { color: var(--muted); text-decoration: none; font-weight: 600; }
+.tpl-crumbs a:hover { color: var(--primary-light); text-decoration: underline; }
+.tpl-crumbs [aria-current] { color: var(--text); font-weight: 700; }
+.tpl-crumb-sep { font-size: .65rem; color: var(--muted); }
+.tpl-subfolders { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .5rem; }
+.tpl-subfolder {
+  display: flex; align-items: center; gap: .55rem; padding: .45rem .6rem .45rem .45rem; min-width: 0;
+  border: 1.5px solid var(--border); border-radius: .6rem; background: var(--card);
+  color: var(--text); text-decoration: none; transition: border-color .15s, background .15s, transform .15s;
+}
+.tpl-subfolder:hover { border-color: var(--primary-light); color: var(--text); }
+.tpl-subfolder.is-dragover { border: 1.5px dashed var(--primary-light); background: var(--highlight-bg); transform: translateY(-2px); }
+.tpl-subfolder.is-drop-same { opacity: .5; }
+.tpl-subfolder-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.tpl-subfolder-name { font-size: .82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-subfolder-meta { font-size: .7rem; color: var(--muted); }
+.tpl-folder-path { display: inline-block; font-size: .72rem; color: var(--muted); text-decoration: none; margin-bottom: .25rem; }
+.tpl-folder-path:hover { color: var(--primary-light); text-decoration: underline; }
 /* While a template is being dragged, the dock stands out */
 body.tpl-dragging-doc .tpl-dock {
   border: 2px dashed var(--primary-light); background: var(--highlight-bg);
