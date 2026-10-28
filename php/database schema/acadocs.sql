@@ -463,6 +463,75 @@ CREATE TABLE `migrations` (
   `batch` int(11) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `migrations`
+-- (so `php spark migrate` after an import only runs migrations newer than this dump)
+--
+
+INSERT INTO `migrations` VALUES (1,'2026-01-01-000001','App\\Database\\Migrations\\CreateUsers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (2,'2026-01-01-000002','App\\Database\\Migrations\\CreateTeachers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (3,'2026-01-01-000003','App\\Database\\Migrations\\CreateAnnouncements','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (4,'2026-01-01-000004','App\\Database\\Migrations\\CreateDocuments','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (5,'2026-01-01-000005','App\\Database\\Migrations\\CreateKpiSnapshots','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (6,'2026-01-01-000006','App\\Database\\Migrations\\CreatePerformance','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (7,'2026-01-01-000007','App\\Database\\Migrations\\CreateParentMeetings','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (8,'2026-01-01-000008','App\\Database\\Migrations\\CreateDocumentLinks','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (9,'2026-01-01-000011','App\\Database\\Migrations\\CreateTimeRecords','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (10,'2026-01-01-000013','App\\Database\\Migrations\\CreateRoomProperties','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (11,'2026-01-01-000014','App\\Database\\Migrations\\CreateTasks','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (12,'2026-01-01-000015','App\\Database\\Migrations\\CreateTaskSubmissions','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (13,'2026-01-01-000016','App\\Database\\Migrations\\CreateTaskFeedback','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (14,'2026-01-01-000017','App\\Database\\Migrations\\AddPhotoToUsers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (15,'2026-07-25-000001','App\\Database\\Migrations\\CreateBiometricEmployees','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (16,'2026-07-25-000002','App\\Database\\Migrations\\CreateHolidays','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (17,'2026-07-25-000003','App\\Database\\Migrations\\AddUniqueEmployeeDateToTimeRecords','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (18,'2026-07-25-000004','App\\Database\\Migrations\\AddAcNoAndPositionToUsers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (19,'2026-07-25-000005','App\\Database\\Migrations\\CreateMpsTestScores','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (20,'2026-07-25-000005','App\\Database\\Migrations\\CreateTaskSubmissionFiles','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (21,'2026-07-25-000006','App\\Database\\Migrations\\AddTermToPerformanceTables','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (22,'2026-07-25-000006','App\\Database\\Migrations\\CreateTaskAssignees','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (23,'2026-07-25-000007','App\\Database\\Migrations\\CreateDocumentFiles','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (24,'2026-07-26-000001','App\\Database\\Migrations\\CreateDepedKpiReports','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (25,'2026-07-26-000002','App\\Database\\Migrations\\AddUniqueKeyToEnrollmentByLevel','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (26,'2026-07-26-000003','App\\Database\\Migrations\\AddAttendanceFileToParentMeetings','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (27,'2026-07-26-000004','App\\Database\\Migrations\\AddGenderToEnrollmentByLevel','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (28,'2026-07-26-000005','App\\Database\\Migrations\\WidenDocumentTypeColumn','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (29,'2026-07-26-000006','App\\Database\\Migrations\\AddUniqueKeyToTemplatesTitle','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (30,'2026-08-31-000001','App\\Database\\Migrations\\AddThreadingColumnsToMessages','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (31,'2026-08-31-000002','App\\Database\\Migrations\\CreateMessageReactions','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (32,'2026-08-31-000003','App\\Database\\Migrations\\CreateConversationTyping','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (33,'2026-08-31-000004','App\\Database\\Migrations\\AddMutedToConversationParticipants','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (34,'2026-08-31-000005','App\\Database\\Migrations\\AddLastActiveAtToUsers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (35,'2026-09-01-000001','App\\Database\\Migrations\\RestructureRoomProperties','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (36,'2026-09-03-000001','App\\Database\\Migrations\\AddLastViewedAnnouncementsAtToUsers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (37,'2026-09-18-000001','App\\Database\\Migrations\\AddQuantityAndUploadedByToRoomProperties','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (38,'2026-09-18-000002','App\\Database\\Migrations\\AddAdvisoryToTeachers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (39,'2026-09-22-000001','App\\Database\\Migrations\\AddGradeAndSectionToTeacherSubjects','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (40,'2026-09-22-000002','App\\Database\\Migrations\\AddSectionToMpsTestScores','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (41,'2026-09-25-000001','App\\Database\\Migrations\\CreateDocumentFolders','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (42,'2026-09-25-000002','App\\Database\\Migrations\\AddPendingReturnedToTaskSubmissions','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (43,'2026-09-25-000003','App\\Database\\Migrations\\AddTermToTeacherSubjects','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (44,'2026-09-25-000004','App\\Database\\Migrations\\CreatePasswordResets','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (45,'2026-10-01-000001','App\\Database\\Migrations\\AddMonthToEnrollmentByLevel','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (46,'2026-10-01-000002','App\\Database\\Migrations\\PruneOrphanedNotifications','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (47,'2026-10-02-000001','App\\Database\\Migrations\\AddReviewerToTaskSubmissions','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (48,'2026-10-02-000002','App\\Database\\Migrations\\AddImageToAnnouncements','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (49,'2026-10-02-000003','App\\Database\\Migrations\\AddAnnouncementToMessages','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (50,'2026-10-02-000004','App\\Database\\Migrations\\AddUserIdToTimeRecords','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (51,'2026-10-02-000005','App\\Database\\Migrations\\AddSpecificToTaskAssignedRole','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (52,'2026-10-08-000001','App\\Database\\Migrations\\PropertyManagementOverhaul','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (53,'2026-10-08-000002','App\\Database\\Migrations\\AddIsActiveToUsers','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (54,'2026-10-08-000003','App\\Database\\Migrations\\AddParentToDocumentFolders','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (55,'2026-10-09-000001','App\\Database\\Migrations\\AddAcademicBreaks','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (56,'2026-10-09-000002','App\\Database\\Migrations\\AddRecurringToHolidays','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (57,'2026-10-09-000003','App\\Database\\Migrations\\AddAutomation','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (58,'2026-10-19-000001','App\\Database\\Migrations\\AddBiometricPunches','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (59,'2026-10-21-000001','App\\Database\\Migrations\\PropertyAuditByAdas','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (60,'2026-10-21-000002','App\\Database\\Migrations\\AddTagsToTemplates','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (61,'2026-10-22-000001','App\\Database\\Migrations\\AddDescriptionToTemplateCategories','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (62,'2026-10-28-000001','App\\Database\\Migrations\\RenameReviewedToApprovedOnTaskSubmissions','default','App',1793165134,1);
+INSERT INTO `migrations` VALUES (63,'2026-10-28-000001','App\\Database\\Migrations\\AddTemplateFolders','default','App',1793165138,2);
+
 -- --------------------------------------------------------
 
 --
@@ -654,12 +723,14 @@ CREATE TABLE `room_properties` (
   `grade` varchar(100) NOT NULL,
   `item_name` varchar(150) NOT NULL,
   `quantity` int(10) UNSIGNED NOT NULL DEFAULT 1,
-  `condition_status` enum('Serviceable','Non-serviceable') NOT NULL DEFAULT 'Serviceable',
+  `condition_status` enum('Working','Not Working') NOT NULL DEFAULT 'Working',
   `acquisition_type` enum('New','Donated','Second-hand','Other') NOT NULL DEFAULT 'New',
   `acquisition_other` varchar(150) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `issued_to` int(10) UNSIGNED DEFAULT NULL,
   `par_id` int(10) UNSIGNED DEFAULT NULL,
+  `last_checked_at` timestamp NULL DEFAULT NULL,
+  `last_checked_by` varchar(150) DEFAULT NULL,
   `uploaded_by` varchar(150) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL
@@ -991,8 +1062,11 @@ INSERT INTO `teacher_subjects` (`id`, `teacher_id`, `subject`, `grade_level`, `s
 CREATE TABLE `templates` (
   `id` int(10) UNSIGNED NOT NULL,
   `category_id` int(10) UNSIGNED NOT NULL,
+  `folder_id` int(10) UNSIGNED DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
+  `tags` varchar(500) DEFAULT NULL,
+  `keywords` text DEFAULT NULL,
   `file_path` varchar(255) NOT NULL,
   `file_name` varchar(255) NOT NULL,
   `file_ext` varchar(20) NOT NULL,
@@ -1011,9 +1085,26 @@ CREATE TABLE `templates` (
 CREATE TABLE `template_categories` (
   `id` int(10) UNSIGNED NOT NULL,
   `name` varchar(150) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
   `created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_folders`
+-- (optional, nestable folders inside a Templates section)
+--
+
+CREATE TABLE `template_folders` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `category_id` int(10) UNSIGNED NOT NULL,
+  `parent_id` int(10) UNSIGNED DEFAULT NULL,
+  `name` varchar(150) NOT NULL,
+  `created_by` varchar(100) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -7214,7 +7305,8 @@ ALTER TABLE `teacher_subjects`
 --
 ALTER TABLE `templates`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `category_id` (`category_id`);
+  ADD KEY `category_id` (`category_id`),
+  ADD KEY `folder_id` (`folder_id`);
 
 --
 -- Indexes for table `template_categories`
@@ -7222,6 +7314,14 @@ ALTER TABLE `templates`
 ALTER TABLE `template_categories`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `name` (`name`);
+
+--
+-- Indexes for table `template_folders`
+--
+ALTER TABLE `template_folders`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `category_id` (`category_id`),
+  ADD KEY `parent_id` (`parent_id`);
 
 --
 -- Indexes for table `time_records`
@@ -7373,7 +7473,7 @@ ALTER TABLE `message_reactions`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
 
 --
 -- AUTO_INCREMENT for table `mps_test_scores`
@@ -7493,6 +7593,12 @@ ALTER TABLE `templates`
 -- AUTO_INCREMENT for table `template_categories`
 --
 ALTER TABLE `template_categories`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `template_folders`
+--
+ALTER TABLE `template_folders`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
@@ -7682,7 +7788,15 @@ ALTER TABLE `teacher_subjects`
 -- Constraints for table `templates`
 --
 ALTER TABLE `templates`
+  ADD CONSTRAINT `templates_folder_fk` FOREIGN KEY (`folder_id`) REFERENCES `template_folders` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `templates_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `template_categories` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `template_folders`
+--
+ALTER TABLE `template_folders`
+  ADD CONSTRAINT `template_folders_category_id_foreign` FOREIGN KEY (`category_id`) REFERENCES `template_categories` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `template_folders_parent_id_foreign` FOREIGN KEY (`parent_id`) REFERENCES `template_folders` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
