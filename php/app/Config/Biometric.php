@@ -9,16 +9,24 @@ use CodeIgniter\Config\BaseConfig;
  * attendance from over the LAN. Values can be overridden in .env, e.g.
  *   biometric.host = 192.168.100.143
  *
- * Give the device a fixed address (turn its DHCP off in Menu → Comm., or
- * reserve its IP in the router) so this host keeps pointing at it.
+ * By default ($host = 'auto') the device is found on whatever network this
+ * computer is on, and found again if its IP changes, so nothing needs setting
+ * up after deploying. A fixed address (DHCP off in Menu → Comm., or the IP
+ * reserved in the router) still makes each sync quicker and more reliable.
+ * Searching a whole network for the device is fastest with PHP's sockets
+ * extension (extension=sockets in php.ini); without it only the addresses
+ * this computer has recently seen on the network are checked by port.
  */
 class Biometric extends BaseConfig
 {
     /** Pull from the device automatically (via the automations). */
     public bool $enabled = true;
 
-    /** Device IP — Menu → Comm. → IP Address on the terminal. */
-    public string $host = '192.168.100.143';
+    /**
+     * 'auto' to find the device on the network, or its fixed IP
+     * (Menu → Comm. → IP Address on the terminal) to always start there.
+     */
+    public string $host = 'auto';
 
     /** SDK port; 4370 unless someone changed it on the device. */
     public int $port = 4370;

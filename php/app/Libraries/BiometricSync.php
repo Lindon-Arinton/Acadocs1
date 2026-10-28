@@ -113,9 +113,7 @@ class BiometricSync
                         . ($summary ? sprintf(' %d present, %d late, %d absent.', $summary['present'], $summary['late'], $summary['absent']) : ''),
                 'summary'      => $summary,
             ];
-            if (! empty($state['moved_from'])) {
-                $status['message'] = "Device found at its new address {$state['host']} (was {$state['moved_from']}). " . $status['message'];
-            }
+            $status['message'] = self::foundNote($state) . $status['message'];
         } catch (\Throwable $e) {
             // Keep the cursor so the next sync still only reads what's new.
             $status = array_merge($state, ['ok' => false, 'at' => date('Y-m-d H:i:s'), 'new' => 0, 'message' => $e->getMessage()]);
@@ -131,36 +129,89 @@ class BiometricSync
     }
 
     /**
-     * Connects to the device at its last known address (Config\Biometric::$host
-     * until it's been found elsewhere; editing $host overrides that). If it
-     * doesn't answer there, its IP may have changed (DHCP), so the LAN is
-     * searched for its MAC address (or, before that's known, any ZKTeco
-     * device) and the serial number checked before switching — at most once
-     * every DISCOVERY_MINUTES. Updates $state's host / serial / mac.
+     * Finds and connects to the device without syncing anything, searching
+     * the network straight away if it isn't at its last known address (for
+     * `acadocs:biometric --test`). Remembers where it was found.
      */
-    private function connect(array &$state): ZkDevice
+    public function locate(?\Closure $trace = null): ZkDevice
     {
-        $sameConfig    = ($state['config_host'] ?? null) === $this->config->host;
-        $state['host'] = $sameConfig && ! empty($state['host']) ? $state['host'] : $this->config->host;
-        if (! $sameConfig) {
-            unset($state['serial'], $state['mac']); // a different device was configured
-        }
-        unset($state['moved_from']);
+        $state  = self::lastStatus() ?? [];
+        $device = $this->connect($state, true, $trace);
 
-        $open = function (string $host): ZkDevice {
-            $device = new ZkDevice($host, $this->config->port, $this->config->password, $this->config->timeout, $this->config->protocol);
+        $lock = fopen(WRITEPATH . 'biometric_sync.lock', 'c');
+        if ($lock && flock($lock, LOCK_EX | LOCK_NB)) { // a running sync saves it anyway
+            @file_put_contents(self::statusFile(), json_encode(array_diff_key($state, ['moved_from' => 1, 'replaced' => 1])));
+            flock($lock, LOCK_UN);
+        }
+        if ($lock) {
+            fclose($lock);
+        }
+
+        return $device;
+    }
+
+    /** "Device found at ..." for the sync message, when connect() had to search for it. */
+    public static function foundNote(array $state): string
+    {
+        if (! empty($state['replaced'])) {
+            return "Now syncing from the biometric device found at {$state['host']}" . (empty($state['serial']) ? '' : " (serial {$state['serial']})") . '. ';
+        }
+        if (array_key_exists('moved_from', $state)) {
+            return "Device found at {$state['host']}" . ($state['moved_from'] ? " (was {$state['moved_from']})" : '') . '. ';
+        }
+
+        return '';
+    }
+
+    /** Config\Biometric::$host is 'auto' (or empty): no fixed address, find the device on the network. */
+    private function isAuto(): bool
+    {
+        return in_array(strtolower(trim($this->config->host)), ['', 'auto'], true);
+    }
+
+    /**
+     * Connects to the device at its last known address. With $host 'auto'
+     * that's wherever it was last found; with a fixed IP it's that IP (or
+     * wherever the device moved to from it). If it doesn't answer there — its
+     * IP changed (DHCP), or this is a new install that hasn't found it yet —
+     * the networks this computer is on are searched (see rediscover()), at
+     * most once every DISCOVERY_MINUTES unless $search. Updates $state's
+     * host / serial / mac (and sets moved_from / replaced when it searched).
+     */
+    private function connect(array &$state, bool $search = false, ?\Closure $trace = null): ZkDevice
+    {
+        $auto = $this->isAuto();
+        if (! $auto && ($state['config_host'] ?? null) !== $this->config->host) {
+            // A fixed address was just configured: start there (it may be another device).
+            $state['host'] = $this->config->host;
+            unset($state['serial'], $state['mac']);
+        }
+        $state['config_host'] = $this->config->host;
+        unset($state['moved_from'], $state['replaced']);
+
+        $open = function (string $host) use ($trace): ZkDevice {
+            $device        = new ZkDevice($host, $this->config->port, $this->config->password, $this->config->timeout, $this->config->protocol);
+            $device->trace = $trace;
             $device->connect();
 
             return $device;
         };
 
-        try {
-            $device = $open($state['host']);
-        } catch (\Throwable $e) {
-            $device = $this->rediscover($state, $open);
-            if ($device === null) {
-                throw $e;
+        $device = $error = null;
+        if (! empty($state['host'])) {
+            try {
+                $device = $open($state['host']);
+            } catch (\Throwable $e) {
+                $error = $e;
             }
+        }
+
+        $device ??= $this->rediscover($state, $open, $search);
+        if ($device === null) {
+            throw $error ?? new \RuntimeException(
+                'No biometric device found on this computer\'s network (' . implode(', ', array_map(static fn ($s) => "{$s}.x", ZkDevice::localSubnets())) . ').'
+                . ' Check that it is switched on and plugged into the same network, or set its address as biometric.host in .env.'
+            );
         }
 
         try {
@@ -176,41 +227,85 @@ class BiometricSync
     /** Minutes between LAN searches while the device can't be reached. */
     private const DISCOVERY_MINUTES = 10;
 
-    private function rediscover(array &$state, \Closure $open): ?ZkDevice
+    /**
+     * Searches the networks this computer is on (the last known address's
+     * first) for the device: on each, addresses with its MAC (or, before
+     * that's known, any ZKTeco MAC) are tried first, then anything that
+     * accepts connections on the SDK port. Each candidate must complete the
+     * ZKTeco handshake, and once the serial number is known only that unit is
+     * taken — unless $host is 'auto' and no unit with that serial turns up,
+     * in which case the first other ZKTeco device found is (e.g. the copy of
+     * writable/ shipped with a deployment remembers the development unit);
+     * its sync then starts afresh.
+     */
+    private function rediscover(array &$state, \Closure $open, bool $force): ?ZkDevice
     {
-        if (isset($state['discovered_at']) && time() - strtotime($state['discovered_at']) < self::DISCOVERY_MINUTES * 60) {
+        if (! $force && isset($state['discovered_at']) && time() - strtotime($state['discovered_at']) < self::DISCOVERY_MINUTES * 60) {
             return null;
         }
         $state['discovered_at'] = date('Y-m-d H:i:s');
 
-        $candidates = [];
-        foreach (ZkDevice::neighbours(self::subnetOf($state['host']), $this->config->port) as $ip => $mac) {
-            $known = ! empty($state['mac']) ? $mac === $state['mac'] : str_starts_with($mac, ZkDevice::ZKTECO_OUI);
-            if ($known && $ip !== $state['host']) {
-                $candidates[] = $ip;
-            }
+        $port    = $this->config->port;
+        $subnets = ZkDevice::localSubnets();
+        if (! empty($state['host'])) {
+            array_unshift($subnets, self::subnetOf($state['host']));
         }
 
-        foreach ($candidates as $ip) {
-            try {
-                $device = $open($ip);
-                if (! empty($state['serial']) && $device->serialNumber() !== $state['serial']) {
-                    $device->disconnect();
+        $tried = array_filter([$state['host'] ?? null]); // already failed
+        $other = null; // [device, ip, serial] of a ZKTeco unit that isn't the remembered one
 
-                    continue; // another ZKTeco unit on the network
+        foreach (array_unique($subnets) as $subnet) {
+            $arp    = ZkDevice::neighbours($subnet, $port);
+            $likely = array_keys(array_filter($arp, static fn ($mac) => ! empty($state['mac']) ? $mac === $state['mac'] : str_starts_with($mac, ZkDevice::ZKTECO_OUI)));
+
+            foreach ([$likely, null] as $candidates) {
+                // Only sweep the port when the MAC didn't give it away (without the sockets extension, just the live ARP neighbours).
+                $candidates ??= ZkDevice::listening($subnet, $port, 1.5, extension_loaded('sockets') ? null : array_keys($arp));
+
+                foreach (array_diff($candidates, $tried) as $ip) {
+                    $tried[] = $ip;
+                    try {
+                        $device = $open($ip);
+                    } catch (\Throwable) {
+                        continue; // not a ZKTeco device, or not answering
+                    }
+                    try {
+                        $serial = $device->serialNumber();
+                    } catch (\Throwable) {
+                        $serial = ''; // older firmware may not report it
+                    }
+
+                    if (empty($state['serial']) || $serial === '' || $serial === $state['serial']) {
+                        $other && $other[0]->disconnect();
+                        log_message('notice', 'Biometric device found at ' . $ip . (empty($state['host']) ? '' : " (was {$state['host']})"));
+                        $state['moved_from'] = $state['host'] ?? null;
+                        $state['host']       = $ip;
+
+                        return $device;
+                    }
+
+                    if ($other === null && $this->isAuto()) {
+                        $other = [$device, $ip, $serial];
+                    } else {
+                        $device->disconnect(); // another ZKTeco unit on the network
+                    }
                 }
-            } catch (\Throwable) {
-                continue;
             }
-
-            log_message('notice', "Biometric device moved from {$state['host']} to {$ip}");
-            $state['moved_from'] = $state['host'];
-            $state['host']       = $ip;
-
-            return $device;
         }
 
-        return null;
+        if ($other === null) {
+            return null;
+        }
+
+        [$device, $ip, $serial] = $other;
+        log_message('notice', "Biometric device {$state['serial']} not found; syncing from {$serial} at {$ip} instead");
+        // A different unit: its log positions mean nothing for the old one's cursor.
+        unset($state['cursor'], $state['anchor'], $state['archived_to'], $state['mac']);
+        $state['host']     = $ip;
+        $state['serial']   = $serial;
+        $state['replaced'] = true;
+
+        return $device;
     }
 
     /** "192.168.100.143" -> "192.168.100" */
@@ -312,6 +407,10 @@ class BiometricSync
                 for ($attempt = 1; ; $attempt++) {
                     try {
                         $device = $this->connect($state);
+                        if (! empty($state['replaced'])) {
+                            $from  = 0; // a different unit than the one archived so far
+                            $names = [];
+                        }
                         $names  = $names ?: array_column($device->users(), 'name', 'user_id');
                         $read   = $device->attendanceRange($from, $from + self::ARCHIVE_BATCH);
                         $device->disconnect();
