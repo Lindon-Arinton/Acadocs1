@@ -3,7 +3,6 @@
 namespace App\Commands;
 
 use App\Libraries\BiometricSync;
-use App\Libraries\ZkDevice;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 
@@ -39,15 +38,12 @@ class BiometricPull extends BaseCommand
         }
 
         if (CLI::getOption('test') !== null) {
+            $before = BiometricSync::lastStatus();
+            CLI::write('Looking for the device (' . ($config->host === '' || strtolower($config->host) === 'auto' ? 'biometric.host = auto' : "biometric.host = {$config->host}") . ')...');
             try {
-                $last   = BiometricSync::lastStatus();
-                $host   = ($last['config_host'] ?? null) === $config->host && ! empty($last['host']) ? $last['host'] : $config->host;
-                $device = new ZkDevice($host, $config->port, $config->password, $config->timeout, $config->protocol);
-                if (CLI::getOption('verbose') !== null) {
-                    $device->trace = static fn (string $line) => CLI::write($line, 'light_gray');
-                }
-                $device->connect();
-                $sizes = $device->sizes();
+                $trace  = CLI::getOption('verbose') !== null ? static fn (string $line) => CLI::write($line, 'light_gray') : null;
+                $device = (new BiometricSync())->locate($trace);
+                $sizes  = $device->sizes();
                 $device->disconnect();
             } catch (\Throwable $e) {
                 CLI::error($e->getMessage());
@@ -55,7 +51,11 @@ class BiometricPull extends BaseCommand
                 return EXIT_ERROR;
             }
 
-            CLI::write("Connected to {$host} over " . $device->transport() . '.', 'green');
+            $last = BiometricSync::lastStatus();
+            if (($before['host'] ?? null) !== $device->host()) {
+                CLI::write('Found it at a new address' . (empty($before['host']) ? '' : " (was {$before['host']})") . '; syncs will use it from now on.', 'yellow');
+            }
+            CLI::write("Connected to {$device->host()} over " . $device->transport() . (empty($last['serial']) ? '' : ", serial {$last['serial']}") . '.', 'green');
             CLI::write("{$sizes['users']} user(s), {$sizes['records']} attendance record(s) on the device.");
             if (isset($last['cursor'])) {
                 CLI::write("{$last['cursor']} already synced; the next sync reads " . max(0, $sizes['records'] - $last['cursor']) . ' new record(s).');

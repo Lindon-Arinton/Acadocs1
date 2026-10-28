@@ -155,6 +155,104 @@ class ZkDevice
         return $table;
     }
 
+    /**
+     * The networks this computer is on, as /24 prefixes ("192.168.100"),
+     * skipping loopback and link-local (169.254) addresses: where to look for
+     * the device when its address isn't known (e.g. after deploying).
+     *
+     * @return list<string>
+     */
+    public static function localSubnets(): array
+    {
+        $ips = [];
+        foreach (function_exists('net_get_interfaces') ? (net_get_interfaces() ?: []) : [] as $iface) {
+            if (($iface['up'] ?? true) === false) {
+                continue;
+            }
+            foreach ($iface['unicast'] ?? [] as $address) {
+                $ips[] = (string) ($address['address'] ?? '');
+            }
+        }
+        if ($ips === []) {
+            $ips = gethostbynamel(gethostname()) ?: [];
+        }
+
+        $subnets = [];
+        foreach ($ips as $ip) {
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && ! str_starts_with($ip, '127.') && ! str_starts_with($ip, '169.254.')) {
+                $subnets[] = implode('.', array_slice(explode('.', $ip), 0, 3));
+            }
+        }
+
+        return array_values(array_unique($subnets));
+    }
+
+    /**
+     * Addresses that accept TCP connections on $port, all tried at once
+     * (about $timeout seconds in total) — finds the device by its SDK port
+     * whatever its MAC. Without the sockets extension only $hosts are tried
+     * (each attempt still open after $timeout then costs ~0.5 s to close on
+     * Windows, so a whole /24 isn't practical); pass the live ARP neighbours.
+     *
+     * @param list<string>|null $hosts addresses to try; null = the whole /24
+     * @return list<string> candidates — confirm each with a handshake
+     */
+    public static function listening(string $subnet, int $port = 4370, float $timeout = 1.5, ?array $hosts = null): array
+    {
+        $sockets = extension_loaded('sockets');
+        $hosts ??= $sockets ? array_map(static fn ($n) => "{$subnet}.{$n}", range(1, 254)) : [];
+        $found   = [];
+
+        foreach (array_chunk($hosts, 128) as $batch) { // stay well under select()'s socket limit
+            $pending = [];
+            foreach ($batch as $ip) {
+                if ($sockets) {
+                    $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+                    if ($socket !== false) {
+                        socket_set_nonblock($socket);
+                        @socket_connect($socket, $ip, $port);
+                        $pending[$ip] = $socket;
+                    }
+                } else {
+                    $socket = @stream_socket_client("tcp://{$ip}:{$port}", $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT);
+                    if ($socket) {
+                        $pending[$ip] = $socket;
+                    }
+                }
+            }
+
+            $deadline = microtime(true) + $timeout;
+            while ($pending !== [] && ($left = $deadline - microtime(true)) > 0) {
+                $read  = null;
+                $write = $except = array_values($pending);
+                $ready = $sockets
+                    ? @socket_select($read, $write, $except, (int) $left, (int) (fmod($left, 1) * 1e6))
+                    : @stream_select($read, $write, $except, (int) $left, (int) (fmod($left, 1) * 1e6));
+                if (! $ready) {
+                    break;
+                }
+                foreach ($write as $socket) {
+                    // Writable means connected, except on Linux where a refused attempt is too.
+                    if (! $sockets || socket_get_option($socket, SOL_SOCKET, SO_ERROR) === 0) {
+                        $found[] = array_search($socket, $pending, true);
+                    }
+                }
+                foreach (array_merge($write, $except) as $socket) {
+                    $ip = array_search($socket, $pending, true);
+                    if ($ip !== false) {
+                        $sockets ? socket_close($socket) : fclose($socket);
+                        unset($pending[$ip]);
+                    }
+                }
+            }
+            foreach ($pending as $socket) {
+                $sockets ? socket_close($socket) : fclose($socket);
+            }
+        }
+
+        return array_values(array_unique($found));
+    }
+
     /** @return array{users:int,records:int} counts the device reports */
     public function sizes(): array
     {
