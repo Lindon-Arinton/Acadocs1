@@ -112,11 +112,13 @@ $heading = static function (string $title, string $icon) use (&$sectionNo): stri
         <div class="label">Drop-Out Rate</div>
         <div class="value"><?= $dropoutRow ? $pct($dropoutRow['dropout_rate']) : '—' ?></div>
         <div class="delta"><?= $dropoutNote !== '' ? '<span class="muted">' . e($dropoutNote) . '</span>' : $deltaText($dropoutDelta, false, ' pts') ?></div>
+        <div class="delta muted">Target: <?= number_format(\App\Controllers\Admin\Dashboard::DROPOUT_TARGET) ?>%</div>
       </div>
       <div class="tile">
         <div class="label">Average MPS (Term <?= (int) $currentTerm ?>)</div>
         <div class="value"><?= $pct($avgMps) ?></div>
         <div class="delta"><?= $deltaText($mpsDelta, true, ' pts') ?></div>
+        <div class="delta muted">Target: <?= number_format(\App\Controllers\Admin\Dashboard::MPS_TARGET) ?>%</div>
       </div>
       <div class="tile">
         <div class="label">Submission Compliance</div>

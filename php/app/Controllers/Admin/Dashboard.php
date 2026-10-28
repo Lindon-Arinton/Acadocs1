@@ -30,6 +30,10 @@ class Dashboard extends BaseController
     // never goes stale the way a hardcoded year would.
     private const MPS_SOURCE_YEAR = '2024-2025';
 
+    /** School targets: MPS of at least 75% (mastery) per subject, and no learners dropping out. */
+    public const MPS_TARGET     = 75.0;
+    public const DROPOUT_TARGET = 0.0;
+
     /** Report sections (key => label), in report order — ticked in the dashboard's Generate Report modal. */
     public const REPORT_SECTIONS = [
         'summary'    => 'Key figures (enrollees, drop-out, average MPS, compliance)',
@@ -240,7 +244,8 @@ class Dashboard extends BaseController
         $mpsDelta       = $this->seriesDelta($mpsYearSeries, false);
 
         $insightTeachers = $this->teacherIdsByName((string) ($lowest['instructor'] ?? ''));
-        $insights        = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary, $insightTeachers);
+        $latestDropout   = $dropoutSeries === [] ? null : end($dropoutSeries)['value'];
+        $insights        = $this->buildInsights($enrolleesDelta, $dropoutDelta, $mpsDelta, $lowest, $avgPerf, $complianceRate, $docSummary, $insightTeachers, $latestDropout === null ? null : (float) $latestDropout);
 
         return [
             'pageTitle'          => 'Admin Dashboard',
@@ -348,6 +353,7 @@ class Dashboard extends BaseController
      * @param array<int,array{subject:string,mps:float}> $avgPerf
      * @param array<string,int>                       $docSummary
      * @param array<string,int>                       $insightTeachers teacher name => user id (see teacherIdsByName())
+     * @param float|null                              $latestDropout   the latest school year's drop-out rate, checked against DROPOUT_TARGET
      * @return array<int,array{tone:string,icon:string,title:string,text:string}>
      */
     private function buildInsights(
@@ -358,11 +364,13 @@ class Dashboard extends BaseController
         array $avgPerf,
         ?float $complianceRate,
         array $docSummary,
-        array $insightTeachers = []
+        array $insightTeachers = [],
+        ?float $latestDropout = null
     ): array {
         $insights = [];
+        $mpsTarget = '<strong>' . number_format(self::MPS_TARGET) . '% target</strong>';
 
-        if ($lowest !== null && (float) $lowest['mps'] < 80) {
+        if ($lowest !== null && (float) $lowest['mps'] < self::MPS_TARGET) {
             // Name the teacher only when one is actually on record — imported or
             // seeded rows carry a placeholder, and "teacher —" says nothing.
             // A name that matches a teacher account becomes a person-card link
@@ -380,7 +388,7 @@ class Dashboard extends BaseController
                 'tone'  => 'danger',
                 'icon'  => 'bi-exclamation-triangle-fill',
                 'title' => 'Focus area: ' . e($lowest['grade_level'] . ' ' . $lowest['subject']),
-                'text'  => 'Learners in <strong>' . e($lowest['grade_level']) . ' ' . e($lowest['subject']) . '</strong> are struggling the most, with the lowest mean percentage score this term (<strong>' . e($lowest['mps']) . '%</strong>)' . $handledBy . '. This subject may need remediation or closer follow-up.',
+                'text'  => 'Learners in <strong>' . e($lowest['grade_level']) . ' ' . e($lowest['subject']) . '</strong> are struggling the most, with the lowest mean percentage score this term (<strong>' . e($lowest['mps']) . '%</strong>), below the ' . $mpsTarget . $handledBy . '. This subject may need remediation or closer follow-up.',
             ];
         }
 
@@ -395,16 +403,30 @@ class Dashboard extends BaseController
             }
         }
 
+        // Drop-out: judged against the 0% target first, then the change from last year.
+        $onTarget = $latestDropout !== null && $latestDropout <= self::DROPOUT_TARGET;
+        $vsTarget = $latestDropout === null ? '' : ($onTarget
+            ? ' No learner dropped out, meeting the school’s <strong>' . number_format(self::DROPOUT_TARGET) . '% drop-out target</strong>.'
+            : ' The rate is <strong>' . number_format($latestDropout, 2) . '%</strong>, above the school’s <strong>' . number_format(self::DROPOUT_TARGET) . '% drop-out target</strong>.');
         if ($dropoutDelta !== null) {
             $improved   = $dropoutDelta['delta'] <= 0;
             $points     = '<strong>' . number_format(abs($dropoutDelta['delta']), 2) . ' percentage points</strong>';
             $insights[] = [
-                'tone' => $improved ? 'success' : 'warning',
+                'tone' => $onTarget ? 'success' : ($improved ? 'warning' : 'danger'),
                 'icon' => $improved ? 'bi-graph-down-arrow' : 'bi-graph-up-arrow',
-                'title' => $improved ? 'Drop-out rate improved' : 'Drop-out rate went up',
-                'text' => $improved
+                'title' => $onTarget ? 'Zero drop-out target met' : ($improved ? 'Drop-out rate improved' : 'Drop-out rate went up'),
+                'text' => ($improved
                     ? 'Fewer learners are leaving school: the drop-out rate went down by ' . $points . ' compared with ' . e($dropoutDelta['vsLabel']) . '.'
-                    : 'More learners are leaving school: the drop-out rate went up by ' . $points . ' compared with ' . e($dropoutDelta['vsLabel']) . '. Consider identifying learners at risk of dropping out.',
+                    : 'More learners are leaving school: the drop-out rate went up by ' . $points . ' compared with ' . e($dropoutDelta['vsLabel']) . '.')
+                    . $vsTarget . ($onTarget ? '' : ' Consider identifying learners at risk of dropping out.'),
+            ];
+        } elseif ($latestDropout !== null) {
+            // Only one year on record: no change to report, but the target still applies.
+            $insights[] = [
+                'tone'  => $onTarget ? 'success' : 'warning',
+                'icon'  => $onTarget ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill',
+                'title' => $onTarget ? 'Zero drop-out target met' : 'Drop-out rate above target',
+                'text'  => trim($vsTarget) . ($onTarget ? '' : ' Consider identifying learners at risk of dropping out.'),
             ];
         }
 
@@ -423,12 +445,12 @@ class Dashboard extends BaseController
 
         if ($avgPerf !== []) {
             $top = $avgPerf[0]; // avgPerf is already sorted DESC by mps
-            if ($top['mps'] >= 80) { // Benchmarking or Advancing
+            if ($top['mps'] >= self::MPS_TARGET) {
                 $insights[] = [
                     'tone' => 'success',
                     'icon' => 'bi-star-fill',
                     'title' => 'Top subject: ' . e($top['subject']),
-                    'text' => '<strong>' . e($top['subject']) . '</strong> is the school\'s strongest subject this term, with an average MPS of <strong>' . e($top['mps']) . '%</strong> (' . mpsDescriptor((float) $top['mps'])['label'] . ') across grade levels.',
+                    'text' => '<strong>' . e($top['subject']) . '</strong> is the school\'s strongest subject this term, with an average MPS of <strong>' . e($top['mps']) . '%</strong> (' . mpsDescriptor((float) $top['mps'])['label'] . ') across grade levels, meeting the ' . $mpsTarget . '.',
                 ];
             }
         }
