@@ -26,11 +26,14 @@ use PhpOffice\PhpWord\PhpWord;
  * Property Management.
  *
  * - ADAS runs the inventory: adds/edits items, audits their condition
- *   (Working / Not Working), distributes each room's items to the section's
- *   adviser, issues Property Acknowledgment Receipts (PAR) and resolves
- *   the concerns advisers report.
- * - Teachers only see the items issued to them: they confirm receipt by
- *   approving the PAR (or return it), and report concerns about an item.
+ *   (Serviceable / Unserviceable), distributes each room's items to
+ *   the section's adviser, issues Property Acknowledgment Receipts (PAR) and
+ *   resolves the concerns and replacement requests advisers send.
+ * - Teachers see the items issued to them. They list their own room's items
+ *   (and edit/delete those until they are on a PAR), keep each item's status
+ *   up to date, confirm receipt by approving the PAR (or return it), report
+ *   concerns, and request a replacement for an Unserviceable item (they are
+ *   prompted to when they mark one Unserviceable).
  * - Principal (admin) and secretary have read-only access.
  *
  * Timestamps use the database clock (NOW()), same as the tables'
@@ -87,6 +90,11 @@ class Properties extends BaseController
         $concerns         = $concernModel->listing($isTeacher ? $userId : null);
         $openConcernCount = count(array_filter($concerns, static fn ($c) => $c['status'] === 'Open'));
         $openByProperty   = $concernModel->openCountByProperty();
+        // Items with a replacement request still open (no second request / prompt).
+        $replacementOpen  = array_flip(array_map('intval', array_column(
+            (new PropertyConcernModel())->select('property_id')->where('category', PropertyConcernModel::REPLACEMENT)->where('status', 'Open')->findAll(),
+            'property_id'
+        )));
 
         $unassignedCount = (new RoomPropertyModel())->where('issued_to IS NULL')->countAllResults();
 
@@ -123,6 +131,7 @@ class Properties extends BaseController
             'concerns'         => $concerns,
             'openConcernCount' => $openConcernCount,
             'openByProperty'   => $openByProperty,
+            'replacementOpen'  => $replacementOpen,
             'concernCategories' => PropertyConcernModel::CATEGORIES,
             'advisers'        => hasRole('adas') ? RoomPropertyModel::advisersBySection() : [],
             'unassignedCount' => $unassignedCount,
@@ -411,9 +420,11 @@ class Properties extends BaseController
         $message = null;
         $extra   = [];
 
-        // Teachers can only answer their PARs and report concerns; everything
-        // else (inventory, audits, distribution) is the ADAS's job.
-        $teacherActions = ['par_respond', 'report_concern'];
+        // Teachers list and update their own room's items, answer their PARs,
+        // report concerns and request replacements (each case checks the item
+        // is theirs); distribution, PARs and resolving are the ADAS's job.
+        $isTeacher      = hasRole('teacher');
+        $teacherActions = ['par_respond', 'report_concern', 'add', 'edit', 'delete', 'update_condition', 'request_replacement'];
         if (! hasRole('adas') && ! (hasRole('teacher') && in_array($action, $teacherActions, true))) {
             return $fail('Only the ADAS can do this.', 403);
         }
@@ -421,7 +432,7 @@ class Properties extends BaseController
         try {
             switch ($action) {
                 case 'add':
-                    $data = $this->itemFromPost();
+                    $data = $this->itemFromPost($isTeacher ? $userId : null);
                     if (is_string($data)) {
                         return $fail($data);
                     }
@@ -435,8 +446,17 @@ class Properties extends BaseController
                         'uploaded_by'      => currentUser()['name'] ?? null,
                         'last_checked_at'  => new RawSql('NOW()'),
                         'last_checked_by'  => currentUser()['name'] ?? null,
+                        'added_by'         => $userId ?: null,
                     ]);
-                    (new PropertyConditionLogModel())->record($id, null, $condition, 'Item added');
+                    (new PropertyConditionLogModel())->record($id, null, $condition, $isTeacher ? 'Listed by the adviser' : 'Item added');
+                    if ($isTeacher) {
+                        $this->notifyAdasOfListing($userId);
+                        $message = 'Item listed. The ADAS will include it in your next PAR.';
+                        if ($condition === 'Unserviceable') {
+                            $extra = $this->replacementFollowUp($id, $data['item_name']);
+                        }
+                        break;
+                    }
                     $message = 'Item added' . ($data['issued_to'] ? '' : ' (no adviser assigned yet)') . '.';
                     break;
 
@@ -445,7 +465,10 @@ class Properties extends BaseController
                     if (! $item) {
                         return $fail('Item not found.', 404);
                     }
-                    $data = $this->itemFromPost();
+                    if ($isTeacher && ! $this->teacherCanEdit($item, $userId)) {
+                        return $fail('You can only edit items you listed that are not on a PAR yet.', 403);
+                    }
+                    $data = $this->itemFromPost($isTeacher ? $userId : null);
                     if (is_string($data)) {
                         return $fail($data);
                     }
@@ -457,12 +480,16 @@ class Properties extends BaseController
                     $message = 'Item updated.';
                     break;
 
-                // ADAS audit: records the checked condition. The same condition
-                // is allowed — it logs that the item was checked and still is.
+                // ADAS audit, or the adviser updating their own item's status.
+                // The same condition is allowed — it logs that the item was
+                // checked and still is.
                 case 'update_condition':
                     $item = $model->find((int) $this->request->getPost('id'));
                     if (! $item) {
                         return $fail('Item not found.', 404);
+                    }
+                    if ($isTeacher && (int) $item['issued_to'] !== $userId) {
+                        return $fail('This item is not issued to you.', 403);
                     }
                     $condition = (string) $this->request->getPost('condition_status');
                     $remarks   = trim((string) $this->request->getPost('remarks'));
@@ -470,7 +497,7 @@ class Properties extends BaseController
                         return $fail('Please pick a valid condition.');
                     }
                     $changed = $condition !== $item['condition_status'];
-                    if ($changed && $condition === 'Not Working' && $remarks === '') {
+                    if ($changed && $condition === 'Unserviceable' && $remarks === '') {
                         return $fail('Please describe what is wrong with the item.');
                     }
 
@@ -487,12 +514,57 @@ class Properties extends BaseController
                         $changed ? $remarks : trim('Audited — still ' . $condition . '. ' . $remarks)
                     );
                     $message = $changed ? 'Condition updated to ' . $condition . '.' : 'Audit recorded — still ' . $condition . '.';
+                    // An Unserviceable item can't be fixed: offer to request a replacement.
+                    if ($isTeacher && $condition === 'Unserviceable') {
+                        $extra = $this->replacementFollowUp((int) $item['id'], $item['item_name'], $remarks);
+                    }
+                    break;
+
+                case 'request_replacement':
+                    $item = $model->find((int) $this->request->getPost('id'));
+                    if (! $item || (int) $item['issued_to'] !== $userId) {
+                        return $fail('This item is not issued to you.', 403);
+                    }
+                    if ($item['condition_status'] !== 'Unserviceable') {
+                        return $fail('Only an Unserviceable item can be replaced. Update its status first.');
+                    }
+                    if ($this->openReplacement((int) $item['id'])) {
+                        return $fail('A replacement for this item was already requested.');
+                    }
+                    $details = trim((string) $this->request->getPost('details'));
+                    if ($details === '') {
+                        return $fail('Please add details for the ADAS.');
+                    }
+
+                    $concernId = (int) (new PropertyConcernModel())->insert([
+                        'property_id' => (int) $item['id'],
+                        'reported_by' => $userId,
+                        'category'    => PropertyConcernModel::REPLACEMENT,
+                        'details'     => mb_substr($details, 0, 1000),
+                        'status'      => 'Open',
+                    ]);
+                    $notifications = new NotificationModel();
+                    foreach ($this->adasRecipients() as $adas) {
+                        $notifications->insert([
+                            'user_id'  => (int) $adas['id'],
+                            'type'     => 'property_concern',
+                            'title'    => 'Replacement request: ' . $item['item_name'] . ' (' . $item['section'] . ')',
+                            'sub'      => 'Unserviceable — requested by ' . (currentUser()['name'] ?? 'adviser'),
+                            'url'      => base_url('property-management?tab=concerns'),
+                            'ref_type' => 'property_concern',
+                            'ref_id'   => $concernId,
+                        ]);
+                    }
+                    $message = 'Replacement requested. The ADAS will be notified.';
                     break;
 
                 case 'delete':
                     $item = $model->find((int) $this->request->getPost('id'));
                     if (! $item) {
                         return $fail('Item not found.', 404);
+                    }
+                    if ($isTeacher && ! $this->teacherCanEdit($item, $userId)) {
+                        return $fail('You can only delete items you listed that are not on a PAR yet.', 403);
                     }
                     $model->delete((int) $item['id']);
                     $message = 'Item removed.';
@@ -520,7 +592,7 @@ class Properties extends BaseController
                         'status'      => 'Open',
                     ]);
                     $notifications = new NotificationModel();
-                    foreach ((new UserModel())->active()->select('id')->where('role', 'adas')->findAll() as $adas) {
+                    foreach ($this->adasRecipients() as $adas) {
                         $notifications->insert([
                             'user_id'  => (int) $adas['id'],
                             'type'     => 'property_concern',
@@ -650,12 +722,76 @@ class Properties extends BaseController
         return redirect()->to('/property-management');
     }
 
+    /** Who gets the ADAS's property notifications: the ADAS, plus any super admin. */
+    private function adasRecipients(): array
+    {
+        return (new UserModel())->active()->select('id')
+            ->groupStart()->where('role', 'adas')->orWhere('is_super_admin', 1)->groupEnd()
+            ->findAll();
+    }
+
+    /** A teacher may edit / delete an item only if they listed it and it isn't on a PAR yet. */
+    private function teacherCanEdit(array $item, int $userId): bool
+    {
+        return (int) $item['added_by'] === $userId && (int) $item['issued_to'] === $userId && empty($item['par_id']);
+    }
+
+    private function openReplacement(int $propertyId): bool
+    {
+        return (new PropertyConcernModel())->where('property_id', $propertyId)
+            ->where('category', PropertyConcernModel::REPLACEMENT)->where('status', 'Open')->countAllResults() > 0;
+    }
+
+    /**
+     * After an item is marked Unserviceable: the page asks the teacher whether
+     * to request a replacement (ajaxFollowUp in footer.php) and, if so, posts
+     * request_replacement with their details.
+     */
+    private function replacementFollowUp(int $propertyId, string $itemName, string $remarks = ''): array
+    {
+        if ($this->openReplacement($propertyId)) {
+            return [];
+        }
+
+        return ['followUp' => [
+            'title'         => 'Request a replacement?',
+            'text'          => $itemName . ' is Unserviceable. Ask the ADAS for a replacement?',
+            'confirmText'   => 'Send Request',
+            'cancelText'    => 'Not now',
+            'inputLabel'    => 'Details for the ADAS',
+            'inputValue'    => $remarks,
+            'inputName'     => 'details',
+            'inputRequired' => true,
+            'url'           => base_url('property-management'),
+            'fields'        => ['action' => 'request_replacement', 'id' => $propertyId],
+        ]];
+    }
+
+    /** Tells the ADAS a teacher listed room property (one running notification per teacher). */
+    private function notifyAdasOfListing(int $teacherId): void
+    {
+        $waiting = (new RoomPropertyModel())->where('issued_to', $teacherId)->where('par_id IS NULL')->countAllResults();
+        $name    = currentUser()['name'] ?? 'An adviser';
+        $notes   = new NotificationModel();
+        foreach ($this->adasRecipients() as $adas) {
+            $notes->upsertGrouped(
+                (int) $adas['id'],
+                'property_listing',
+                $teacherId,
+                'property_par',
+                $name . ' listed room property',
+                $waiting . ' ' . ($waiting === 1 ? 'item' : 'items') . ' waiting for a PAR',
+                base_url('property-management?issued=' . $teacherId)
+            );
+        }
+    }
+
     /**
      * Validated item fields from the Add / Edit forms, or an error message.
      *
      * @return array<string,mixed>|string
      */
-    private function itemFromPost(): array|string
+    private function itemFromPost(?int $teacherId = null): array|string
     {
         $grade    = (string) $this->request->getPost('grade');
         $section  = (string) $this->request->getPost('section');
@@ -682,9 +818,10 @@ class Properties extends BaseController
         }
 
         // The room's property goes to the section's adviser. ADAS can pick
-        // someone else (e.g. a room with no adviser yet).
-        $issuedTo = (int) $this->request->getPost('issued_to');
-        if ($issuedTo && ! (new UserModel())->where('role', 'teacher')->find($issuedTo)) {
+        // someone else (e.g. a room with no adviser yet). An item a teacher
+        // lists is always theirs.
+        $issuedTo = $teacherId ?? (int) $this->request->getPost('issued_to');
+        if ($issuedTo && $teacherId === null && ! (new UserModel())->where('role', 'teacher')->find($issuedTo)) {
             return 'Please pick a valid teacher.';
         }
         if (! $issuedTo) {

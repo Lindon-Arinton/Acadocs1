@@ -4,6 +4,8 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Controllers\Teacher\PerformanceMps;
+use App\Models\NotificationModel;
+use App\Models\SubjectLoadRequestModel;
 use App\Models\TeacherModel;
 use App\Models\TeacherSubjectModel;
 use App\Models\UserModel;
@@ -101,8 +103,10 @@ class Profile extends BaseController
                     $model->update($sessionUser['id'], ['photo' => null]);
                     $this->refreshSession($model, $sessionUser['id']);
                     $message = 'Profile photo removed.';
-                } elseif ($action === 'save_subjects' && hasRole('teacher')) {
-                    [$message, $error] = $this->saveSubjectLoad($sessionUser);
+                } elseif ($action === 'request_subject' && hasRole('teacher')) {
+                    [$message, $error] = $this->requestSubjectChange($sessionUser);
+                } elseif ($action === 'cancel_subject_request' && hasRole('teacher')) {
+                    [$message, $error] = $this->cancelSubjectRequest($sessionUser);
                 }
             } catch (\Throwable $e) {
                 return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to('/profile');
@@ -132,8 +136,9 @@ class Profile extends BaseController
     /**
      * The teacher's subject load for the school year + term picked on the
      * page (defaults to the term after the latest one they filled in). When
-     * that term has nothing saved yet, the form is pre-filled from the load
-     * that would otherwise apply, so only what changed needs editing.
+     * that term has nothing saved yet, the load that applies is the previous
+     * term's (or the admin's base load). Teachers don't edit it directly: each
+     * add / change / remove is a request form the principal or ADAS approves.
      */
     private function subjectLoad(array $user): ?array
     {
@@ -162,6 +167,23 @@ class Profile extends BaseController
                 : ($rows !== [] ? 'the load set by the admin' : 'none');
         }
 
+        $requests  = (new SubjectLoadRequestModel())->forTeacherTerm($teacherId, $year, $term);
+        $reviewers = array_column((new UserModel())->select('id, name')->findAll(), 'name', 'id');
+        $pendingBy = []; // row key => pending action, so the row shows "Change requested" etc.
+        foreach ($requests as &$r) {
+            $r['change']        = SubjectLoadRequestModel::change($r);
+            $r['reviewer_name'] = $reviewers[$r['reviewed_by']] ?? null;
+            if ($r['status'] === 'Pending' && $r['change']['from']) {
+                $pendingBy[SubjectLoadRequestModel::rowKey($r['change']['from'])] = $r['change']['action'];
+            }
+        }
+        unset($r);
+
+        foreach ($rows as &$row) {
+            $row['pending'] = $pendingBy[SubjectLoadRequestModel::rowKey($row)] ?? null;
+        }
+        unset($row);
+
         $years = PerformanceMps::YEAR_OPTIONS;
         array_unshift($years, $this->shiftYear($years[0], 1));
 
@@ -170,55 +192,145 @@ class Profile extends BaseController
             'term'        => $term,
             'rows'        => $rows,
             'source'      => $source,
+            'requests'    => $requests,
             'years'       => array_values(array_unique($years)),
             'terms'       => PerformanceMps::TERM_OPTIONS,
             'gradeLevels' => PerformanceMps::GRADE_LEVELS,
             'subjects'    => PerformanceMps::SUBJECTS,
+            'sections'    => $this->knownSections(),
         ];
     }
 
-    /** @return array{0:?string,1:?string} [message, error] */
-    private function saveSubjectLoad(array $user): array
+    /** Sections already used in any subject load, per grade level (suggestions on the form). */
+    private function knownSections(): array
     {
-        $year = trim($this->request->getPost('school_year') ?? '');
-        $term = (int) $this->request->getPost('term');
+        $out = [];
+        foreach ((new TeacherSubjectModel())->select('grade_level, section')->distinct()
+            ->where('section IS NOT NULL', null, false)->where('section !=', '')->orderBy('section')->findAll() as $r) {
+            $out[$r['grade_level']][] = $r['section'];
+        }
+
+        return $out;
+    }
+
+    /**
+     * One add / change / remove request for a subject, from the request form
+     * (a reason is required). It applies only when the principal or ADAS
+     * approves it on Subject Requests (Admin\SubjectRequests).
+     *
+     * @return array{0:?string,1:?string} [message, error]
+     */
+    private function requestSubjectChange(array $user): array
+    {
+        $year   = trim((string) $this->request->getPost('school_year'));
+        $term   = (int) $this->request->getPost('term');
+        $action = (string) $this->request->getPost('kind');
+        $reason = trim((string) $this->request->getPost('reason'));
 
         if (! $this->isValidYear($year) || ! in_array($term, PerformanceMps::TERM_OPTIONS, true)) {
             return [null, 'Please pick a valid school year (e.g. 2026-2027) and term.'];
+        }
+        if (! isset(SubjectLoadRequestModel::ACTIONS[$action])) {
+            return [null, 'Unknown request.'];
+        }
+        if ($reason === '') {
+            return [null, 'Please give a reason for the request.'];
         }
 
         $teacher = (new TeacherModel())->resolveForUser($user);
         if (! $teacher) {
             return [null, 'No teacher record is linked to your account.'];
         }
+        $teacherId = (int) $teacher['id'];
 
-        $rows = [];
-        foreach ($this->request->getPost('subjects') ?? [] as $row) {
-            $subject = trim((string) ($row['subject'] ?? ''));
-            $grade   = trim((string) ($row['grade'] ?? ''));
-            $section = trim((string) ($row['section'] ?? ''));
+        $row = function (string $prefix): ?array {
+            $subject = trim((string) $this->request->getPost($prefix . 'subject'));
+            $grade   = trim((string) $this->request->getPost($prefix . 'grade'));
+            $section = trim((string) $this->request->getPost($prefix . 'section'));
 
-            if ($subject === '' && $grade === '' && $section === '') {
-                continue;
-            }
-            if ($subject === '' || $grade === '' || $section === '') {
-                return [null, 'Each subject needs a subject, grade level and section.'];
-            }
-            if (! in_array($grade, PerformanceMps::GRADE_LEVELS, true)) {
-                return [null, 'Invalid grade level: ' . $grade];
-            }
+            return $subject === '' && $grade === '' && $section === '' ? null
+                : ['subject' => $subject, 'grade_level' => $grade, 'section' => $section];
+        };
+        $change = ['action' => $action, 'from' => $action === 'add' ? null : $row('from_'), 'to' => $action === 'remove' ? null : $row('to_')];
 
-            $key        = strtolower($subject . '|' . $grade . '|' . $section);
-            $rows[$key] = ['subject' => $subject, 'grade_level' => $grade, 'section' => $section];
+        if ($change['to'] !== null) {
+            if (in_array('', $change['to'], true)) {
+                return [null, 'Fill out the subject, grade level and section.'];
+            }
+            if (! in_array($change['to']['grade_level'], PerformanceMps::GRADE_LEVELS, true)) {
+                return [null, 'Pick a grade level from the list.'];
+            }
+        }
+        if ($action !== 'add' && $change['from'] === null) {
+            return [null, 'Pick the subject to ' . strtolower(SubjectLoadRequestModel::ACTIONS[$action]) . '.'];
+        }
+        if ($action === 'change' && SubjectLoadRequestModel::rowKey($change['from']) === SubjectLoadRequestModel::rowKey($change['to'])) {
+            return [null, 'Nothing changed: edit the subject, grade level or section.'];
         }
 
-        if ($rows === []) {
-            return [null, 'Add at least one subject for this term.'];
+        // Must fit the load as it is now (it may already have changed).
+        $current = (new TeacherSubjectModel())->forTeacher($teacherId, $year, $term);
+        [, $error] = SubjectLoadRequestModel::apply($current, $change);
+        if ($error) {
+            return [null, $error];
         }
 
-        (new TeacherSubjectModel())->replaceTerm((int) $teacher['id'], $year, $term, array_values($rows));
+        // One open request per subject: no second change/remove of the same row, no duplicate add.
+        $requests = new SubjectLoadRequestModel();
+        foreach ($requests->forTeacherTerm($teacherId, $year, $term, 0) as $p) {
+            $pc = SubjectLoadRequestModel::change($p);
+            foreach (['from', 'to'] as $side) {
+                if ($change[$side] && $pc[$side] && SubjectLoadRequestModel::rowKey($change[$side]) === SubjectLoadRequestModel::rowKey($pc[$side])) {
+                    return [null, 'You already have a pending request for ' . SubjectLoadRequestModel::label($change[$side]) . '. Cancel it first to send a new one.'];
+                }
+            }
+        }
 
-        return ['Subject load saved for Term ' . $term . ', SY ' . $year . '.', null];
+        $requestId = (int) $requests->insert([
+            'teacher_id'  => $teacherId,
+            'user_id'     => (int) $user['id'],
+            'school_year' => $year,
+            'term'        => $term,
+            'proposed'    => json_encode($change),
+            'reason'      => mb_substr($reason, 0, 1000),
+            'status'      => 'Pending',
+        ]);
+
+        $what = match ($action) {
+            'add'    => 'Add ' . SubjectLoadRequestModel::label($change['to']),
+            'change' => 'Change ' . SubjectLoadRequestModel::label($change['from']) . ' → ' . SubjectLoadRequestModel::label($change['to']),
+            default  => 'Remove ' . SubjectLoadRequestModel::label($change['from']),
+        };
+        $notifications = new NotificationModel();
+        foreach ((new UserModel())->active()->whereIn('role', ['admin', 'adas'])->findAll() as $approver) {
+            $notifications->upsertGrouped(
+                (int) $approver['id'],
+                'subject_request',
+                $requestId,
+                'subject_request',
+                'Subject request: ' . ($user['name'] ?? 'Teacher'),
+                mb_strimwidth($what . ' (Term ' . $term . ', SY ' . $year . ')', 0, 250, '…'),
+                base_url('subject-requests')
+            );
+        }
+
+        return ['Request sent to the principal / ADAS. Your subjects change once it is approved.', null];
+    }
+
+    /** @return array{0:?string,1:?string} [message, error] */
+    private function cancelSubjectRequest(array $user): array
+    {
+        $teacher = (new TeacherModel())->resolveForUser($user);
+        $request = $teacher ? (new SubjectLoadRequestModel())->find((int) $this->request->getPost('request_id')) : null;
+
+        if (! $request || (int) $request['teacher_id'] !== (int) $teacher['id'] || $request['status'] !== 'Pending') {
+            return [null, 'That request can no longer be cancelled.'];
+        }
+
+        (new NotificationModel())->where('ref_type', 'subject_request')->where('ref_id', (int) $request['id'])->delete();
+        (new SubjectLoadRequestModel())->delete((int) $request['id']);
+
+        return ['Request cancelled.', null];
     }
 
     private function isValidYear(string $year): bool

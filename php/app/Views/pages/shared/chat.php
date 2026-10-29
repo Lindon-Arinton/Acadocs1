@@ -861,6 +861,49 @@ function fetchMessages() {
         .catch(() => {});
 }
 
+/* Called by the chat pulse in footer.php whenever any of my chats changes:
+   load the open thread now (instead of waiting for its own poll) and
+   refresh the left list (previews, unread badges, order, new chats). */
+window.chatOnPulse = function (pulse) {
+    if (activeConversationId && pulse.latest && String(pulse.latest.conversation_id) === String(activeConversationId)) {
+        fetchMessages();
+    }
+    refreshConversationList();
+};
+
+let chatListRefreshing = false;
+function refreshConversationList() {
+    if (chatListRefreshing) return;
+    chatListRefreshing = true;
+    const url = CHAT_INDEX_URL + (activeConversationId ? '?open=' + activeConversationId : '');
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.ok ? res.text() : null)
+        .then(html => {
+            if (!html) return;
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const fresh = doc.getElementById('conversationList');
+            if (!fresh) return;
+            const current = document.getElementById('conversationList');
+            if (current) {
+                current.innerHTML = fresh.innerHTML;
+            } else {
+                // First chat ever: the Conversations section didn't exist yet.
+                const scroll = document.getElementById('chatListScroll');
+                const label = doc.getElementById('conversationsLabel');
+                if (!scroll || !label) return;
+                scroll.prepend(label, fresh);
+            }
+            document.querySelectorAll('#conversationList .chat-convo-item').forEach(el => {
+                const isActive = String(el.dataset.id) === String(activeConversationId);
+                el.classList.toggle('active', isActive);
+                if (isActive) el.querySelector('.badge')?.remove();
+            });
+            applyChatFilter();
+        })
+        .catch(() => {})
+        .finally(() => { chatListRefreshing = false; });
+}
+
 let selectedAttachment = null;
 
 document.getElementById('attachInput')?.addEventListener('change', function () {

@@ -150,32 +150,141 @@ include APPPATH . 'Views/layout/header.php';
       </div>
       <div class="card-body">
         <p class="text-muted small mb-3">
-          Your subjects change every term — list the ones you handle in
-          <strong>Term <?= (int) $subjectLoad['term'] ?>, SY <?= e($subjectLoad['year']) ?></strong>.
-          These decide which subjects and sections you enter MPS scores for.
+          Your subjects in <strong>Term <?= (int) $subjectLoad['term'] ?>, SY <?= e($subjectLoad['year']) ?></strong> —
+          they decide which subjects and sections you enter MPS scores for.
+          To add, change or remove one, fill out a request; it applies once the principal / ADAS approves it.
           <?php if ($subjectLoad['source'] !== 'saved' && $subjectLoad['source'] !== 'none'): ?>
-          <br><i class="bi bi-info-circle me-1"></i>Not saved for this term yet — pre-filled from <?= e($subjectLoad['source']) ?>. Edit what changed, then save.
+          <br><i class="bi bi-info-circle me-1"></i>Not set for this term yet — showing <?= e($subjectLoad['source']) ?>. An approved request saves it for this term.
           <?php endif; ?>
         </p>
 
-        <form method="POST" action="<?= base_url('profile') ?>" class="ajax-form"
-              data-confirm-title="Save your subject load for Term <?= (int) $subjectLoad['term'] ?>, SY <?= e($subjectLoad['year']) ?>?">
-          <input type="hidden" name="action" value="save_subjects">
-          <input type="hidden" name="school_year" value="<?= e($subjectLoad['year']) ?>" data-sy-hidden>
-          <input type="hidden" name="term" value="<?= (int) $subjectLoad['term'] ?>">
+        <?php
+          $loadLine     = static fn (?array $r) => e(\App\Models\SubjectLoadRequestModel::label($r));
+          $pendingLabel = ['change' => 'Change requested', 'remove' => 'Removal requested'];
+          $rowJson      = static fn (array $r) => e(json_encode(['subject' => $r['subject'], 'grade_level' => $r['grade_level'] ?? '', 'section' => $r['section'] ?? '']));
+        ?>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle mb-0 subject-load-table">
+            <thead><tr><th>Subject</th><th>Grade Level</th><th>Section</th><th class="text-end">Request</th></tr></thead>
+            <tbody>
+              <?php foreach ($subjectLoad['rows'] as $r): ?>
+              <tr>
+                <td class="fw-semibold"><?= e($r['subject']) ?></td>
+                <td><?= e($r['grade_level'] ?? '—') ?></td>
+                <td><?= e($r['section'] ?? '—') ?></td>
+                <td class="text-end text-nowrap">
+                  <?php if ($r['pending']): ?>
+                  <span class="status-pill badge-pending"><?= $pendingLabel[$r['pending']] ?? 'Requested' ?></span>
+                  <?php else: ?>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openSubjectRequest('change', <?= $rowJson($r) ?>)"><i class="bi bi-pencil me-1"></i>Change</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="openSubjectRequest('remove', <?= $rowJson($r) ?>)"><i class="bi bi-trash me-1"></i>Remove</button>
+                  <?php endif; ?>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              <?php if (! $subjectLoad['rows']): ?>
+              <tr><td colspan="4" class="text-center text-muted py-3">No subjects yet — request one for each section you teach.</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
 
-          <datalist id="subjectNameOptions">
-            <?php foreach ($subjectLoad['subjects'] as $s): ?><option value="<?= e($s) ?>"><?php endforeach; ?>
-          </datalist>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openSubjectRequest('add', null)">
+          <i class="bi bi-plus-lg me-1"></i>Request to Add Subject
+        </button>
 
-          <div id="subjectLoadList" class="d-flex flex-column gap-2"></div>
-          <p class="text-muted small mb-0 d-none" id="subjectLoadEmpty">No subjects yet — add one for each section you teach.</p>
+        <?php if ($subjectLoad['requests']): ?>
+        <h6 class="fw-semibold small text-muted text-uppercase mt-4 mb-2" style="letter-spacing:.04em;">My requests for this term</h6>
+        <div class="d-flex flex-column gap-2">
+          <?php foreach ($subjectLoad['requests'] as $q): $c = $q['change']; ?>
+          <div class="subject-request-item status-<?= strtolower($q['status']) ?>">
+            <div class="d-flex flex-wrap align-items-start gap-2">
+              <span class="badge badge-change-<?= e($c['action']) ?>"><?= e(\App\Models\SubjectLoadRequestModel::ACTIONS[$c['action']]) ?></span>
+              <div class="flex-grow-1 min-w-0 small">
+                <?php if ($c['action'] === 'change'): ?>
+                <?= $loadLine($c['from']) ?> <i class="bi bi-arrow-right mx-1"></i> <strong><?= $loadLine($c['to']) ?></strong>
+                <?php else: ?>
+                <strong><?= $loadLine($c['action'] === 'add' ? $c['to'] : $c['from']) ?></strong>
+                <?php endif; ?>
+                <div class="text-muted">Reason: <?= e($q['reason'] ?? '') ?></div>
+                <?php if ($q['status'] !== 'Pending'): ?>
+                <div class="<?= $q['status'] === 'Approved' ? 'text-success' : 'text-danger' ?>">
+                  <?= e($q['status']) ?><?= $q['reviewer_name'] ? ' by ' . e($q['reviewer_name']) : '' ?> on <?= date('M d, Y', strtotime($q['reviewed_at'])) ?><?= $q['review_note'] ? ' — ' . e($q['review_note']) : '' ?>
+                </div>
+                <?php endif; ?>
+              </div>
+              <?php if ($q['status'] === 'Pending'): ?>
+              <span class="status-pill badge-pending">Waiting for approval</span>
+              <form method="POST" action="<?= base_url('profile') ?>" class="ajax-form"
+                    data-confirm-title="Cancel this request?" data-confirm-text="Your subject load stays as it is.">
+                <input type="hidden" name="action" value="cancel_subject_request">
+                <input type="hidden" name="request_id" value="<?= (int) $q['id'] ?>">
+                <button class="btn btn-sm btn-outline-secondary">Cancel</button>
+              </form>
+              <?php endif; ?>
+            </div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
 
-          <div class="d-flex flex-wrap gap-2 mt-3">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addLoadRow()">
-              <i class="bi bi-plus-lg me-1"></i>Add Subject
-            </button>
-            <button type="submit" class="btn btn-primary btn-sm ms-auto"><i class="bi bi-check-lg me-1"></i>Save Subject Load</button>
+  <!-- Subject request form: add / change / remove one subject (a reason is required) -->
+  <div class="modal fade" id="subjectRequestModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="<?= base_url('profile') ?>" class="ajax-form" id="subjectRequestForm">
+          <div class="modal-header" style="background:var(--maroon);color:#fff;">
+            <h6 class="modal-title fw-bold"><i class="bi bi-journal-plus me-2"></i><span id="subjectRequestTitle">Request</span></h6>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="action" value="request_subject">
+            <input type="hidden" name="kind" id="srKind">
+            <input type="hidden" name="school_year" value="<?= e($subjectLoad['year']) ?>">
+            <input type="hidden" name="term" value="<?= (int) $subjectLoad['term'] ?>">
+            <input type="hidden" name="from_subject" id="srFromSubject">
+            <input type="hidden" name="from_grade" id="srFromGrade">
+            <input type="hidden" name="from_section" id="srFromSection">
+
+            <p class="small text-muted mb-3">For <strong>Term <?= (int) $subjectLoad['term'] ?>, SY <?= e($subjectLoad['year']) ?></strong>. The principal / ADAS will review it.</p>
+
+            <div class="mb-3 d-none" id="srFromBox">
+              <label class="form-label small fw-semibold mb-1" id="srFromLabel">Current subject</label>
+              <div class="form-control form-control-sm bg-light" id="srFromText"></div>
+            </div>
+
+            <div id="srToBox">
+              <div class="row g-2 mb-3">
+                <div class="col-12">
+                  <label class="form-label small fw-semibold mb-1" for="srToSubject" id="srToLabel">Subject</label>
+                  <input type="text" class="form-control form-control-sm" name="to_subject" id="srToSubject" list="subjectNameOptions" maxlength="100" placeholder="e.g. Science">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold mb-1" for="srToGrade">Grade Level</label>
+                  <select class="form-select form-select-sm" name="to_grade" id="srToGrade">
+                    <option value="">Choose…</option>
+                    <?php foreach ($subjectLoad['gradeLevels'] as $g): ?><option value="<?= e($g) ?>"><?= e($g) ?></option><?php endforeach; ?>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold mb-1" for="srToSection">Section</label>
+                  <input type="text" class="form-control form-control-sm" name="to_section" id="srToSection" list="sectionOptions" maxlength="100" placeholder="e.g. Matatag">
+                </div>
+              </div>
+            </div>
+            <datalist id="subjectNameOptions"><?php foreach ($subjectLoad['subjects'] as $s): ?><option value="<?= e($s) ?>"><?php endforeach; ?></datalist>
+            <datalist id="sectionOptions"></datalist>
+
+            <label class="form-label small fw-semibold mb-1" for="srReason">Reason</label>
+            <textarea class="form-control form-control-sm" name="reason" id="srReason" rows="3" maxlength="1000" required
+                      placeholder="e.g. I was assigned this class at the start of the term."></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Send Request</button>
           </div>
         </form>
       </div>
@@ -186,47 +295,48 @@ include APPPATH . 'Views/layout/header.php';
 
 <?php
 if ($subjectLoad) {
-    $initialRows = array_map(static fn ($r) => [
-        'subject' => $r['subject'],
-        'grade'   => $r['grade_level'] ?? '',
-        'section' => $r['section'] ?? '',
-    ], $subjectLoad['rows']);
-
     $extraScript = '<script>
-const LOAD_GRADE_LEVELS = ' . json_encode($subjectLoad['gradeLevels']) . ';
-let loadRowSeq = 0;
+// Subject request form (Profile -> Subject Load): one modal for add / change / remove.
+window.SUBJECT_SECTIONS = ' . json_encode($subjectLoad['sections']) . ';
 
-function loadEscape(v) {
-    return String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-}
+window.openSubjectRequest = function (kind, row) {
+    var titles = { add: "Request to Add a Subject", change: "Request to Change a Subject", remove: "Request to Remove a Subject" };
+    var f = document.getElementById("subjectRequestForm");
+    f.reset();
+    document.getElementById("subjectRequestTitle").textContent = titles[kind];
+    document.getElementById("srKind").value = kind;
+    document.getElementById("srFromSubject").value = row ? row.subject : "";
+    document.getElementById("srFromGrade").value = row ? row.grade_level : "";
+    document.getElementById("srFromSection").value = row ? row.section : "";
 
-function addLoadRow(subject, grade, section) {
-    const idx = loadRowSeq++;
-    const gradeOptions = LOAD_GRADE_LEVELS.map(function (g) {
-        return "<option value=\"" + g + "\"" + (g === grade ? " selected" : "") + ">" + g + "</option>";
+    var fromBox = document.getElementById("srFromBox");
+    fromBox.classList.toggle("d-none", kind === "add");
+    document.getElementById("srFromLabel").textContent = kind === "remove" ? "Subject to remove" : "Current subject";
+    document.getElementById("srFromText").textContent = row ? [row.subject, row.grade_level, row.section].join(" · ") : "";
+
+    // Add / Change fill out the new subject; Remove only needs a reason.
+    var needsTo = kind !== "remove";
+    document.getElementById("srToBox").classList.toggle("d-none", !needsTo);
+    document.getElementById("srToLabel").textContent = kind === "change" ? "New subject" : "Subject";
+    ["srToSubject", "srToGrade", "srToSection"].forEach(function (id) { document.getElementById(id).required = needsTo; });
+    if (kind === "change" && row) {
+        document.getElementById("srToSubject").value = row.subject;
+        document.getElementById("srToGrade").value = row.grade_level;
+        document.getElementById("srToSection").value = row.section;
+    }
+    fillSectionOptions();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("subjectRequestModal")).show();
+};
+
+// Section suggestions follow the chosen grade level.
+function fillSectionOptions() {
+    var grade = document.getElementById("srToGrade").value;
+    var list = (window.SUBJECT_SECTIONS[grade] || []);
+    document.getElementById("sectionOptions").innerHTML = list.map(function (s) {
+        return "<option value=\"" + String(s).replace(/&/g, "&amp;").replace(/\"/g, "&quot;").replace(/</g, "&lt;") + "\">";
     }).join("");
-
-    document.getElementById("subjectLoadList").insertAdjacentHTML("beforeend",
-        "<div class=\"d-flex flex-wrap gap-2 align-items-center load-row\">" +
-          "<input type=\"text\" class=\"form-control form-control-sm\" style=\"flex:1 1 140px;\" list=\"subjectNameOptions\" placeholder=\"Subject (e.g. Science)\" required " +
-            "name=\"subjects[" + idx + "][subject]\" value=\"" + loadEscape(subject || "") + "\">" +
-          "<select class=\"form-select form-select-sm\" style=\"flex:1 1 120px;\" required name=\"subjects[" + idx + "][grade]\">" +
-            "<option value=\"\">Grade</option>" + gradeOptions +
-          "</select>" +
-          "<input type=\"text\" class=\"form-control form-control-sm\" style=\"flex:1 1 140px;\" placeholder=\"Section (e.g. Matatag)\" required " +
-            "name=\"subjects[" + idx + "][section]\" value=\"" + loadEscape(section || "") + "\">" +
-          "<button type=\"button\" class=\"btn btn-ghost btn-sm text-danger\" title=\"Remove\" onclick=\"this.closest(\'.load-row\').remove(); syncLoadEmpty();\">" +
-            "<i class=\"bi bi-x-lg\"></i></button>" +
-        "</div>");
-    syncLoadEmpty();
 }
-
-function syncLoadEmpty() {
-    document.getElementById("subjectLoadEmpty").classList.toggle("d-none", document.getElementById("subjectLoadList").children.length > 0);
-}
-
-' . json_encode($initialRows) . '.forEach(function (r) { addLoadRow(r.subject, r.grade, r.section); });
-syncLoadEmpty();
+document.getElementById("srToGrade")?.addEventListener("change", fillSectionOptions);
 </script>';
 }
 

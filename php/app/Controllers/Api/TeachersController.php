@@ -23,6 +23,12 @@ class TeachersController extends BaseApiController
 
     public function create()
     {
+        // Only the principal / ADAS change teacher records and subject loads; teachers
+        // request load changes from My Profile (approved on Subject Requests).
+        if (! hasRole('admin', 'adas')) {
+            return $this->jsonError('Not allowed.', 403);
+        }
+
         $b = $this->body();
 
         $teacherId = (new TeacherModel())->insert([
@@ -44,6 +50,12 @@ class TeachersController extends BaseApiController
 
     public function update()
     {
+        // Only the principal / ADAS change teacher records and subject loads; teachers
+        // request load changes from My Profile (approved on Subject Requests).
+        if (! hasRole('admin', 'adas')) {
+            return $this->jsonError('Not allowed.', 403);
+        }
+
         $id = (int) $this->request->getGet('id');
         if (! $id) {
             return $this->jsonError('Method not allowed.', 405);
@@ -92,6 +104,12 @@ class TeachersController extends BaseApiController
 
     public function delete()
     {
+        // Only the principal / ADAS change teacher records and subject loads; teachers
+        // request load changes from My Profile (approved on Subject Requests).
+        if (! hasRole('admin', 'adas')) {
+            return $this->jsonError('Not allowed.', 403);
+        }
+
         $id = (int) $this->request->getGet('id');
         if (! $id) {
             return $this->jsonError('Method not allowed.', 405);

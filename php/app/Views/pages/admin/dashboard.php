@@ -43,7 +43,7 @@ $insightTone = [
 ];
 ?>
 
-<!-- Welcome header (no banner, per the redesign) -->
+<!-- Welcome header, in a card like the rest of the dashboard -->
 <div class="dash-head">
   <div>
     <div class="dash-eyebrow">Welcome back,</div>
@@ -429,6 +429,49 @@ $insightTone = [
     <?php endif; ?>
   </div>
 </div>
+
+<?php if (! empty($rmaSummary)):
+  $rs      = $rmaSummary;
+  $rsSch   = $rs['school'];
+  $rsHas   = $rsSch['assessed'] > 0 || $rs['sectionsReported'] > 0;
+  $rsLink  = static fn (string $p) => current_url() . '?' . http_build_query(array_merge($_GET, ['rma_period' => $p])) . '#rma';
+  $rsNum   = static fn ($v) => $v === null ? '—' : rtrim(rtrim(number_format((float) $v, 2), '0'), '.');
+?>
+<!-- Rapid Mathematics Assessment: charts only (the full table is on RMA Results) -->
+<div class="card dash-card mb-4" id="rma">
+  <div class="dash-card-head flex-wrap gap-2">
+    <span><i class="bi bi-calculator"></i>Rapid Mathematics Assessment (RMA) · SY <?= e(str_replace('-', '–', $rs['year'])) ?></span>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <?php foreach (\App\Models\RmaResultModel::PERIODS as $p => $label): ?>
+      <a href="<?= e($rsLink($p)) ?>" class="chat-filter-pill text-decoration-none<?= $p === $rs['period'] ? ' active' : '' ?>"><?= e($p === 'BoSY' ? 'Pre-test' : ($p === 'EoSY' ? 'Post-test' : 'Mid-year')) ?></a>
+      <?php endforeach; ?>
+      <a href="<?= base_url('rma-results?year=' . urlencode($rs['year']) . '&rma_period=' . $rs['period']) ?>" class="td-link ms-1">View full table <i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+  <div class="dash-card-body">
+    <?php if (! $rsHas): ?>
+    <p class="text-muted text-center py-4 mb-0 small"><i class="bi bi-calculator fs-4 d-block mb-2"></i>No RMA results yet for <?= e(\App\Models\RmaResultModel::PERIODS[$rs['period']]) ?>, SY <?= e($rs['year']) ?>. Math teachers enter them on RMA (Math).</p>
+    <?php else: ?>
+    <div class="rma-stats mb-3">
+      <div><div class="rma-stat-label">Learners assessed</div><div class="rma-stat-value"><?= number_format($rsSch['assessed']) ?></div><div class="rma-stat-sub">of <?= number_format($rsSch['enrolment']) ?> enrolled</div></div>
+      <div><div class="rma-stat-label">Proficient or higher</div><div class="rma-stat-value"><?= $rsSch['proficientPct'] === null ? '—' : $rsNum($rsSch['proficientPct']) . '%' ?></div><div class="rma-stat-sub">Transitioning + At Grade Level</div></div>
+      <div><div class="rma-stat-label">Mean score</div><div class="rma-stat-value"><?= $rsNum($rsSch['mean']) ?></div><div class="rma-stat-sub">weighted by learners assessed</div></div>
+      <div><div class="rma-stat-label">Sections reported</div><div class="rma-stat-value"><?= (int) $rs['sectionsReported'] ?><span class="rma-stat-of"> / <?= (int) $rs['sectionsTotal'] ?></span></div><div class="rma-stat-sub">Math sections with results</div></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="small fw-semibold mb-2">Proficiency by grade level <span class="text-muted fw-normal">(% of learners assessed)</span></div>
+        <div class="dash-chart" style="height:250px"><canvas id="rmaLevelChart" data-label-header="Grade Level" data-unit="%" data-source="<?= e('Learners assessed in the Rapid Mathematics Assessment by proficiency level, as entered by each section\'s Math teacher — ' . \App\Models\RmaResultModel::PERIODS[$rs['period']] . ', SY ' . $rs['year'] . '.') ?>"></canvas></div>
+      </div>
+      <div class="col-lg-4">
+        <div class="small fw-semibold mb-2">Mean score by grade level</div>
+        <div class="dash-chart" style="height:250px"><canvas id="rmaMeanChart" data-label-header="Grade Level" data-source="<?= e('RMA mean score per grade level, weighted by learners assessed — ' . \App\Models\RmaResultModel::PERIODS[$rs['period']] . ', SY ' . $rs['year'] . '.') ?>"></canvas></div>
+      </div>
+    </div>
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="dash-footer">
   <span><span class="dash-footer-rule"></span><strong>ACADOCS</strong> · School Documents Management System</span>
@@ -1084,5 +1127,48 @@ function selectChartKind(kind) {
 
 renderKpiCards(' . json_encode($currentYear) . ');
 buildKpiChart();
+
+// ── RMA: proficiency mix per grade (100% stacked, one hue light→dark for the
+// ordered levels) and mean score per grade. Shades validated against the card
+// in light and dark mode (alphas .36/.52/.68/.84/1).
+' . (! empty($rmaSummary) && ($rmaSummary['school']['assessed'] > 0 || $rmaSummary['sectionsReported'] > 0) ? (function () use ($rmaSummary) {
+    $grades = $rmaSummary['grades'] + ['School' => $rmaSummary['school']];
+    $labels = array_keys($grades);
+    $levels = [];
+    foreach (\App\Models\RmaResultModel::LEVELS as $f => [$band, $level]) {
+        $levels[] = [
+            'label'  => $band . ' (' . $level . ')',
+            'pct'    => array_values(array_map(static fn ($g) => $g['leveled'] > 0 ? round($g['levels'][$f] / $g['leveled'] * 100, 1) : 0, $grades)),
+            'counts' => array_values(array_map(static fn ($g) => $g['levels'][$f], $grades)),
+        ];
+    }
+    $means = array_values(array_map(static fn ($g) => $g['mean'], $rmaSummary['grades']));
+
+    return 'const RMA_LEVELS = ' . json_encode($levels) . ';
+const rmaAlphas = [0.36, 0.52, 0.68, 0.84, 1];
+const rmaSurface = getComputedStyle(document.documentElement).getPropertyValue("--card").trim() || "#fff";
+new Chart(document.getElementById("rmaLevelChart"), {
+  type: "bar",
+  data: {
+    labels: ' . json_encode($labels) . ',
+    datasets: RMA_LEVELS.map((l, i) => ({ label: l.label, data: l.pct, counts: l.counts, backgroundColor: chartColor(rmaAlphas[i]), borderColor: rmaSurface, borderWidth: { right: 2 }, borderSkipped: false, maxBarThickness: 22 }))
+  },
+  options: {
+    indexAxis: "y", responsive: true, maintainAspectRatio: false,
+    scales: { x: { stacked: true, min: 0, max: 100, ticks: { callback: v => v + "%" }, grid: { color: chartGridColor() } }, y: { stacked: true, grid: { display: false } } },
+    plugins: {
+      legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10, font: { size: 10 } } },
+      tooltip: { callbacks: { label: c => c.dataset.label + ": " + c.parsed.x + "% (" + c.dataset.counts[c.dataIndex] + " learners)" } }
+    }
+  }
+});
+new Chart(document.getElementById("rmaMeanChart"), {
+  type: "bar",
+  data: { labels: ' . json_encode(array_keys($rmaSummary['grades'])) . ', datasets: [{ label: "Mean score", data: ' . json_encode($means) . ', backgroundColor: chartColor(1), borderRadius: 4, maxBarThickness: 26 }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: chartGridColor() } }, x: { grid: { display: false } } } }
+});
+';
+})() : '') . '
+
 </script>';
 include APPPATH . 'Views/layout/footer.php';

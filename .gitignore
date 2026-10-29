@@ -4,3 +4,6 @@ cypress/screenshots/
 cypress/videos/
 cypress/downloads/
 node_modules/
+
+# Hostinger upload package (contains passwords)
+/deploy/

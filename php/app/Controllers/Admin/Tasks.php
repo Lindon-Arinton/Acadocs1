@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\TaskApprovals;
 use App\Models\DocumentFolderModel;
 use App\Models\NotificationModel;
 use App\Models\TaskAssigneeModel;
@@ -101,6 +102,12 @@ class Tasks extends BaseController
                 } elseif ($action === 'reopen') {
                     $taskModel->update((int) $this->request->getPost('id'), ['status' => 'Open']);
                     $message = 'Task reopened.';
+                } elseif ($action === 'approve_all') {
+                    $count = (new TaskApprovals())->approveAllPending((int) $this->request->getPost("id"), (int) currentUser()["id"]);
+                    if ($count === 0) {
+                        return $isAjax ? $this->ajaxError('There are no pending uploads to approve.') : redirect()->back();
+                    }
+                    $message = 'Approved ' . $count . ' upload' . ($count === 1 ? '' : 's') . '.';
                 } elseif ($action === 'delete') {
                     $taskId = (int) $this->request->getPost('id');
                     (new NotificationModel())->deleteForTask($taskId); // before the delete cascades away its submissions
@@ -130,6 +137,7 @@ class Tasks extends BaseController
                 ? $assigneeModel->where('task_id', $task['id'])->countAllResults()
                 : $userModel->active()->where('role', $task['assigned_role'])->countAllResults();
             $task['submitted_count'] = $submissionModel->where('task_id', $task['id'])->countAllResults();
+            $task['approvable_count'] = $this->approvableCount((int) $task["id"]);
         }
         unset($task);
 
@@ -149,6 +157,12 @@ class Tasks extends BaseController
             'departments'     => $departments,
             'flash'           => session()->getFlashdata('flash'),
         ]);
+    }
+
+    /** Pending uploads on the task the signed-in principal/ADAS can approve in one go (see TaskApprovals). */
+    private function approvableCount(int $taskId): int
+    {
+        return (new TaskApprovals())->approvableCount($taskId, (int) currentUser()['id']);
     }
 
     public function view(int $id)
@@ -242,6 +256,7 @@ class Tasks extends BaseController
             'pendingUsers' => $pendingUsers,
             // The task's Manage Documents folder (created on its first upload), for the shortcut.
             'folderId'     => (int) ((new DocumentFolderModel())->where('task_id', $id)->first()['id'] ?? 0) ?: null,
+            'approvableCount' => $this->approvableCount($id),
             'flash'        => session()->getFlashdata('flash'),
         ]);
     }
@@ -320,6 +335,8 @@ class Tasks extends BaseController
                 ], $s['feedback']),
             ], $submissions),
             'canReview'    => hasRole('admin'),
+            // "Approve All" in the modal: principal and ADAS.
+            'approvableCount' => $this->approvableCount($id),
             'pendingUsers' => array_map(static fn (array $u) => ['id' => (int) $u['id'], 'name' => $u['name']], $pendingUsers),
         ]);
     }

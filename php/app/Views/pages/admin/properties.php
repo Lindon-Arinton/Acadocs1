@@ -1,7 +1,7 @@
 <?php
 $condCfg = [
-    'Working'     => ['cond-serviceable',     'bi-check-circle-fill'],
-    'Not Working' => ['cond-non-serviceable', 'bi-exclamation-triangle-fill'],
+    'Serviceable'   => ['cond-serviceable',     'bi-check-circle-fill'],
+    'Unserviceable' => ['cond-non-serviceable', 'bi-x-octagon-fill'],
 ];
 // PAR statuses as shown on screen: an approved PAR means the adviser
 // confirmed they received the items.
@@ -18,8 +18,9 @@ $isAdas    = hasRole('adas');
 $isTeacher = hasRole('teacher');
 
 // Grade / section / item / quantity / acquisition / adviser / notes fields,
-// shared by the ADAS's Add and Edit modals. $p prefixes the element ids.
-$itemFields = static function (string $p) use ($sectionsByGrade, $acquisitions, $teachers): void { ?>
+// shared by the Add and Edit modals. $p prefixes the element ids. Teachers
+// don't get the adviser picker: an item they list is always theirs.
+$itemFields = static function (string $p, bool $withAdviser = true) use ($sectionsByGrade, $acquisitions, $teachers): void { ?>
             <div class="col-6">
               <label class="form-label">Grade</label>
               <div class="maroon-select" style="width:100%;">
@@ -68,6 +69,7 @@ $itemFields = static function (string $p) use ($sectionsByGrade, $acquisitions, 
               <label class="form-label">Please specify</label>
               <input type="text" name="acquisition_other" id="<?= $p ?>AcqOther" class="form-control" maxlength="150" placeholder="e.g. Transferred from Division">
             </div>
+            <?php if ($withAdviser): ?>
             <div class="col-12">
               <label class="form-label">Accountable Adviser</label>
               <div class="maroon-select" style="width:100%;">
@@ -82,6 +84,7 @@ $itemFields = static function (string $p) use ($sectionsByGrade, $acquisitions, 
               </div>
               <div class="text-muted mt-1" style="font-size:.75rem" id="<?= $p ?>IssuedToHint"></div>
             </div>
+            <?php endif; ?>
             <div class="col-12">
               <label class="form-label">Notes <span class="text-muted fw-normal">(optional)</span></label>
               <textarea name="notes" id="<?= $p ?>Notes" class="form-control" rows="2" placeholder="Brand, serial no., location in the room, etc."></textarea>
@@ -96,7 +99,7 @@ include APPPATH . 'Views/layout/header.php';
     <div>
       <h4><i class="bi bi-building me-2"></i><?= $isTeacher ? 'My Room Property' : 'Property Management' ?></h4>
       <p><?= $isTeacher
-          ? 'Property issued to you by the ADAS — confirm what you received and report any concern'
+          ? 'List your room\'s property, keep each item\'s status up to date, confirm receipts, and request replacements'
           : 'Room property audit, distribution to advisers, and condition checks' ?></p>
     </div>
     <?php if ($isAdas): ?>
@@ -110,6 +113,11 @@ include APPPATH . 'Views/layout/header.php';
         <i class="bi bi-plus-lg me-1"></i>Add Item
       </button>
     </div>
+    <?php elseif ($isTeacher): ?>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);"
+            data-bs-toggle="modal" data-bs-target="#addItemModal">
+      <i class="bi bi-plus-lg me-1"></i>List an Item
+    </button>
     <?php endif; ?>
   </div>
 </div>
@@ -134,8 +142,8 @@ include APPPATH . 'Views/layout/header.php';
 <div class="row g-3 mb-4">
   <?php
   $cards = [
-      ['Working',       $condStats['Working'] ?? 0,     'bi-check-circle-fill',         '#d1fae5', '#065f46', 'in working condition'],
-      ['Not Working',   $condStats['Not Working'] ?? 0, 'bi-exclamation-triangle-fill', '#fee2e2', '#991b1b', 'damaged or not working'],
+      ['Serviceable',   $condStats['Serviceable'] ?? 0,   'bi-check-circle-fill', '#d1fae5', '#065f46', 'in good, usable condition'],
+      ['Unserviceable', $condStats['Unserviceable'] ?? 0, 'bi-x-octagon-fill',    '#fee2e2', '#991b1b', 'can no longer be used'],
       ['Open Concerns', $openConcernCount,              'bi-flag-fill',                 '#fef9c3', '#713f12', $isTeacher ? 'you reported, not yet resolved' : 'reported by advisers'],
       $isTeacher
           ? ['To Confirm', $pendingParCount, 'bi-hourglass-split', '#e0e7ff', '#3730a3', 'receipts waiting for you']
@@ -313,6 +321,10 @@ include APPPATH . 'Views/layout/header.php';
                 'notes'             => $item['notes'],
                 'issued_to'         => $item['issued_to'] !== null ? (int) $item['issued_to'] : '',
             ]));
+            $replacementAsked = isset($replacementOpen[(int) $item['id']]);
+            $openConcerns    -= $replacementAsked ? 1 : 0; // the replacement request has its own badge
+            // Teachers may edit/delete only what they listed, until it is on a PAR.
+            $teacherEditable  = $isTeacher && (int) ($item['added_by'] ?? 0) === $userId && empty($item['par_id']);
             [$pc, , $pLabel] = $item['par_no'] ? ($parCfg[$item['par_status']] ?? ['badge-secondary', '', $item['par_status']]) : ['badge-secondary', '', ''];
           ?>
           <tr>
@@ -322,6 +334,11 @@ include APPPATH . 'Views/layout/header.php';
               <div class="fw-semibold"><?= e($item['item_name']) ?></div>
               <?php if ($item['notes']): ?>
               <div class="text-muted" style="font-size:.72rem;max-width:260px;white-space:normal;"><i class="bi bi-sticky me-1"></i><?= e($item['notes']) ?></div>
+              <?php endif; ?>
+              <?php if ($replacementAsked): ?>
+              <a href="<?= base_url('property-management?tab=concerns') ?>" class="badge badge-pending text-decoration-none me-1" style="font-size:.62rem">
+                <i class="bi bi-arrow-repeat me-1"></i>Replacement requested
+              </a>
               <?php endif; ?>
               <?php if ($openConcerns): ?>
               <a href="<?= base_url('property-management?tab=concerns') ?>" class="badge badge-pending text-decoration-none" style="font-size:.62rem">
@@ -344,6 +361,9 @@ include APPPATH . 'Views/layout/header.php';
                 <?php endif; ?>
               <?php elseif ($item['issued_to_name']): ?>
                 <div><?= e($item['issued_to_name']) ?></div>
+                <?php if ($item['added_by'] && (int) $item['added_by'] === (int) $item['issued_to']): ?>
+                <div class="text-muted" style="font-size:.66rem"><i class="bi bi-person-check me-1"></i>Listed by adviser</div>
+                <?php endif; ?>
                 <?php if ($item['par_no']): ?>
                 <span class="badge <?= $pc ?>" style="font-size:.62rem"><?= e($item['par_no']) ?> · <?= e($pLabel) ?></span>
                 <?php else: ?>
@@ -365,8 +385,24 @@ include APPPATH . 'Views/layout/header.php';
               <button type="button" class="btn btn-ghost btn-sm" title="Condition history"
                       onclick="showConditionHistory(<?= (int) $item['id'] ?>)"><i class="bi bi-clock-history"></i></button>
               <?php if ($isTeacher): ?>
-              <button type="button" class="btn btn-outline-secondary btn-sm" title="Report a concern"
-                      data-item="<?= $itemJson ?>" onclick="openConcernModal(this)"><i class="bi bi-flag me-1"></i>Report</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" title="Update the item's status"
+                      data-item="<?= $itemJson ?>" onclick="openConditionModal(this)"><i class="bi bi-clipboard-check me-1"></i>Status</button>
+              <?php if ($item['condition_status'] === 'Unserviceable' && ! $replacementAsked): ?>
+              <button type="button" class="btn btn-outline-danger btn-sm" title="Ask the ADAS for a replacement"
+                      data-item="<?= $itemJson ?>" onclick="requestReplacement(this)"><i class="bi bi-arrow-repeat me-1"></i>Request Replacement</button>
+              <?php endif; ?>
+              <button type="button" class="btn btn-ghost btn-sm" title="Report a concern"
+                      data-item="<?= $itemJson ?>" onclick="openConcernModal(this)"><i class="bi bi-flag"></i></button>
+              <?php if ($teacherEditable): ?>
+              <button type="button" class="btn btn-ghost btn-sm" title="Edit item"
+                      data-item="<?= $itemJson ?>" onclick="openEditModal(this)"><i class="bi bi-pencil"></i></button>
+              <form method="POST" action="<?= base_url('property-management') ?>" class="ajax-form d-inline"
+                    data-confirm-title="Delete this item?" data-confirm-text="Its condition history will be deleted too.">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
+                <button class="btn btn-ghost btn-sm text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+              </form>
+              <?php endif; ?>
               <?php elseif ($isAdas): ?>
               <button type="button" class="btn btn-ghost btn-sm" title="Audit condition"
                       data-item="<?= $itemJson ?>" onclick="openConditionModal(this)"><i class="bi bi-clipboard-check"></i></button>
@@ -385,7 +421,7 @@ include APPPATH . 'Views/layout/header.php';
           <?php if (empty($items)): ?>
           <tr><td colspan="9" class="text-center py-5">
             <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
-            <span class="text-muted"><?= $isTeacher ? 'No property has been issued to you yet.' : 'No items found.' ?></span>
+            <span class="text-muted"><?= $isTeacher ? 'No property yet — use "List an Item" to add your room\'s items.' : 'No items found.' ?></span>
           </td></tr>
           <?php endif; ?>
         </tbody>
@@ -526,34 +562,34 @@ include APPPATH . 'Views/layout/header.php';
 </div>
 <?php endif; ?>
 
-<?php if ($isAdas): ?>
-<!-- Add Item Modal -->
+<?php if ($isAdas || $isTeacher): ?>
+<!-- Add Item Modal (ADAS: Add Item; teacher: List an Item — always issued to them) -->
 <div class="modal fade" id="addItemModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header gradient">
-        <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Property Item</h6>
+        <h6 class="modal-title"><i class="bi bi-plus-circle me-2"></i><?= $isTeacher ? 'List a Room Item' : 'Add Property Item' ?></h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" action="<?= base_url('property-management') ?>" class="ajax-form">
         <input type="hidden" name="action" value="add">
         <div class="modal-body">
           <div class="row g-3">
-            <?php $itemFields('add'); ?>
+            <?php $itemFields('add', $isAdas); ?>
             <div class="col-12">
               <label class="form-label">Condition</label>
               <div class="cond-choice">
-                <input type="radio" name="condition_status" id="addCondS" value="Working" checked>
-                <label for="addCondS" class="is-serviceable"><i class="bi bi-check-circle-fill"></i>Working</label>
-                <input type="radio" name="condition_status" id="addCondN" value="Not Working">
-                <label for="addCondN" class="is-non-serviceable"><i class="bi bi-exclamation-triangle-fill"></i>Not Working</label>
+                <input type="radio" name="condition_status" id="addCondS" value="Serviceable" checked>
+                <label for="addCondS" class="is-serviceable"><i class="bi bi-check-circle-fill"></i>Serviceable</label>
+                <input type="radio" name="condition_status" id="addCondU" value="Unserviceable">
+                <label for="addCondU" class="is-non-serviceable"><i class="bi bi-x-octagon-fill"></i>Unserviceable</label>
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Item</button>
+          <button type="submit" class="btn btn-primary"><?= $isTeacher ? 'List Item' : 'Add Item' ?></button>
         </div>
       </form>
     </div>
@@ -573,8 +609,10 @@ include APPPATH . 'Views/layout/header.php';
         <input type="hidden" name="id" id="editId">
         <div class="modal-body">
           <div class="row g-3">
-            <?php $itemFields('edit'); ?>
+            <?php $itemFields('edit', $isAdas); ?>
+            <?php if ($isAdas): ?>
             <div class="col-12 text-muted" style="font-size:.75rem"><i class="bi bi-info-circle me-1"></i>Changing the adviser removes the item from its current PAR, so you'll need to issue a new one.</div>
+            <?php endif; ?>
           </div>
         </div>
         <div class="modal-footer">
@@ -591,7 +629,7 @@ include APPPATH . 'Views/layout/header.php';
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header gradient">
-        <h6 class="modal-title"><i class="bi bi-clipboard-check me-2"></i>Audit Condition</h6>
+        <h6 class="modal-title"><i class="bi bi-clipboard-check me-2"></i><?= $isTeacher ? 'Update Item Status' : 'Audit Condition' ?></h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" action="<?= base_url('property-management') ?>" class="ajax-form" data-confirm-action="update">
@@ -602,25 +640,33 @@ include APPPATH . 'Views/layout/header.php';
             <div class="fw-semibold" id="condItemName"></div>
             <div class="text-muted" style="font-size:.78rem" id="condItemMeta"></div>
           </div>
-          <label class="form-label">Condition found</label>
-          <div class="cond-choice mb-3">
-            <input type="radio" name="condition_status" id="condS" value="Working">
-            <label for="condS" class="is-serviceable"><i class="bi bi-check-circle-fill"></i>Working</label>
-            <input type="radio" name="condition_status" id="condN" value="Not Working">
-            <label for="condN" class="is-non-serviceable"><i class="bi bi-exclamation-triangle-fill"></i>Not Working</label>
+          <label class="form-label"><?= $isTeacher ? 'Status' : 'Condition found' ?></label>
+          <div class="cond-choice mb-1">
+            <input type="radio" name="condition_status" id="condS" value="Serviceable">
+            <label for="condS" class="is-serviceable"><i class="bi bi-check-circle-fill"></i>Serviceable</label>
+            <input type="radio" name="condition_status" id="condU" value="Unserviceable">
+            <label for="condU" class="is-non-serviceable"><i class="bi bi-x-octagon-fill"></i>Unserviceable</label>
           </div>
-          <label class="form-label">Remarks <span class="text-muted fw-normal">(required when changing to Not Working)</span></label>
+          <?php if ($isTeacher): ?>
+          <div class="text-muted mb-3" style="font-size:.75rem">Marking an item Unserviceable lets you request a replacement from the ADAS.</div>
+          <?php else: ?>
+          <div class="mb-3"></div>
+          <?php endif; ?>
+          <label class="form-label">Remarks <span class="text-muted fw-normal">(required when changing to Unserviceable)</span></label>
           <textarea name="remarks" class="form-control" rows="2" maxlength="200" placeholder="e.g. Broken leg, screen not turning on, repaired by maintenance"></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Audit</button>
+          <button type="submit" class="btn btn-primary"><?= $isTeacher ? 'Save Status' : 'Save Audit' ?></button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
+<?php endif; ?>
+
+<?php if ($isAdas): ?>
 <!-- Issue PAR Modal -->
 <div class="modal fade" id="issueParModal" tabindex="-1">
   <div class="modal-dialog">
@@ -675,7 +721,7 @@ include APPPATH . 'Views/layout/header.php';
           <div class="fw-semibold mb-3" id="resolveItemName"></div>
           <label class="form-label">Response to the adviser</label>
           <textarea name="response" class="form-control" rows="3" maxlength="255" required
-                    placeholder="e.g. Checked on Oct 22 — fan repaired. Audit updated to Working."></textarea>
+                    placeholder="e.g. Checked on Oct 22 — fan repaired. Audit updated to Serviceable."></textarea>
           <div class="text-muted mt-2" style="font-size:.75rem"><i class="bi bi-info-circle me-1"></i>If the item's condition changed, also record it with <i class="bi bi-clipboard-check"></i> Audit in the inventory.</div>
         </div>
         <div class="modal-footer">
@@ -858,7 +904,7 @@ function openConditionModal(btn) {
     document.getElementById('condId').value = item.id;
     document.getElementById('condItemName').textContent = item.item_name + ' (' + item.quantity + ')';
     document.getElementById('condItemMeta').textContent = item.grade + ' · ' + item.section + ' · currently ' + item.condition_status;
-    ['condS', 'condN'].forEach(id => {
+    ['condS', 'condU'].forEach(id => {
         const r = document.getElementById(id);
         r.checked = r.value === item.condition_status;
     });
@@ -874,6 +920,22 @@ function openConcernModal(btn) {
     document.getElementById('concernItemMeta').textContent = item.grade + ' · ' + item.section + ' · ' + item.condition_status;
     modal.querySelector('textarea[name="details"]').value = '';
     bootstrap.Modal.getOrCreateInstance(modal).show();
+}
+
+// Teacher: ask the ADAS to replace an Unserviceable item (same prompt as after marking it Unserviceable).
+function requestReplacement(btn) {
+    const item = JSON.parse(btn.dataset.item);
+    ajaxFollowUp({
+        title: 'Request a replacement?',
+        text: item.item_name + ' (' + item.grade + ' · ' + item.section + ') is Unserviceable. Ask the ADAS for a replacement?',
+        confirmText: 'Send Request',
+        cancelText: 'Cancel',
+        inputLabel: 'Details for the ADAS',
+        inputName: 'details',
+        inputRequired: true,
+        url: historyModalEl.dataset.url,
+        fields: { action: 'request_replacement', id: item.id },
+    });
 }
 
 function openResolveModal(id, label) {
@@ -898,7 +960,7 @@ function showConditionHistory(id) {
         .then(r => r.json())
         .then(data => {
             if (data.status !== 'success') throw new Error(data.message);
-            const badge = s => '<span class="badge ' + (s === 'Not Working' ? 'cond-non-serviceable' : 'cond-serviceable') + '">' + escapeHtml(s) + '</span>';
+            const badge = s => '<span class="badge ' + (s === 'Unserviceable' ? 'cond-non-serviceable' : 'cond-serviceable') + '">' + escapeHtml(s) + '</span>';
             const head = '<div class="mb-3"><div class="fw-semibold">' + escapeHtml(data.item.name) + '</div>'
                 + '<div class="text-muted" style="font-size:.78rem">' + escapeHtml(data.item.grade + ' · ' + data.item.section) + '</div></div>';
             if (!data.logs.length) {

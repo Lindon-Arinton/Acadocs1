@@ -613,7 +613,7 @@ CREATE TABLE `tasks` (
   `title` varchar(150) NOT NULL,
   `description` text DEFAULT NULL,
   `assigned_role` enum('teacher','secretary','adas','specific') NOT NULL,
-  `deadline` date NOT NULL,
+  `deadline` datetime NOT NULL,
   `status` enum('Open','Closed') DEFAULT 'Open',
   `created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),

@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\RmaResultModel;
 use App\Models\TeacherModel;
 use App\Models\TeacherSubjectModel;
 use App\Models\BiometricEmployeeModel;
@@ -250,6 +251,7 @@ class Users extends BaseController
         }
 
         $subjectModel = new TeacherSubjectModel();
+        $hadMath      = RmaResultModel::teacherHasMath($teacherId);
         // Only the base load — per-term loads the teacher entered stay put.
         $subjectModel->where('teacher_id', $teacherId)->where('school_year', null)->delete();
 
@@ -269,5 +271,8 @@ class Users extends BaseController
                 'section'     => $section,
             ]);
         }
+
+        // Newly assigned a Math subject: RMA (Math) appears in their menu — tell them.
+        RmaResultModel::announceIfNewMath($teacherId, $hadMath);
     }
 }

@@ -17,7 +17,7 @@ $minRows = 12;
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($par['par_no']) ?> — Property Acknowledgment Receipt</title>
-<link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
+<link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo-icon.png') ?>">
 <style>
   :root { --ink: #111; --line: #222; --muted: #555; --maroon: #800000; }
   * { box-sizing: border-box; }
@@ -89,7 +89,7 @@ $minRows = 12;
 <div class="sheet">
   <div class="appendix">Appendix 71</div>
   <div class="head">
-    <img src="<?= base_url('assets/img/deped-seal.png') ?>" alt="DepEd seal">
+    <img src="<?= asset_url('assets/img/deped-seal.png') ?>" alt="DepEd seal">
     <div class="rep">Republic of the Philippines<br>Department of Education</div>
     <h1>PROPERTY ACKNOWLEDGMENT RECEIPT</h1>
   </div>

@@ -4,6 +4,7 @@ namespace App\Controllers\Shared;
 
 use App\Controllers\BaseController;
 use App\Libraries\OfficeConverter;
+use App\Libraries\SpreadsheetPreview;
 use App\Libraries\OfficeOnlinePreview;
 use App\Libraries\TemplateClassifier;
 use App\Models\TemplateCategoryModel;
@@ -348,12 +349,36 @@ class Templates extends BaseController
                         ]);
                         $message = '"' . $template['title'] . '" was moved from ' . $fromName . ' to ' . $placeName($target, $targetFolderId ?: null) . '.';
                     }
+                } elseif ($action === 'rename_template') {
+                    // New title and/or download name; the extension and the stored file stay as they are.
+                    $template = $templateModel->find((int) $this->request->getPost('id'));
+                    $title    = mb_substr(trim($this->request->getPost('title') ?? ''), 0, 255);
+                    $base     = trim(preg_replace('/[\\\\\/:*?"<>|\x00-\x1F]+/u', ' ', (string) $this->request->getPost('file_base')));
+                    $base     = mb_substr(trim(preg_replace('/\s+/u', ' ', $base), ' .'), 0, 200);
+
+                    if (! $template) {
+                        $error = 'Template not found.';
+                    } elseif ($title === '') {
+                        $error = 'Please enter a title.';
+                    } elseif ($templateModel->where('title', $title)->where('id !=', (int) $template['id'])->first()) {
+                        $error = 'A template named "' . $title . '" already exists. Please use a different name.';
+                    } elseif ($base === '') {
+                        $error = 'Please enter a file name.';
+                    } else {
+                        $templateModel->update((int) $template['id'], [
+                            'title'     => $title,
+                            'file_name' => $base . ($template['file_ext'] !== '' ? '.' . $template['file_ext'] : ''),
+                        ]);
+                        $message = 'Template renamed.';
+                    }
                 } elseif ($action === 'delete_template') {
                     $template = $templateModel->find((int) $this->request->getPost('id'));
 
                     if ($template) {
-                        if (is_file($template['file_path'])) {
-                            unlink($template['file_path']);
+                        // Works even when the file is already gone from the server.
+                        $path = storedFilePath($template['file_path']);
+                        if (is_file($path)) {
+                            unlink($path);
                         }
                         $templateModel->delete($template['id']);
                     }
@@ -516,7 +541,7 @@ class Templates extends BaseController
 
     public function download(int $id)
     {
-        $template = (new TemplateModel())->find($id);
+        $template = $this->templateWithFile($id);
 
         if (! $template || ! is_file($template['file_path'])) {
             throw PageNotFoundException::forPageNotFound();
@@ -548,10 +573,15 @@ class Templates extends BaseController
 
     public function preview(int $id)
     {
-        $template = (new TemplateModel())->find($id);
+        $template = $this->templateWithFile($id);
 
-        if (! $template || ! is_file($template['file_path'])) {
+        if (! $template) {
             throw PageNotFoundException::forPageNotFound();
+        }
+        if (! is_file($template['file_path'])) {
+            // The record is there but the file isn't on this server (e.g. lost
+            // when the site's folder was replaced): the page says so.
+            return $this->response->setStatusCode(404)->setHeader('X-Preview-Reason', 'missing')->setBody('');
         }
 
         $ext = $template['file_ext'];
@@ -569,6 +599,13 @@ class Templates extends BaseController
                 ->setHeader('Content-Type', $mimeMap[$ext])
                 ->setHeader('Content-Disposition', 'inline; filename="' . $template['file_name'] . '"')
                 ->setBody(file_get_contents($template['file_path']));
+        }
+
+        // Live site: Microsoft's Office Online viewer renders Word / Excel / PowerPoint;
+        // the page's JS reads the header and embeds that URL.
+        $embedUrl = OfficeOnlinePreview::embedUrl('template', (int) $template['id'], $template['file_path'], $template['file_name']);
+        if ($embedUrl !== null) {
+            return $this->response->setHeader('X-Preview-Embed-Url', $embedUrl)->setBody('');
         }
 
         if (in_array($ext, self::PDF_PREVIEW_EXT, true)) {
@@ -599,6 +636,17 @@ class Templates extends BaseController
         }
 
         return $this->previewUnavailable();
+    }
+
+    /** The template with file_path pointing at where its file really is (storedFilePath). */
+    private function templateWithFile(int $id): ?array
+    {
+        $template = (new TemplateModel())->find($id);
+        if ($template) {
+            $template['file_path'] = storedFilePath($template['file_path']);
+        }
+
+        return $template;
     }
 
     /**
@@ -632,31 +680,10 @@ class Templates extends BaseController
             ->setBody('');
     }
 
-    /**
-     * Renders a spreadsheet file to a standalone HTML table using
-     * PhpSpreadsheet directly — no LibreOffice binary required. Returns null
-     * if the file fails to parse (e.g. corrupted or password-protected).
-     */
+    /** Spreadsheet as an HTML page (SpreadsheetPreview), or null if it can't be read. */
     private function renderOfficeAsHtml(array $template): ?string
     {
-        $extra = '<style>body{font-family:"Inter",system-ui,sans-serif;padding:1.5rem;color:#1f2937;}'
-            . 'table{border-collapse:collapse;} table td,table th{border:1px solid #d1d5db;padding:.35rem .5rem;}'
-            . 'img{max-width:100%;height:auto;}</style>';
-
-        try {
-            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($template['file_path']);
-            $writer      = new \PhpOffice\PhpSpreadsheet\Writer\Html($spreadsheet);
-
-            ob_start();
-            $writer->save('php://output');
-            $html = ob_get_clean();
-        } catch (\Throwable $e) {
-            return null;
-        }
-
-        return str_contains($html, '</head>')
-            ? str_replace('</head>', $extra . '</head>', $html)
-            : $extra . $html;
+        return SpreadsheetPreview::html($template['file_path']);
     }
 
     /**

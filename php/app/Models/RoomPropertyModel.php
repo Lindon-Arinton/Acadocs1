@@ -6,7 +6,8 @@ use CodeIgniter\Model;
 
 class RoomPropertyModel extends Model
 {
-    public const CONDITIONS   = ['Working', 'Not Working'];
+    /** Unserviceable = can no longer be used; the adviser is prompted to request a replacement. */
+    public const CONDITIONS   = ['Serviceable', 'Unserviceable'];
     public const ACQUISITIONS = ['New', 'Donated', 'Second-hand', 'Other'];
 
     protected $table = 'room_properties';
@@ -17,7 +18,7 @@ class RoomPropertyModel extends Model
     protected $allowedFields = [
         'section', 'grade', 'item_name', 'quantity', 'condition_status',
         'acquisition_type', 'acquisition_other', 'notes', 'issued_to', 'par_id',
-        'last_checked_at', 'last_checked_by', 'uploaded_by', 'updated_at',
+        'last_checked_at', 'last_checked_by', 'uploaded_by', 'added_by', 'updated_at',
     ];
 
     /**

@@ -5,6 +5,7 @@ namespace App\Controllers\Shared;
 use App\Controllers\BaseController;
 use App\Libraries\OfficeOnlinePreview;
 use App\Models\DocumentFileModel;
+use App\Models\TaskSubmissionFileModel;
 use App\Models\TemplateModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -35,9 +36,13 @@ class PublicFile extends BaseController
         $file = match ($kind) {
             'template' => (new TemplateModel())->find($id),
             'docfile'  => (new DocumentFileModel())->find($id),
+            'taskfile' => (new TaskSubmissionFileModel())->find($id),
             default    => null,
         };
 
+        if ($file) {
+            $file['file_path'] = storedFilePath($file['file_path']);
+        }
         if (! $file || ! is_file($file['file_path'])) {
             throw PageNotFoundException::forPageNotFound();
         }

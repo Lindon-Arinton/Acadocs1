@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\TaskApprovals;
 use App\Models\DocumentFolderModel;
 use App\Models\NotificationModel;
 use App\Models\TaskFeedbackModel;
@@ -29,6 +30,10 @@ class Documents extends BaseController
         $folderId = (int) ($this->request->getGet('folder') ?? 0);
 
         if ($this->request->getMethod() === 'POST') {
+            if ($this->request->getPost('action') === 'approve_all') {
+                return $this->approveAll((int) $this->request->getPost('folder_id'));
+            }
+
             return in_array($this->request->getPost('action'), self::FOLDER_ACTIONS, true)
                 ? $this->manageFolders()
                 : $this->review($folderId);
@@ -75,6 +80,15 @@ class Documents extends BaseController
                 $filesByTask[(int) $row['task_id']][] = $row;
             }
         }
+
+        // "Approve All (N)" per task folder: pending uploads, never the viewer's own.
+        $approvableByTask = [];
+        if ($taskIds && hasRole('admin', 'adas')) {
+            $rows = (new TaskApprovals())->approvableQuery(null, (int) currentUser()['id'])
+                ->select('task_id, COUNT(*) AS n')->whereIn('task_id', $taskIds)->groupBy('task_id')
+                ->findAll();
+            $approvableByTask = array_map('intval', array_column($rows, 'n', 'task_id'));
+        }
         $fileTypes = array_values(array_unique(array_merge([], ...array_map(
             static fn ($files) => array_column($files, 'ext'),
             array_values($filesByTask)
@@ -87,6 +101,7 @@ class Documents extends BaseController
             'path'       => $folder ? DocumentFolderModel::pathTo($tree, $folderId) : [],
             'folders'    => $folders,
             'filesByTask' => $filesByTask,
+            'approvableByTask' => $approvableByTask,
             'fileTypes'  => array_values(array_filter($fileTypes)),
             'search'     => $search,
             'canManage'  => hasRole('admin', 'adas'),
@@ -251,6 +266,46 @@ class Documents extends BaseController
             'submissions' => $submissions,
             'flash'       => session()->getFlashdata('flash'),
         ]);
+    }
+
+    /**
+     * "Approve All" on a task folder (principal and ADAS): every Pending
+     * upload in it becomes Approved at once (see TaskApprovals).
+     */
+    private function approveAll(int $folderId)
+    {
+        $isAjax  = $this->request->isAJAX();
+        $backUrl = '/documents';
+
+        if (! hasRole('admin', 'adas')) {
+            return $isAjax ? $this->ajaxError('You are not authorized to do this.', 403) : redirect()->to($backUrl);
+        }
+
+        $folder = (new DocumentFolderModel())->find($folderId);
+        if (! $folder || empty($folder['task_id'])) {
+            return $isAjax ? $this->ajaxError('This folder has no task uploads.') : redirect()->to($backUrl);
+        }
+
+        try {
+            $count = (new TaskApprovals())->approveAllPending((int) $folder['task_id'], (int) currentUser()['id']);
+        } catch (\Throwable $e) {
+            return $isAjax ? $this->ajaxError('Something went wrong: ' . $e->getMessage()) : redirect()->to($backUrl);
+        }
+
+        if ($count === 0) {
+            $error = 'There are no pending uploads to approve in this folder.';
+
+            return $isAjax ? $this->ajaxError($error) : redirect()->to($backUrl)->with('flash', ['type' => 'warning', 'msg' => $error]);
+        }
+
+        $message = 'Approved ' . $count . ' upload' . ($count === 1 ? '' : 's') . '.';
+        if ($isAjax) {
+            return $this->ajaxSuccess($message);
+        }
+
+        session()->setFlashdata('flash', ['type' => 'success', 'msg' => $message]);
+
+        return redirect()->to($backUrl);
     }
 
     /**

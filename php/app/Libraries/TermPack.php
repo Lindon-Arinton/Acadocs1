@@ -200,7 +200,8 @@ class TermPack
     /** Tasks due in the period: who was assigned, who submitted (on time / late), who's missing. */
     private function tasks(string $start, string $end, string $asOf): array
     {
-        $tasks       = (new TaskModel())->where('deadline >=', $start)->where('deadline <=', $end)->orderBy('deadline', 'ASC')->findAll();
+        // deadline is a DATETIME: include tasks due any time on the last day.
+        $tasks       = (new TaskModel())->where('deadline >=', $start)->where('deadline <=', $end . ' 23:59:59')->orderBy('deadline', 'ASC')->findAll();
         $users       = new UserModel();
         $assignees   = new TaskAssigneeModel();
         $submissions = new TaskSubmissionModel();
@@ -218,8 +219,9 @@ class TermPack
                 $byUser[(int) $s['user_id']] = $s;
             }
 
-            $due  = $t['deadline'] . ' 23:59:59';
-            $past = $t['deadline'] < $asOf;
+            // A date-only deadline (older rows) counts as due at the end of that day.
+            $due  = strlen($t['deadline']) === 10 ? $t['deadline'] . ' 23:59:59' : $t['deadline'];
+            $past = substr($t['deadline'], 0, 10) < $asOf;
             $row  = ['title' => $t['title'], 'deadline' => $t['deadline'], 'assigned' => count($eligible), 'submitted' => 0, 'onTime' => 0, 'late' => 0, 'missing' => 0];
             foreach ($eligible as $userId) {
                 if (isset($byUser[$userId])) {

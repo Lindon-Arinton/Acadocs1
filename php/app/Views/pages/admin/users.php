@@ -139,7 +139,7 @@
             </td>
             <td>
               <span class="badge" style="background:<?= $rbg ?>;color:<?= $rtc ?>;border:1px solid <?= $rtc ?>33;">
-                <?= e(ucfirst($u['role'])) ?>
+                <?= e(roleLabel($u)) ?>
               </span>
             </td>
             <td style="font-size:.72rem">

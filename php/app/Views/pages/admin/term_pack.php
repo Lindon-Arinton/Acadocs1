@@ -28,8 +28,8 @@ $tasks = $pack['tasks'];
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
-<link rel="stylesheet" href="<?= base_url('assets/css/report-print.css') ?>">
+<link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo-icon.png') ?>">
+<link rel="stylesheet" href="<?= asset_url('assets/css/report-print.css') ?>">
 <style>
   .toolbar select { font: inherit; border: 0; border-radius: 8px; padding: .45rem .6rem; }
   .partial { margin: 8px 0 0; padding: 7px 10px; border-radius: 6px; background: #fff7ed; color: #9a3412; font-size: 11px; }

@@ -5,11 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Login</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@600&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<!-- The campus photo is the page's largest image: start it now, not after app.css arrives. -->
+<link rel="preload" as="image" type="image/webp" href="<?= base_url('assets/img/login-bg-sm.webp') ?>" media="(max-aspect-ratio: 4/5)" fetchpriority="high">
+<link rel="preload" as="image" type="image/webp" href="<?= base_url('assets/img/login-bg.webp') ?>" media="not all and (max-aspect-ratio: 4/5)" fetchpriority="high">
+<!-- Fonts load without holding up the first paint (text shows in the fallback font, then swaps). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@600&display=swap"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
-<link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
+<link rel="stylesheet" href="<?= asset_url('assets/css/app.css') ?>">
+<link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo-icon.png') ?>">
 </head>
 <body>
 <div class="login-wrapper login-wrapper-photo">
@@ -44,7 +51,7 @@
 
     <header class="auth-topbar ls-item" style="--i:0;">
       <div class="auth-brand">
-        <img src="<?= base_url('assets/img/logo-icon.png') ?>" alt="ACADOCS">
+        <picture class="brand-pic"><source type="image/webp" srcset="<?= asset_url('assets/img/logo-icon-sm.webp') ?>"><img src="<?= asset_url('assets/img/logo-icon-sm.png') ?>" alt="ACADOCS" width="96" height="96"></picture>
         <div>
           <div class="d-flex align-items-center gap-2">
             <span class="auth-brand-name">ACADOCS</span>

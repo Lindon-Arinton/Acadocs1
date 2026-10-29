@@ -21,6 +21,9 @@ $notifTypeIcons = [
     'mps_alert'         => ['bi-graph-down-arrow', '#fee2e2', '#b91c1c'],
     'term_reminder'     => ['bi-calendar-event-fill', '#fef3c7', '#92400e'],
     'report_pack'       => ['bi-file-earmark-bar-graph-fill', '#fff0f0', '#800000'],
+    'subject_request'   => ['bi-journal-check', '#eff6ff', '#1e40af'],
+    'rma'               => ['bi-calculator', '#fff0f0', '#800000'],
+    'reading'           => ['bi-book-half', '#ecfdf5', '#047857'],
 ];
 
 // Safety net for a notification stored (past bug, or old data) without a
@@ -36,6 +39,9 @@ $notifTypeFallbackUrl = static function (string $type) use ($role): string {
         'property_concern'                => base_url('property-management?tab=concerns'),
         'mps_alert', 'term_reminder'      => base_url($role === 'teacher' ? 'performance/mps' : 'dashboard'),
         'report_pack'                     => base_url('reports/term-pack'),
+        'subject_request'                 => base_url($role === 'teacher' ? 'profile#subject-load' : 'subject-requests'),
+        'rma'                             => base_url($role === 'teacher' ? 'rma' : 'rma-results'),
+        'reading'                         => base_url($role === 'admin' ? 'reading-program' : 'reading'),
         default                           => base_url('announcements'),
     };
 };
@@ -95,6 +101,38 @@ try {
     $pendingTaskCount = 0;
 }
 
+// RMA link: shows by itself once a teacher handles Mathematics in any subject
+// load — assigned by the principal, or added through an approved subject request.
+$isMathTeacher = false;
+if ($user && $role === 'teacher') {
+    try {
+        $isMathTeacher = \App\Models\RmaResultModel::userHasMath($user);
+    } catch (\Throwable $e) {
+        $isMathTeacher = false;
+    }
+}
+
+// Reading Program: the teacher's link shows once the principal assigns them a
+// Phil-IRI language; the principal's badge counts sections waiting for review.
+$readingLanguages = [];
+$pendingReadingReviews = 0;
+try {
+    if ($user && $role === 'teacher') {
+        $readingLanguages = \App\Models\ReadingResultModel::assignedLanguages((int) $user['id']);
+    } elseif ($role === 'admin') {
+        $pendingReadingReviews = (new \App\Models\ReadingResultModel())->where('status', 'Submitted')->countAllResults();
+    }
+} catch (\Throwable $e) {
+    $readingLanguages = [];
+}
+
+// Subject Requests sidebar badge (principal / ADAS): teachers' load changes waiting.
+try {
+    $pendingSubjectRequests = in_array($role, ['admin', 'adas'], true) ? (new \App\Models\SubjectLoadRequestModel())->pendingCount() : 0;
+} catch (\Throwable $e) {
+    $pendingSubjectRequests = 0;
+}
+
 // Announcements sidebar badge: same "unread since last visit" logic as the
 // Teacher Dashboard's Announcements card, but computed once here so every
 // role's sidebar link can show it. currentUser() is a login-time session
@@ -123,11 +161,15 @@ try {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($pageTitle) ?> — ACADOCS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<!-- Fonts load without holding up the first paint (text shows in the fallback font, then swaps). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
-<link rel="icon" type="image/png" href="<?= base_url('assets/img/logo-icon.png') ?>">
+<link rel="stylesheet" href="<?= asset_url('assets/css/app.css') ?>">
+<link rel="icon" type="image/png" href="<?= asset_url('assets/img/logo-icon.png') ?>">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <?php include APPPATH . 'Views/partials/display_prefs_head.php'; ?>
 <?php if (isset($extraHead)) echo $extraHead; ?>
@@ -188,7 +230,7 @@ try {
   <!-- Brand -->
   <button id="sidebar-brand-toggle" class="sidebar-brand" type="button" onclick="toggleCollapse()" title="Toggle sidebar" aria-expanded="true">
     <div class="sidebar-brand-icon">
-      <img src="<?= base_url('assets/img/logo-icon.png') ?>" alt="ACADOCS">
+      <picture class="brand-pic"><source type="image/webp" srcset="<?= asset_url('assets/img/logo-icon-sm.webp') ?>"><img src="<?= asset_url('assets/img/logo-icon-sm.png') ?>" alt="ACADOCS" width="96" height="96"></picture>
     </div>
     <div class="sidebar-brand-text">
       <h6>ACADOCS</h6>
@@ -209,6 +251,32 @@ try {
            class="nav-link <?= str_contains($uri,'dashboard')?'active':'' ?>">
           <i class="bi bi-speedometer2 nav-icon"></i>
           <span class="sidebar-label">Dashboard</span>
+        </a>
+        <a href="<?= base_url('performance/mps-summary') ?>"
+           class="nav-link <?= str_contains($uri,'mps-summary')?'active':'' ?>">
+          <i class="bi bi-table nav-icon"></i>
+          <span class="sidebar-label">MPS Summary</span>
+        </a>
+        <a href="<?= base_url('rma-results') ?>"
+           class="nav-link <?= str_contains($uri,'rma-results')?'active':'' ?>">
+          <i class="bi bi-calculator nav-icon"></i>
+          <span class="sidebar-label">RMA Results</span>
+        </a>
+        <a href="<?= base_url('reading-program') ?>"
+           class="nav-link <?= str_contains($uri,'reading-program')?'active':'' ?>">
+          <i class="bi bi-book-half nav-icon"></i>
+          <span class="sidebar-label">Reading Program</span>
+          <?php if ($pendingReadingReviews > 0): ?>
+          <span class="sidebar-nav-badge"><?= $pendingReadingReviews ?></span>
+          <?php endif; ?>
+        </a>
+        <a href="<?= base_url('subject-requests') ?>"
+           class="nav-link <?= str_contains($uri,'subject-requests')?'active':'' ?>">
+          <i class="bi bi-journal-check nav-icon"></i>
+          <span class="sidebar-label">Subject Requests</span>
+          <?php if ($pendingSubjectRequests > 0): ?>
+          <span class="sidebar-nav-badge"><?= $pendingSubjectRequests ?></span>
+          <?php endif; ?>
         </a>
         <a href="<?= base_url('announcements') ?>"
            class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
@@ -300,6 +368,20 @@ try {
           <i class="bi bi-pencil-square nav-icon"></i>
           <span class="sidebar-label">Enter MPS Scores</span>
         </a>
+        <?php if ($isMathTeacher): ?>
+        <a href="<?= base_url('rma') ?>"
+           class="nav-link <?= preg_match('#/rma([/?]|$)#', $uri) ? 'active' : '' ?>">
+          <i class="bi bi-calculator nav-icon"></i>
+          <span class="sidebar-label">RMA (Math)</span>
+        </a>
+        <?php endif; ?>
+        <?php if ($readingLanguages): ?>
+        <a href="<?= base_url('reading') ?>"
+           class="nav-link <?= preg_match('#/reading([/?]|$)#', $uri) ? 'active' : '' ?>">
+          <i class="bi bi-book-half nav-icon"></i>
+          <span class="sidebar-label">Phil-IRI <?= e(implode(' / ', $readingLanguages)) ?></span>
+        </a>
+        <?php endif; ?>
         <a href="<?= base_url('announcements') ?>"
            class="nav-link <?= str_contains($uri,'announcements')?'active':'' ?>">
           <i class="bi bi-megaphone-fill nav-icon"></i>
@@ -332,6 +414,15 @@ try {
       <div class="sidebar-section-items">
         <a href="<?= base_url('dashboard') ?>" class="nav-link <?= preg_match('#/dashboard([/?]|$)#',$uri)?'active':'' ?>">
           <i class="bi bi-speedometer2 nav-icon"></i><span class="sidebar-label">Dashboard</span>
+        </a>
+        <a href="<?= base_url('performance/mps-summary') ?>" class="nav-link <?= str_contains($uri,'mps-summary')?'active':'' ?>">
+          <i class="bi bi-table nav-icon"></i><span class="sidebar-label">MPS Summary</span>
+        </a>
+        <a href="<?= base_url('subject-requests') ?>" class="nav-link <?= str_contains($uri,'subject-requests')?'active':'' ?>">
+          <i class="bi bi-journal-check nav-icon"></i><span class="sidebar-label">Subject Requests</span>
+          <?php if ($pendingSubjectRequests > 0): ?>
+          <span class="sidebar-nav-badge"><?= $pendingSubjectRequests ?></span>
+          <?php endif; ?>
         </a>
         <a href="<?= base_url('my-tasks') ?>" class="nav-link <?= str_contains($uri,'my-tasks')?'active':'' ?>">
           <i class="bi bi-list-task nav-icon"></i><span class="sidebar-label">My Tasks</span>
@@ -377,7 +468,7 @@ try {
     <?php endif; ?>
     <div class="sidebar-user-info">
       <div class="sidebar-user-name"><?= e($user['name'] ?? '') ?></div>
-      <div class="sidebar-user-role"><?= e(ucfirst($role)) ?></div>
+      <div class="sidebar-user-role"><?= e(isSuperAdmin() ? 'Super Admin' : ucfirst($role)) ?></div>
     </div>
     <button id="sidebar-collapse-btn" class="sidebar-collapse-btn d-none d-lg-flex" type="button" onclick="event.preventDefault(); event.stopPropagation(); toggleCollapse()" title="Collapse sidebar" aria-expanded="true">
       <i class="bi bi-chevron-double-left" id="collapse-icon"></i>
@@ -411,7 +502,7 @@ try {
     </button>
 
     <!-- Chat Shortcut -->
-    <a href="<?= base_url('chat') ?>" class="notif-btn" title="Chat">
+    <a href="<?= base_url('chat') ?>" class="notif-btn" id="chatNavBtn" title="Chat">
       <i class="bi bi-chat-dots fs-5"></i>
       <?php if ($unreadChatCount > 0): ?>
       <span class="notif-badge"><?= $unreadChatCount ?></span>
@@ -477,7 +568,7 @@ try {
         <?php endif; ?>
         <div class="d-none d-sm-block text-start">
           <div style="font-size:.78rem;font-weight:600;color:var(--text);"><?= e($user['name'] ?? '') ?></div>
-          <div style="font-size:.68rem;color:var(--muted);"><?= e(ucfirst($role)) ?></div>
+          <div style="font-size:.68rem;color:var(--muted);"><?= e(isSuperAdmin() ? 'Super Admin' : ucfirst($role)) ?></div>
         </div>
         <i class="bi bi-chevron-down d-none d-sm-inline text-muted" style="font-size:.65rem;"></i>
       </button>

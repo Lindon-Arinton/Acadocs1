@@ -112,7 +112,15 @@ $dtrDayUrl  = static function (string $date) use ($sort, $statusFilter, $scanFil
               data-latest-punch="<?= e($biometricSync['latest_punch'] ?? '') ?>">
           <i class="bi <?= $scannerUp ? 'bi-check-circle-fill' : 'bi-x-circle-fill' ?> me-1"></i><span class="biometric-status-text">Scanner <?= $scannerUp ? 'connected' : 'not connected' ?></span>
         </span>
+        <?php elseif (! empty($remoteLastScan)): ?>
+        <span id="biometricStatus" class="scanner-status is-remote" title="Fingerprint scans are sent here from the school computer"
+              data-latest-punch="<?= e($remoteLastScan) ?>">
+          <i class="bi bi-fingerprint me-1"></i><span class="biometric-status-text">Last scan <?= date('M d, h:i A', strtotime($remoteLastScan)) ?></span>
+        </span>
         <?php endif; ?>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dtrRefreshNow(this)" title="Check for new scans now">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
         <?php if (! hasRole('admin','adas')): ?>
         <a href="<?= base_url('time-records/report') ?>" class="btn btn-outline-secondary btn-sm">
           <i class="bi bi-file-earmark-bar-graph me-1"></i>My Attendance
@@ -657,23 +665,51 @@ window.dtrClockTimer = setInterval(function () {
 // syncs new punches from the device when due). When one arrives for the day
 // on screen, quietly reload the table — unless the user is mid-edit or
 // searching, in which case it waits for the next tick.
+// Shared by the 30 s timer and the Refresh button: update the scanner badge from /live.
+function dtrFetchLive(box) {
+    return fetch('{$liveUrl}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (s) {
+            if (s && box && document.body.contains(box)) {
+                if (s.at) {
+                    var up = s.ok === true;
+                    box.querySelector('.biometric-status-text').textContent = 'Scanner ' + (up ? 'connected' : 'not connected');
+                    box.querySelector('i').className = 'bi ' + (up ? 'bi-check-circle-fill' : 'bi-x-circle-fill') + ' me-1';
+                    box.classList.toggle('is-up', up);
+                    box.classList.toggle('is-down', !up);
+                }
+                if (s.latest_label) {
+                    box.querySelector('.biometric-status-text').textContent = 'Last scan ' + s.latest_label;
+                }
+            }
+            return s;
+        });
+}
+
+// Refresh button: check for new scans now and reload the table, whatever the timer says.
+window.dtrRefreshNow = function (btn) {
+    btn.disabled = true;
+    btn.querySelector('i').className = 'spinner-border spinner-border-sm me-1';
+    var done = function (s) {
+        loadPage(window.location.href, {
+            push: false, scroll: false, quiet: true,
+            afterSwap: function () {
+                showToast(s && s.latest_label ? 'Up to date. Last scan ' + s.latest_label + '.' : 'Records refreshed.');
+            }
+        });
+    };
+    dtrFetchLive(document.getElementById('biometricStatus')).then(done, function () { done(null); });
+};
+
 clearInterval(window.dtrLiveTimer);
 window.dtrLiveTimer = setInterval(function () {
     var box = document.getElementById('biometricStatus');
     if (!box) { clearInterval(window.dtrLiveTimer); return; }
     if (document.hidden) return;
 
-    fetch('{$liveUrl}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function (res) { return res.ok ? res.json() : null; })
+    dtrFetchLive(box)
         .then(function (s) {
             if (!s || !document.body.contains(box)) return;
-            if (s.at) {
-                var up = s.ok === true;
-                box.querySelector('.biometric-status-text').textContent = 'Scanner ' + (up ? 'connected' : 'not connected');
-                box.querySelector('i').className = 'bi ' + (up ? 'bi-check-circle-fill' : 'bi-x-circle-fill') + ' me-1';
-                box.classList.toggle('is-up', up);
-                box.classList.toggle('is-down', !up);
-            }
             if (!s.latest_punch || s.latest_punch === box.dataset.latestPunch) return;
 
             var busy = document.querySelector('.modal.show')

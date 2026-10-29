@@ -8,11 +8,94 @@ if (! function_exists('currentUser')) {
 }
 
 if (! function_exists('hasRole')) {
+    /**
+     * Whether the signed-in user has one of the roles. A super admin (an admin
+     * account with users.is_super_admin) also passes every ADAS check, so they
+     * get the principal's pages plus the ADAS's tools — never teacher-only ones.
+     */
     function hasRole(string ...$roles): bool
     {
         $user = currentUser();
+        if (! $user) {
+            return false;
+        }
+        if (in_array($user['role'], $roles, true)) {
+            return true;
+        }
 
-        return $user && in_array($user['role'], $roles, true);
+        return in_array('adas', $roles, true) && isSuperAdmin();
+    }
+}
+
+if (! function_exists('isSuperAdmin')) {
+    /** Read from the database once per request, so granting or removing it applies at once. */
+    function isSuperAdmin(): bool
+    {
+        static $cache = [];
+        $user = currentUser();
+        if (! $user || $user['role'] !== 'admin') {
+            return false;
+        }
+        $id = (int) $user['id'];
+        if (! array_key_exists($id, $cache)) {
+            try {
+                $row        = db_connect()->query('SELECT is_super_admin FROM users WHERE id = ?', [$id])->getRowArray();
+                $cache[$id] = ! empty($row['is_super_admin']);
+            } catch (\Throwable $e) {
+                $cache[$id] = false; // column not added yet
+            }
+        }
+
+        return $cache[$id];
+    }
+}
+
+if (! function_exists('roleLabel')) {
+    /** "Super Admin" for a super admin, otherwise the role as written ("Admin", "Adas", …). */
+    function roleLabel(array $user): string
+    {
+        return ($user['role'] ?? '') === 'admin' && ! empty($user['is_super_admin']) ? 'Super Admin' : ucfirst((string) ($user['role'] ?? ''));
+    }
+}
+
+if (! function_exists('asset_url')) {
+    /**
+     * URL of a file under public/ with its last-modified time appended
+     * (assets/css/app.css?v=1793...), so a new upload gets a new URL and
+     * browsers / Hostinger's CDN can't keep serving the old cached copy.
+     */
+    function asset_url(string $path): string
+    {
+        $file = FCPATH . ltrim($path, '/');
+
+        return base_url($path) . (is_file($file) ? '?v=' . filemtime($file) : '');
+    }
+}
+
+if (! function_exists('storedFilePath')) {
+    /**
+     * Where an uploaded file really is. Paths are saved in full, so after the
+     * app moves (another folder on the host, or a database copied from a PC
+     * with C:\xampp\... paths) the same file is looked for under this
+     * install's writable/uploads/. Returns the saved path unchanged when the
+     * file can't be found either way, so callers' own is_file() checks still apply.
+     */
+    function storedFilePath(string $path): string
+    {
+        if ($path === '' || @is_file($path)) {
+            return $path;
+        }
+
+        $normalized = str_replace('\\', '/', $path);
+        $at         = strrpos($normalized, '/uploads/');
+        if ($at !== false) {
+            $moved = WRITEPATH . 'uploads/' . substr($normalized, $at + strlen('/uploads/'));
+            if (is_file($moved)) {
+                return $moved;
+            }
+        }
+
+        return $path;
     }
 }
 

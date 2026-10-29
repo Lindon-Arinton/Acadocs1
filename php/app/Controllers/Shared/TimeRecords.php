@@ -211,6 +211,8 @@ class TimeRecords extends BaseController
             'academicBreaks' => (new AcademicBreakModel())->orderBy('start_date', 'ASC')->findAll(),
             'activeBreak'    => (new AcademicBreakModel())->covering($dateFilter),
             'biometricSync'  => config('Biometric')->enabled ? BiometricSync::lastStatus() ?? ['ok' => null] : null,
+            // Online server: the scanner is synced from the school PC, so show the newest punch it sent.
+            'remoteLastScan' => config('Biometric')->enabled ? null : $this->latestPunch(),
             'leaveCandidates' => hasRole('admin', 'adas') ? $this->leaveCandidates($dateFilter) : [],
             'onLeave'         => (new TimeRecordModel())->where('date', $dateFilter)->where('status', 'On Leave')->orderBy('employee_name', 'ASC')->findAll(),
         ]);
@@ -345,6 +347,20 @@ class TimeRecords extends BaseController
      */
     public function live()
     {
+        // Syncing is off here (online server): another computer sends the
+        // punches, so just report the newest one stored.
+        if (! config('Biometric')->enabled) {
+            $latest = $this->latestPunch();
+
+            return $this->response->setJSON([
+                'ok'           => null,
+                'at'           => null,
+                'message'      => null,
+                'latest_punch' => $latest,
+                'latest_label' => $latest ? date('M d, h:i A', strtotime($latest)) : null,
+            ]);
+        }
+
         $sync = new BiometricSync();
         $status = $sync->isDue() ? $sync->pull() : (BiometricSync::lastStatus() ?? []);
 
@@ -421,11 +437,20 @@ class TimeRecords extends BaseController
         ]);
     }
 
+    /** Newest fingerprint punch stored (Y-m-d H:i:s), whichever computer synced it. */
+    private function latestPunch(): ?string
+    {
+        return db_connect()->query('SELECT MAX(punched_at) AS t FROM biometric_punches')->getRowArray()['t'] ?? null;
+    }
+
     /** "Sync from Device": pulls new punches now instead of waiting for the next automatic sync. */
     public function sync()
     {
         if (! hasRole('admin', 'adas')) {
             return $this->ajaxError('You are not authorized to do this.', 403);
+        }
+        if (! config('Biometric')->enabled) {
+            return $this->ajaxError("This server can't reach the scanner. Attendance is sent up from the school computer that is on the scanner's network.");
         }
 
         $result = (new BiometricSync())->pull();

@@ -14,11 +14,22 @@
         · <span class="text-capitalize"><?= e($task['status']) ?></span>
       </p>
     </div>
-    <?php if (! empty($folderId)): ?>
-    <a href="<?= base_url('documents?folder=' . (int) $folderId) ?>" class="btn btn-sm btn-light fw-semibold" style="color:var(--primary);position:relative;z-index:1;">
-      <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
-    </a>
-    <?php endif; ?>
+    <div class="d-flex gap-2 flex-wrap" style="position:relative;z-index:1;">
+      <?php if ($approvableCount > 0): ?>
+      <form method="POST" action="<?= base_url('tasks') ?>" class="ajax-form"
+            data-confirm-title="Approve all <?= (int) $approvableCount ?> pending upload<?= $approvableCount === 1 ? '' : 's' ?>?"
+            data-confirm-text="Each submitter will be notified. Returned uploads stay as they are.">
+        <input type="hidden" name="action" value="approve_all">
+        <input type="hidden" name="id" value="<?= (int) $task['id'] ?>">
+        <button class="btn btn-sm btn-success fw-semibold"><i class="bi bi-check2-all me-1"></i>Approve All (<?= (int) $approvableCount ?>)</button>
+      </form>
+      <?php endif; ?>
+      <?php if (! empty($folderId)): ?>
+      <a href="<?= base_url('documents?folder=' . (int) $folderId) ?>" class="btn btn-sm btn-light fw-semibold" style="color:var(--primary);">
+        <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
+      </a>
+      <?php endif; ?>
+    </div>
   </div>
 </div>
 

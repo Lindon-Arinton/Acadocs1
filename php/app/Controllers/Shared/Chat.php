@@ -119,6 +119,76 @@ class Chat extends BaseController
         ]);
     }
 
+    /**
+     * Polled every few seconds from every page (footer.php): the unread total
+     * for the top-bar badge, a signature that changes whenever any of the
+     * user's chats gets a message (so the chat list knows to refresh), and
+     * the newest message from someone else (for the "new message" pop-up).
+     */
+    public function pulse()
+    {
+        $userId = (int) currentUser()['id'];
+        $db     = db_connect();
+
+        $rows = $db->query(
+            'SELECT cp.conversation_id, cp.muted,
+                    (SELECT MAX(m.id) FROM messages m WHERE m.conversation_id = cp.conversation_id) AS last_id,
+                    (SELECT COUNT(*) FROM messages m
+                      WHERE m.conversation_id = cp.conversation_id AND m.sender_id <> ? AND m.deleted_at IS NULL
+                        AND (cp.last_read_at IS NULL OR m.created_at > cp.last_read_at)) AS unread
+               FROM conversation_participants cp
+              WHERE cp.user_id = ?',
+            [$userId, $userId]
+        )->getResultArray();
+
+        $unread = 0;
+        $maxId  = 0;
+        $sig    = [];
+        foreach ($rows as $r) {
+            if (! $r['muted']) {
+                $unread += (int) $r['unread'];
+            }
+            $maxId = max($maxId, (int) $r['last_id']);
+            $sig[] = $r['conversation_id'] . '.' . (int) $r['last_id'] . '.' . (int) $r['unread'];
+        }
+
+        $latest = $db->query(
+            'SELECT m.id, m.conversation_id, m.body, m.attachment_name, m.announcement_id,
+                    u.name AS sender, c.type, c.name AS group_name, cp.muted
+               FROM messages m
+               JOIN conversation_participants cp ON cp.conversation_id = m.conversation_id AND cp.user_id = ?
+               JOIN users u ON u.id = m.sender_id
+               JOIN conversations c ON c.id = m.conversation_id
+              WHERE m.sender_id <> ? AND m.deleted_at IS NULL
+              ORDER BY m.id DESC LIMIT 1',
+            [$userId, $userId]
+        )->getRowArray();
+
+        if ($latest) {
+            $preview = trim((string) $latest['body']);
+            if ($preview === '') {
+                $preview = $latest['attachment_name'] ? 'Sent a file: ' . $latest['attachment_name']
+                    : ($latest['announcement_id'] ? 'Shared an announcement' : 'Sent a message');
+            }
+            $latest = [
+                'id'              => (int) $latest['id'],
+                'conversation_id' => (int) $latest['conversation_id'],
+                'from'            => $latest['type'] === 'group' && $latest['group_name']
+                    ? $latest['sender'] . ' · ' . $latest['group_name']
+                    : $latest['sender'],
+                'preview'         => mb_strimwidth($preview, 0, 90, '…'),
+                'muted'           => (bool) $latest['muted'],
+            ];
+        }
+
+        return $this->response->setJSON([
+            'status'    => 'success',
+            'unread'    => $unread,
+            'signature' => md5(implode(',', $sig)),
+            'latest'    => $latest,
+        ]);
+    }
+
     private function findOrCreateDirect(int $userId, int $otherId): int
     {
         return (new ConversationModel())->findOrCreateDirect($userId, $otherId);

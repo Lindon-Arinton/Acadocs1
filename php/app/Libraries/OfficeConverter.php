@@ -90,21 +90,30 @@ class OfficeConverter
 
     private function locateSoffice(): ?string
     {
+        // Shared hosting (e.g. Hostinger) disables running programs, so
+        // LibreOffice couldn't be started even if it were installed.
+        if (! function_exists('proc_open')) {
+            return null;
+        }
+
+        // The @s: a host that limits PHP to its own folders (open_basedir)
+        // warns on system paths, and the app turns warnings into errors.
+
         // Explicit override, e.g. `libreoffice.path = /opt/libreoffice25.2/program/soffice` in .env.
         $configured = (string) env('libreoffice.path', '');
-        if ($configured !== '' && is_file($configured)) {
+        if ($configured !== '' && @is_file($configured)) {
             return $configured;
         }
 
         foreach (self::CANDIDATE_PATHS as $path) {
-            if (is_file($path)) {
+            if (@is_file($path)) {
                 return $path;
             }
         }
 
         // Versioned /opt installs (/opt/libreoffice7.6/program/soffice, ...).
-        foreach (glob('/opt/libreoffice*/program/soffice') ?: [] as $path) {
-            if (is_file($path)) {
+        foreach (@glob('/opt/libreoffice*/program/soffice') ?: [] as $path) {
+            if (@is_file($path)) {
                 return $path;
             }
         }

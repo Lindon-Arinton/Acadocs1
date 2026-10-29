@@ -5,6 +5,7 @@ namespace App\Controllers\Shared;
 use App\Controllers\BaseController;
 use App\Libraries\OfficeConverter;
 use App\Libraries\OfficeOnlinePreview;
+use App\Libraries\SpreadsheetPreview;
 use App\Models\DocumentFileModel;
 use App\Models\DocumentModel;
 use App\Models\TeacherModel;
@@ -49,6 +50,13 @@ class DocumentFileDownload extends BaseController
                 ->setBody(file_get_contents($file['file_path']));
         }
 
+        // Live site: Microsoft's Office Online viewer renders Word / Excel / PowerPoint
+        // (this endpoint is an iframe's src, so a redirect is all it takes).
+        $embedUrl = OfficeOnlinePreview::embedUrl('docfile', (int) $file['id'], $file['file_path'], $file['file_name']);
+        if ($embedUrl !== null) {
+            return redirect()->to($embedUrl);
+        }
+
         if (in_array($ext, self::OFFICE_TO_PDF, true)) {
             $pdfPath = $this->convertedPdf($file);
 
@@ -59,11 +67,9 @@ class DocumentFileDownload extends BaseController
                     ->setBody(file_get_contents($pdfPath));
             }
 
-            // LibreOffice unavailable/failed: let Office Online render it (this
-            // endpoint is an iframe's src, so a redirect is all it takes).
-            $embedUrl = OfficeOnlinePreview::embedUrl('docfile', (int) $file['id'], $file['file_path'], $file['file_name']);
-            if ($embedUrl !== null) {
-                return redirect()->to($embedUrl);
+            // No LibreOffice either: spreadsheets still preview as HTML.
+            if (SpreadsheetPreview::supports($file['file_name']) && ($html = SpreadsheetPreview::html($file['file_path'])) !== null) {
+                return $this->response->setHeader('Content-Type', 'text/html; charset=UTF-8')->setBody($html);
             }
         }
 
@@ -98,6 +104,8 @@ class DocumentFileDownload extends BaseController
                 throw PageNotFoundException::forPageNotFound();
             }
         }
+
+        $file['file_path'] = storedFilePath($file['file_path']);
 
         return $file;
     }

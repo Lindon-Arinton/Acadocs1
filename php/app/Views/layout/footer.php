@@ -86,7 +86,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script>window.Chart || document.write('<script src="<?= base_url('assets/js/chart.umd.min.js') ?>"><\/script>');</script>
+<script>window.Chart || document.write('<script src="<?= asset_url('assets/js/chart.umd.min.js') ?>"><\/script>');</script>
 
 <script>
 /* ── Dark mode toggle (persisted via AcadocsPrefs — see
@@ -309,6 +309,12 @@ function showToast(message, type = 'success') {
         </div>
         <button type="button" class="btn-close ms-auto me-0" data-bs-dismiss="toast"></button>
     </div>`;
+    toastContainer().appendChild(el);
+    new bootstrap.Toast(el, { delay: 3500 }).show();
+    el.addEventListener('hidden.bs.toast', () => el.remove());
+}
+
+function toastContainer() {
     let container = document.getElementById('toast-container');
     if (!container) {
         container = Object.assign(document.createElement('div'), {
@@ -318,9 +324,7 @@ function showToast(message, type = 'success') {
         container.style.zIndex = 9999;
         document.body.appendChild(container);
     }
-    container.appendChild(el);
-    new bootstrap.Toast(el, { delay: 3500 }).show();
-    el.addEventListener('hidden.bs.toast', () => el.remove());
+    return container;
 }
 
 /* ── Number animation helper ─────────────────────────────── */
@@ -359,7 +363,9 @@ function handleAjaxFormResult(data) {
             timer: 1600,
             showConfirmButton: false,
         }).then(() => {
-            if (data.redirect) {
+            if (data.followUp) {
+                ajaxFollowUp(data.followUp);
+            } else if (data.redirect) {
                 loadPage(data.redirect, { scroll: true });
             } else {
                 loadPage(window.location.href, { push: false, scroll: false });
@@ -367,6 +373,74 @@ function handleAjaxFormResult(data) {
         });
     }
     Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Something went wrong. Please try again.' });
+}
+
+/* RMA table (#rmaTable, partials/rma_school_table.php) → CSV that opens in Excel,
+   in the DepEd sheet's column order; spanned header cells keep their columns. */
+function rmaExport(id) {
+    const table = document.getElementById(id || 'rmaTable');
+    if (!table) return;
+    const lines = [JSON.stringify(table.dataset.exportTitle || 'RMA')];
+    table.querySelectorAll('tr').forEach(r => {
+        lines.push([...r.querySelectorAll('th,td')].map(c =>
+            JSON.stringify(c.innerText.replace(/\s+/g, ' ').trim()) + ','.repeat(parseInt(c.getAttribute('colspan') || '1', 10) - 1)
+        ).join(','));
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv' }));
+    a.download = (table.dataset.exportFile || 'RMA') + '.csv';
+    a.click();
+}
+
+/* Reading Program: open the "Return to encoder" note form (partials/reading_return_modal.php). */
+function readingReturn(id, label) {
+    document.getElementById('readingReturnId').value = id;
+    document.getElementById('readingReturnLabel').textContent = label;
+    document.getElementById('readingReturnNote').value = '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('readingReturnModal')).show();
+}
+
+/* A second question the server asks after a save (data.followUp), e.g. "Request a
+   replacement?" after an item is marked Unserviceable. Confirming posts spec.fields
+   plus the typed text (spec.inputName) to spec.url; either way the page reloads. */
+function ajaxFollowUp(spec) {
+    // A Bootstrap modal traps focus (the prompt's text box couldn't be typed
+    // in), so close the form's modal first and ask once it has faded out.
+    const open = [...document.querySelectorAll('.modal.show')];
+    if (open.length) {
+        open.forEach(el => bootstrap.Modal.getInstance(el)?.hide());
+        setTimeout(() => askFollowUp(spec), 400);
+    } else {
+        askFollowUp(spec);
+    }
+}
+
+function askFollowUp(spec) {
+    const reload = () => loadPage(window.location.href, { push: false, scroll: false });
+    Swal.fire({
+        icon: 'question',
+        title: spec.title || 'One more thing',
+        text: spec.text || '',
+        input: spec.inputName ? 'textarea' : undefined,
+        inputLabel: spec.inputLabel || '',
+        inputValue: spec.inputValue || '',
+        inputAttributes: { maxlength: 1000 },
+        inputValidator: v => (spec.inputRequired && !String(v || '').trim()) ? 'Please fill this out.' : undefined,
+        showCancelButton: true,
+        confirmButtonText: spec.confirmText || 'Continue',
+        cancelButtonText: spec.cancelText || 'Not now',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+    }).then(result => {
+        if (!result.isConfirmed) { reload(); return; }
+        const body = new URLSearchParams(spec.fields || {});
+        if (spec.inputName) body.append(spec.inputName, result.value || '');
+        fetch(spec.url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body })
+            .then(res => res.json())
+            .then(handleAjaxFormResult)
+            .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Could not reach the server.' }).then(reload));
+    });
 }
 
 /* ── Upload motion overlay controls (see app.css for the animation) ── */
@@ -1663,6 +1737,107 @@ function openChartModal(canvas) {
     }, true);
 })();
 </script>
+
+<?php if (currentUser()): ?>
+<script>
+/* ── Chat pulse: every few seconds (tab visible only) ask the server whether
+   any chat got a new message. Updates the top-bar badge and tab title, pops
+   up a "new message" toast, and tells the Chat page to refresh its list and
+   open thread right away (window.chatOnPulse in chat.php). ── */
+(function () {
+    const PULSE_URL = '<?= base_url('chat/pulse') ?>';
+    const CHAT_URL  = '<?= base_url('chat') ?>';
+    const SEEN_KEY  = 'chatLastSeenMsgId';
+    let lastSeen = null;
+    let lastSignature = null;
+    let inFlight = false;
+    try { lastSeen = parseInt(sessionStorage.getItem(SEEN_KEY) || '', 10) || null; } catch (e) {}
+
+    function remember(id) {
+        lastSeen = id;
+        try { sessionStorage.setItem(SEEN_KEY, String(id)); } catch (e) {}
+    }
+
+    function setBadge(n) {
+        const btn = document.getElementById('chatNavBtn');
+        if (btn) {
+            let b = btn.querySelector('.notif-badge');
+            if (n > 0) {
+                if (!b) { b = document.createElement('span'); b.className = 'notif-badge'; btn.appendChild(b); }
+                b.textContent = n > 99 ? '99+' : n;
+            } else if (b) {
+                b.remove();
+            }
+        }
+        document.title = (n > 0 ? '(' + n + ') ' : '') + document.title.replace(/^\(\d+\+?\)\s*/, '');
+    }
+
+    function openChat(id) {
+        if (document.getElementById('chatShell') && typeof openConversation === 'function'
+            && document.querySelector('.chat-convo-item[data-id="' + id + '"]')) {
+            openConversation(id);
+        } else {
+            loadPage(CHAT_URL + '?open=' + id);
+        }
+    }
+
+    function messageToast(m) {
+        const el = document.createElement('div');
+        el.className = 'toast border-0 chat-pulse-toast';
+        el.setAttribute('role', 'status');
+        el.innerHTML = '<div class="d-flex align-items-start gap-2">'
+            + '<i class="bi bi-chat-dots-fill chat-pulse-icon"></i>'
+            + '<div class="flex-grow-1 min-w-0"><div class="chat-pulse-from text-truncate"></div><div class="chat-pulse-body text-truncate"></div></div>'
+            + '<button type="button" class="btn-close btn-close-sm" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+        // Names and messages are user text: set as text, never as HTML.
+        el.querySelector('.chat-pulse-from').textContent = m.from;
+        el.querySelector('.chat-pulse-body').textContent = m.preview;
+        el.addEventListener('click', e => {
+            if (e.target.closest('.btn-close')) return;
+            bootstrap.Toast.getOrCreateInstance(el).hide();
+            openChat(m.conversation_id);
+        });
+        toastContainer().appendChild(el);
+        new bootstrap.Toast(el, { delay: 6000 }).show();
+        el.addEventListener('hidden.bs.toast', () => el.remove());
+    }
+
+    function pulse() {
+        if (inFlight || document.hidden) return;
+        inFlight = true;
+        fetch(PULSE_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(res => res.ok ? res.json() : null)
+            .then(d => {
+                if (!d || d.status !== 'success') return;
+                setBadge(d.unread);
+
+                const latestId = d.latest ? d.latest.id : 0;
+                if (lastSeen === null) {
+                    remember(latestId); // first check: nothing is "new" yet
+                } else if (latestId > lastSeen) {
+                    remember(latestId);
+                    const onChat   = !!document.getElementById('chatShell');
+                    const isOpenNow = onChat && typeof activeConversationId !== 'undefined'
+                        && String(activeConversationId) === String(d.latest.conversation_id);
+                    if (!isOpenNow && !d.latest.muted) messageToast(d.latest);
+                }
+
+                const changed = lastSignature !== null && d.signature !== lastSignature;
+                lastSignature = d.signature;
+                if (changed && typeof window.chatOnPulse === 'function' && document.getElementById('chatShell')) {
+                    window.chatOnPulse(d);
+                }
+            })
+            .catch(() => {})
+            .finally(() => { inFlight = false; });
+    }
+
+    setInterval(pulse, 4000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pulse(); });
+    pulse();
+})();
+</script>
+<?php endif; ?>
 
 <?php if (isset($extraScript)): ?>
 <!-- Inert <template> so the browser doesn't run it natively: a native run

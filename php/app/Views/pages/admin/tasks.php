@@ -66,6 +66,15 @@
               </div>
             </td>
             <td class="text-center" onclick="event.stopPropagation()">
+              <?php if ($t['approvable_count'] > 0): $n = (int) $t['approvable_count']; ?>
+              <form method="POST" action="<?= base_url('tasks') ?>" class="d-inline ajax-form"
+                    data-confirm-title="Approve all <?= $n ?> pending upload<?= $n === 1 ? '' : 's' ?>?"
+                    data-confirm-text="Each submitter will be notified. Returned uploads stay as they are.">
+                <input type="hidden" name="action" value="approve_all">
+                <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                <button class="btn btn-sm btn-outline-success" title="Approve all pending uploads (<?= $n ?>)"><i class="bi bi-check2-all"></i></button>
+              </form>
+              <?php endif; ?>
               <button type="button" class="btn btn-sm btn-outline-secondary" title="View submissions" onclick="openTaskDetailModal(<?= (int) $t['id'] ?>)">
                 <i class="bi bi-eye"></i>
               </button>
@@ -248,9 +257,18 @@
       <div class="modal-body">
         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-3">
           <p class="text-muted small mb-0" id="taskDetailMeta"></p>
-          <a href="#" id="taskDetailDocsLink" class="btn btn-sm btn-outline-maroon d-none">
-            <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
-          </a>
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="POST" action="<?= base_url('tasks') ?>" id="taskApproveAllForm" class="ajax-form d-none"
+                  data-confirm-title="Approve all pending uploads?"
+                  data-confirm-text="Each submitter will be notified. Returned uploads stay as they are.">
+              <input type="hidden" name="action" value="approve_all">
+              <input type="hidden" name="id" value="">
+              <button class="btn btn-sm btn-success"><i class="bi bi-check2-all me-1"></i>Approve All (<span class="approve-all-count">0</span>)</button>
+            </form>
+            <a href="#" id="taskDetailDocsLink" class="btn btn-sm btn-outline-maroon d-none">
+              <i class="bi bi-folder2-open me-1"></i>Open in Manage Documents
+            </a>
+          </div>
         </div>
         <div id="taskDetailDescriptionWrap" class="mb-4" style="display:none;">
           <p class="text-muted small mb-1 fw-semibold">Instructions</p>
@@ -461,6 +479,7 @@ function openTaskDetailModal(taskId) {
     document.getElementById('taskDetailMeta').innerHTML = '';
     document.getElementById('taskDetailDescriptionWrap').style.display = 'none';
     document.getElementById('taskDetailDocsLink').classList.add('d-none');
+    document.getElementById('taskApproveAllForm').classList.add('d-none');
     document.getElementById('taskDetailContent').style.display = 'none';
     document.getElementById('taskDetailLoading').style.display = 'block';
     document.getElementById('taskDetailLoading').innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>Loading task details\\u2026';
@@ -485,6 +504,14 @@ function openTaskDetailModal(taskId) {
             if (data.task.folderUrl) {
                 docsLink.href = data.task.folderUrl;
                 docsLink.classList.remove('d-none');
+            }
+            // Approve All: every pending upload on this task (principal and ADAS).
+            const approveAll = document.getElementById('taskApproveAllForm');
+            if (data.approvableCount > 0) {
+                approveAll.querySelector('[name=\"id\"]').value = data.task.id;
+                approveAll.querySelector('.approve-all-count').textContent = data.approvableCount;
+                approveAll.dataset.confirmTitle = 'Approve all ' + data.approvableCount + ' pending upload' + (data.approvableCount === 1 ? '' : 's') + '?';
+                approveAll.classList.remove('d-none');
             }
 
             if (data.task.description) {

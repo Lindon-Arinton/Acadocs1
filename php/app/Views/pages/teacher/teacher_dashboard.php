@@ -42,7 +42,7 @@ $taskStatusAlpha = ['completed' => 1, 'pending' => .55, 'overdue' => .25];
     <h4>Welcome back, <?= e($user['name']) ?></h4>
     <p><?= $teacher ? e(implode(' · ', $metaParts)) : 'Teacher Dashboard' ?></p>
   </div>
-  <a href="<?= base_url('time-records') ?>" class="td-hero-date" title="Open Time Records">
+  <a href="<?= base_url('time-records/report') ?>" class="td-hero-date" title="View my attendance">
     <i class="bi bi-calendar3"></i>
     <span><small>Today is</small><?= date('M d, Y') ?></span>
     <i class="bi bi-chevron-right td-hero-date-arrow"></i>

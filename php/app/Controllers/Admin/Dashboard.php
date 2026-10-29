@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Libraries\MpsCalculator;
 use App\Libraries\SchoolCalendar;
+use App\Models\RmaResultModel;
 use App\Models\DepedKpiReportModel;
 use App\Models\DocumentModel;
 use App\Models\EnrollmentByLevelModel;
@@ -249,6 +250,8 @@ class Dashboard extends BaseController
 
         return [
             'pageTitle'          => 'Admin Dashboard',
+            // RMA charts (principal only); the full table is on RMA Results.
+            'rmaSummary'         => hasRole('admin') ? RmaResultModel::summary($currentYear, $this->request->getGet('rma_period')) : null,
             'avgMps'             => $avgMps,
             'years'              => $years,
             'year'               => $currentYear,

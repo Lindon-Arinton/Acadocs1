@@ -140,7 +140,9 @@ class ZkDevice
         }
 
         $output = [];
-        @exec(PHP_OS_FAMILY === 'Windows' ? 'arp -a' : 'arp -an', $output);
+        if (function_exists('exec')) { // disabled on shared hosting
+            @exec(PHP_OS_FAMILY === 'Windows' ? 'arp -a' : 'arp -an', $output);
+        }
 
         $table = [];
         foreach ($output as $line) {

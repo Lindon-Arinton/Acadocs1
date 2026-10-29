@@ -54,7 +54,8 @@ class BiometricSync
             return (self::lastStatus() ?? []) + ['ok' => true, 'busy' => true, 'at' => date('Y-m-d H:i:s'), 'message' => 'A sync is already running.', 'new' => 0, 'latest_punch' => null];
         }
 
-        set_time_limit(300); // a large backfill reads ~25,000 punches a minute
+        // A large backfill reads ~25,000 punches a minute. (May be disabled on shared hosting.)
+        if (function_exists('set_time_limit')) { @set_time_limit(300); }
         $state = self::lastStatus() ?? [];
 
         try {
@@ -395,7 +396,7 @@ class BiometricSync
         if (! $lock || ! flock($lock, LOCK_EX | LOCK_NB)) {
             return ['ok' => false, 'message' => 'A sync is running — try again in a minute.'];
         }
-        set_time_limit(0);
+        if (function_exists('set_time_limit')) { @set_time_limit(0); } // may be disabled on shared hosting
 
         try {
             $state = self::lastStatus() ?? [];

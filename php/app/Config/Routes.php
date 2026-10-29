@@ -13,7 +13,7 @@ $routes->match(['get', 'post'], 'reset-password', 'Shared\PasswordReset::reset')
 
 // Signed, expiring file link for Microsoft's Office Online viewer (it has no
 // session, so this can't sit behind authGuard) — see OfficeOnlinePreview.
-$routes->get('public-file/(template|docfile)/(:num)/(:num)/([a-f0-9]{40})/(:any)', 'Shared\PublicFile::show/$1/$2/$3/$4');
+$routes->get('public-file/(template|docfile|taskfile)/(:num)/(:num)/([a-f0-9]{40})/(:any)', 'Shared\PublicFile::show/$1/$2/$3/$4');
 
 // ── API auth (not behind authGuard — this is how a session is obtained) ──
 $routes->post('api/auth/login', 'Api\AuthController::login');
@@ -36,6 +36,13 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('document-files/(:num)/preview', 'Shared\DocumentFileDownload::preview/$1');
     $routes->match(['get', 'post'], 'performance/mps', 'Teacher\PerformanceMps::index');
     $routes->get('performance/mps/report', 'Teacher\PerformanceMps::report');
+    $routes->get('performance/mps-summary', 'Admin\MpsSummary::index');
+    $routes->match(['get', 'post'], 'rma', 'Teacher\Rma::index');
+    $routes->get('rma-results', 'Admin\RmaResults::index');
+    $routes->match(['get', 'post'], 'reading', 'Teacher\Reading::index');
+    $routes->get('reading/report', 'Teacher\Reading::report');
+    $routes->match(['get', 'post'], 'reading-program', 'Admin\ReadingProgram::index');
+    $routes->match(['get', 'post'], 'subject-requests', 'Admin\SubjectRequests::index');
     $routes->get('enrollment-kpis', static fn () => redirect()->to('/dashboard'));
     $routes->post('enrollment-kpis/import', 'Admin\EnrollmentKpis::import');
     $routes->get('enrollment-kpis/template', 'Admin\EnrollmentKpis::template');
@@ -73,6 +80,7 @@ $routes->group('', ['filter' => 'authGuard'], static function (RouteCollection $
     $routes->get('people/(:num)', 'Shared\People::show/$1');
     $routes->post('notifications/(:num)/read', 'Shared\Notifications::markRead/$1');
     $routes->match(['get', 'post'], 'chat', 'Shared\Chat::index');
+    $routes->get('chat/pulse', 'Shared\Chat::pulse');
     $routes->get('chat/(:num)/messages', 'Shared\Chat::messages/$1');
     $routes->post('chat/(:num)/send', 'Shared\Chat::send/$1');
     $routes->post('chat/(:num)/typing', 'Shared\Chat::typing/$1');

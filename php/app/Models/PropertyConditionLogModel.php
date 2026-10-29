@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 /**
  * One row per condition change or ADAS check of a property item (Working ⇄
- * Not Working), including the initial condition when the item was added.
+ * Unserviceable), including the initial condition when the item was added.
  */
 class PropertyConditionLogModel extends Model
 {

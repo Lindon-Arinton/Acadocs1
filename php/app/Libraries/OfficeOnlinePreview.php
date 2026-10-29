@@ -3,8 +3,10 @@
 namespace App\Libraries;
 
 /**
- * Fallback preview through Microsoft's Office Online viewer, used only when
- * LibreOffice (OfficeConverter) can't render a file on this server.
+ * Preview through Microsoft's Office Online viewer: the first choice for
+ * Word / Excel / PowerPoint files on the live site (templates, documents and
+ * task uploads). Where it can't be used (localhost), LibreOffice
+ * (OfficeConverter) or SpreadsheetPreview render the file instead.
  *
  * The viewer downloads the file itself, from Microsoft's servers, so it needs
  * a URL that is (1) on the public internet and (2) works without logging in.
@@ -33,7 +35,7 @@ class OfficeOnlinePreview
     /**
      * Embed URL for the viewer, or null when this file can't / shouldn't use it.
      *
-     * @param string $kind 'template' or 'docfile' — which table $id refers to
+     * @param string $kind 'template', 'docfile' or 'taskfile' — which table $id refers to
      */
     public static function embedUrl(string $kind, int $id, string $filePath, string $fileName): ?string
     {

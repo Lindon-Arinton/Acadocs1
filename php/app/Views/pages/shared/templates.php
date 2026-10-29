@@ -287,7 +287,13 @@ include APPPATH . 'Views/layout/header.php';
         <button class="btn btn-ghost btn-sm text-danger" title="Delete empty folder"><i class="bi bi-trash"></i></button>
       </form>
       <?php endif; ?>
-      <?php elseif ((int) $cat['count'] === 0): ?>
+      <?php else: ?>
+      <button type="button" class="btn btn-ghost btn-sm" title="Rename section"
+              onclick='openEditSectionModal(<?= json_encode(['id' => (int) $cat['id'], 'name' => $cat['name'], 'description' => $cat['description'] ?? ''], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+        <i class="bi bi-pencil"></i>
+      </button>
+      <?php endif; ?>
+      <?php if (! $inFolder && (int) $cat['count'] === 0): ?>
       <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
             data-confirm-title="Delete this section?" data-confirm-text="This section has no templates and will be removed<?= empty($sectionFolderCount[(int) $cat['id']]) ? '' : ', along with its empty folders' ?>.">
         <input type="hidden" name="action" value="delete_category">
@@ -304,6 +310,7 @@ include APPPATH . 'Views/layout/header.php';
     <!-- Folders at this level: open one to go inside; the ADAS can drop templates or files on them -->
     <div class="tpl-subfolders<?= empty($items) ? '' : ' mb-3' ?>">
       <?php foreach ($shownFolders as $sf): ?>
+      <div class="tpl-subfolder-wrap">
       <a href="<?= base_url('templates?category=' . (int) $cat['id'] . '&folder=' . (int) $sf['id']) ?>" class="tpl-subfolder"
          title="Open <?= e($sf['name']) ?>" data-section-name="<?= e($placeLabel((int) $cat['id'], (int) $sf['id'])) ?>"
          <?php if ($canManage): ?>data-drop-section="<?= (int) $cat['id'] ?>" data-drop-folder="<?= (int) $sf['id'] ?>"<?php endif; ?>>
@@ -314,6 +321,17 @@ include APPPATH . 'Views/layout/header.php';
         </span>
         <i class="bi bi-chevron-right text-muted"></i>
       </a>
+      <?php if ($canManage): ?>
+      <div class="tpl-subfolder-tools">
+        <button type="button" class="btn btn-ghost btn-sm" title="Rename folder"
+                onclick='openRenameFolder(<?= json_encode(['id' => (int) $sf['id'], 'name' => $sf['name']], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'><i class="bi bi-pencil"></i></button>
+        <?php if (! $sf['templates'] && ! $sf['folders']): ?>
+        <button type="button" class="btn btn-ghost btn-sm text-danger" title="Delete empty folder"
+                onclick='confirmDeleteFolder(<?= json_encode(['id' => (int) $sf['id'], 'name' => $sf['name']], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'><i class="bi bi-trash"></i></button>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+      </div>
       <?php endforeach; ?>
     </div>
     <?php endif; ?>
@@ -377,6 +395,7 @@ include APPPATH . 'Views/layout/header.php';
                       'uploader'    => $t['uploaded_by'],
                       'date'        => date('M d, Y', strtotime($t['date_added'])),
                       'fileName'    => $t['file_name'],
+                      'fileBase'    => pathinfo($t['file_name'], PATHINFO_FILENAME),
                       'fileSize'    => tplFormatBytes((int) $t['file_size']),
                       'previewable' => in_array($t['file_ext'], $previewableExt, true),
                       'conversions' => $conversions,
@@ -406,6 +425,8 @@ include APPPATH . 'Views/layout/header.php';
             <?php endif; ?>
           </div>
           <?php if ($canManage): ?>
+          <button type="button" class="btn btn-sm btn-outline-secondary" title="Rename"
+                  onclick='openRenameTemplate(<?= json_encode(['id' => (int) $t['id'], 'title' => $t['title'], 'fileBase' => pathinfo($t['file_name'], PATHINFO_FILENAME), 'ext' => $t['file_ext']], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'><i class="bi bi-pencil"></i></button>
           <button type="button" class="btn btn-sm btn-outline-secondary" title="Move to another section or folder"
                   onclick="openMoveTemplate(this.closest('[data-template-id]'))"><i class="bi bi-folder-symlink"></i></button>
           <form method="POST" action="<?= base_url('templates') ?>" class="ajax-form"
@@ -566,6 +587,12 @@ include APPPATH . 'Views/layout/header.php';
       </div>
       <div class="modal-body" id="previewModalBody"></div>
       <div class="modal-footer">
+        <?php if ($canManage): ?>
+        <div class="d-flex gap-2 me-auto">
+          <button type="button" class="btn btn-outline-secondary" id="previewModalRenameBtn"><i class="bi bi-pencil me-1"></i>Rename</button>
+          <button type="button" class="btn btn-outline-danger" id="previewModalDeleteBtn"><i class="bi bi-trash me-1"></i>Delete</button>
+        </div>
+        <?php endif; ?>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
         <div class="btn-group">
           <button type="button" class="btn btn-primary" id="previewModalDownloadBtn">
@@ -615,6 +642,15 @@ function showPreviewUnavailable(box, downloadBase, fileName) {
     document.getElementById('previewUnavailableDownloadBtn').onclick = () => downloadTemplate(downloadBase, fileName);
 }
 
+// The template is listed but its file isn't on the server any more.
+function showFileMissing(box) {
+    box.innerHTML = '<div class=\"text-center py-5\">'
+        + '<i class=\"bi bi-file-earmark-x fs-1 d-block mb-3 text-danger\"></i>'
+        + '<div class=\"fw-semibold mb-1\">File not found on the server</div>'
+        + '<p class=\"text-muted mx-auto mb-0\" style=\"font-size:.85rem;max-width:340px;\">The template is listed, but its file is missing from the uploads folder on the server. Upload the file again (or restore the uploads folder from a backup).</p>'
+        + '</div>';
+}
+
 // Fetches the preview endpoint ourselves (rather than pointing an <iframe>
 // straight at it) so a failed/unavailable preview can be caught before
 // anything renders — the requirement is that a dead file type or a failed
@@ -650,6 +686,10 @@ function loadTemplatePreview(t, previewUrl, downloadBase) {
                 frame.src = embedUrl;
                 box.innerHTML = '';
                 box.appendChild(frame);
+                return null;
+            }
+            if (res.headers.get('X-Preview-Reason') === 'missing') {
+                showFileMissing(box);
                 return null;
             }
             if (!res.ok || res.headers.get('X-Preview-Available') === '0') {
@@ -704,6 +744,10 @@ function previewTemplate(t) {
     `;
 
     document.getElementById('previewModalDownloadBtn').onclick = () => downloadTemplate(downloadBase, t.fileName);
+    const renameBtn = document.getElementById('previewModalRenameBtn');
+    if (renameBtn) renameBtn.onclick = () => tplFromPreview(() => openRenameTemplate({ id: t.id, title: t.title, fileBase: t.fileBase, ext: t.ext }));
+    const deleteBtn = document.getElementById('previewModalDeleteBtn');
+    if (deleteBtn) deleteBtn.onclick = () => tplFromPreview(() => confirmDeleteTemplate({ id: t.id, title: t.title }));
 
     const caret = document.getElementById('previewModalDownloadCaret');
     const menu  = document.getElementById('previewModalDownloadMenu');
@@ -1343,6 +1387,77 @@ function openRenameFolder(o) {
     }).then(function (r) {
         if (!r.isConfirmed || r.value.trim() === o.name) return;
         postTemplateAction({ action: 'rename_folder', id: o.id, name: r.value.trim() });
+    });
+}
+
+// The preview window traps keyboard focus, so it closes before a dialog opens.
+function tplFromPreview(open) {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('previewModal'));
+    if (modal) { modal.hide(); setTimeout(open, 350); } else { open(); }
+}
+
+// New title and download name; the extension stays.
+function openRenameTemplate(t) {
+    const ext = t.ext ? '.' + escapeHtml(t.ext) : '';
+    Swal.fire({
+        title: 'Rename template',
+        html: '<div class=\"text-start\" style=\"font-size:.85rem\">'
+            + '<label class=\"form-label fw-semibold mb-1\" for=\"tplRenameTitle\">Title</label>'
+            + '<input id=\"tplRenameTitle\" class=\"form-control mb-3\" maxlength=\"255\" value=\"' + escapeAttr(t.title) + '\">'
+            + '<label class=\"form-label fw-semibold mb-1\" for=\"tplRenameFile\">File name <span class=\"text-muted fw-normal\">(used when downloading)</span></label>'
+            + '<div class=\"input-group\"><input id=\"tplRenameFile\" class=\"form-control\" maxlength=\"200\" value=\"' + escapeAttr(t.fileBase || '') + '\">'
+            + (ext ? '<span class=\"input-group-text\">' + ext + '</span>' : '') + '</div></div>',
+        showCancelButton: true,
+        confirmButtonText: 'Save',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusConfirm: false,
+        didOpen: function () { const i = document.getElementById('tplRenameTitle'); i.focus(); i.select(); },
+        preConfirm: function () {
+            const title = document.getElementById('tplRenameTitle').value.trim();
+            const file  = document.getElementById('tplRenameFile').value.trim();
+            if (!title) { Swal.showValidationMessage('Please enter a title.'); return false; }
+            if (!file) { Swal.showValidationMessage('Please enter a file name.'); return false; }
+            return { title: title, file: file };
+        },
+    }).then(function (r) {
+        if (!r.isConfirmed) return;
+        postTemplateAction({ action: 'rename_template', id: t.id, title: r.value.title, file_base: r.value.file });
+    });
+}
+
+function confirmDeleteTemplate(t) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Delete this template?',
+        html: '<strong>“' + escapeHtml(t.title) + '”</strong> and its file will be removed. This can’t be undone.',
+        showCancelButton: true,
+        confirmButtonText: '<i class=\"bi bi-trash me-1\"></i>Delete',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusCancel: true,
+    }).then(function (r) {
+        if (!r.isConfirmed) return;
+        postTemplateAction({ action: 'delete_template', id: t.id });
+    });
+}
+
+function confirmDeleteFolder(f) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Delete this folder?',
+        html: '<strong>“' + escapeHtml(f.name) + '”</strong> is empty and will be removed.',
+        showCancelButton: true,
+        confirmButtonText: '<i class=\"bi bi-trash me-1\"></i>Delete',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusCancel: true,
+    }).then(function (r) {
+        if (!r.isConfirmed) return;
+        postTemplateAction({ action: 'delete_folder', id: f.id });
     });
 }
 

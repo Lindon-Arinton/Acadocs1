@@ -10,7 +10,10 @@ use CodeIgniter\Model;
  */
 class PropertyConcernModel extends Model
 {
-    public const CATEGORIES = ['Not working / damaged', 'Missing / not received', 'Wrong quantity', 'Other'];
+    public const CATEGORIES = ['Not working / damaged', 'Missing / not received', 'Wrong quantity', 'Replacement request', 'Other'];
+
+    /** Sent when an item is Unserviceable (Properties: request_replacement). */
+    public const REPLACEMENT = 'Replacement request';
 
     protected $table = 'property_concerns';
     protected $primaryKey = 'id';

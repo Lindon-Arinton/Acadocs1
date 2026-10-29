@@ -407,7 +407,7 @@ class TimeRecordImporter
      */
     private function importPunchLog(array $rows, int $headerRow, array $columns, array $summary): array
     {
-        set_time_limit(0);
+        if (function_exists('set_time_limit')) { @set_time_limit(0); } // may be disabled on shared hosting
 
         $cell = static fn (array $row, ?int $col): string => $col === null ? '' : trim((string) ($row[$col] ?? ''));
 

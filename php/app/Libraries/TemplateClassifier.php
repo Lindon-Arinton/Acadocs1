@@ -139,6 +139,12 @@ class TemplateClassifier
             return $cache[$name];
         }
 
+        // Shared hosting (e.g. Hostinger) disables running programs; in PHP 8
+        // calling a disabled function is a fatal error, so treat it as "not installed".
+        if (! function_exists('shell_exec') || ! function_exists('exec')) {
+            return $cache[$name] = null;
+        }
+
         $candidates = array_filter([env('classifier.' . $name)]);
         $exe        = DIRECTORY_SEPARATOR === '\\' ? $name . '.exe' : $name;
         if (DIRECTORY_SEPARATOR === '\\') {
@@ -155,8 +161,10 @@ class TemplateClassifier
             $candidates[] = '/usr/local/bin/' . $name;
             $candidates[] = '/opt/homebrew/bin/' . $name;
         }
+        // @: a host that limits PHP to its own folders (open_basedir) warns on
+        // system paths like /usr/bin, and the app turns warnings into errors.
         foreach ($candidates as $c) {
-            if (is_file($c)) {
+            if (@is_file($c)) {
                 return $cache[$name] = $c;
             }
         }
@@ -164,7 +172,7 @@ class TemplateClassifier
         $found = @shell_exec((DIRECTORY_SEPARATOR === '\\' ? 'where ' : 'command -v ') . escapeshellarg($name) . ' 2>' . (DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null'));
         $first = $found ? trim(strtok($found, "\r\n")) : '';
 
-        return $cache[$name] = ($first !== '' && is_file($first)) ? $first : null;
+        return $cache[$name] = ($first !== '' && @is_file($first)) ? $first : null;
     }
 
     private function ocrText(string $path, string $ext): string

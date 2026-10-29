@@ -171,6 +171,18 @@ $folderMenu = static function (array $folder, bool $floating) use ($canManage): 
       <?php endif; ?>
     </button>
     <div class="d-flex align-items-center gap-1 flex-shrink-0">
+      <?php $approvable = $approvableByTask[(int) $folder['task_id']] ?? 0; if ($approvable > 0): ?>
+      <form method="POST" action="<?= base_url('documents' . (! empty($current) ? '?folder=' . (int) $current['id'] : '')) ?>"
+            class="ajax-form doc-approve-all-form" data-folder-id="<?= (int) $folder['id'] ?>"
+            data-confirm-title="Approve all <?= $approvable ?> pending upload<?= $approvable === 1 ? '' : 's' ?>?"
+            data-confirm-text="Every pending upload in “<?= e($folder['name']) ?>” will be marked Approved and each uploader notified. Returned uploads stay as they are.">
+        <input type="hidden" name="action" value="approve_all">
+        <input type="hidden" name="folder_id" value="<?= (int) $folder['id'] ?>">
+        <button class="btn btn-sm btn-success text-nowrap" title="Approve every pending upload in this task">
+          <i class="bi bi-check2-all me-1"></i>Approve All (<?= $approvable ?>)
+        </button>
+      </form>
+      <?php endif; ?>
       <?php $folderMenu($folder, false); ?>
     </div>
   </div>
@@ -495,6 +507,10 @@ initLiveSearch('docSearchInput', 'filterForm');
     document.getElementById('docReviewForm')?.addEventListener('submit', e => {
         try { sessionStorage.setItem(REOPEN_KEY, e.currentTarget.dataset.folderId || ''); } catch (err) {}
     });
+    // Approve All: reopen that folder after the reload so the new statuses are in view.
+    document.querySelectorAll('.doc-approve-all-form').forEach(form => form.addEventListener('submit', () => {
+        try { sessionStorage.setItem(REOPEN_KEY, form.dataset.folderId || ''); } catch (err) {}
+    }));
 
     window.reviewDocUpload = function (folderId, submissionId, status, submitter, current) {
         if (status === current) {

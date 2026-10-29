@@ -1,3 +1,14 @@
+/* Bootstrap Icons' own stylesheet (CDN) uses font-display: block, which hides
+   icons for up to 3s while the font loads (PageSpeed: "ensure text remains
+   visible"). Same font files, redeclared after it with swap, so this one wins.
+   Keep the version in step with the bootstrap-icons <link> in the views. */
+@font-face {
+  font-display: swap;
+  font-family: bootstrap-icons;
+  src: url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6") format("woff2"),
+       url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff?dd67030699838ea613ee6dbda90effa6") format("woff");
+}
+
 /* Shared by the printable school report (pages/admin/report.php) and the
    end-of-term / end-of-year pack (pages/admin/term_pack.php): A4 sheet, DepEd
    letterhead, numbered sections, tables, signatures. Always light — it is for paper / PDF. */

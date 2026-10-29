@@ -278,7 +278,8 @@ class TeacherDashboard extends BaseController
         }
 
         if ($upcomingTask !== null) {
-            $daysLeft = (int) ceil((strtotime($upcomingTask['deadline']) - strtotime(date('Y-m-d'))) / 86400);
+            // Whole days between today and the due date (the time of day doesn't count).
+            $daysLeft = (int) round((strtotime(substr($upcomingTask['deadline'], 0, 10)) - strtotime(date('Y-m-d'))) / 86400);
             if ($daysLeft <= 2) {
                 $due        = $daysLeft <= 0 ? 'today' : ($daysLeft === 1 ? 'tomorrow' : 'in ' . $daysLeft . ' days');
                 $insights[] = [
